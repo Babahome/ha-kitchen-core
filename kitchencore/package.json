@@ -1,0 +1,10 @@
+{
+  "name": "kitchencore",
+  "version": "0.1.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "express": "^4.18.3"
+  }
+}
