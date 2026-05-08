@@ -1,6 +1,6 @@
 name: "KitchenCore"
 description: "Gestion de stock alimentaire - Version test"
-version: "0.1.0"
+version: "0.3.0"
 slug: "kitchencore"
 init: false
 arch:
