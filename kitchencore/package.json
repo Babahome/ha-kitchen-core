@@ -1,10 +1,12 @@
 {
   "name": "kitchencore",
-  "version": "0.1.0",
+  "version": "0.4.0",
+  "description": "KitchenCore – Home Assistant Add-on – Interface mobile",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
     "express": "^4.18.3"
-  }
+  },
+  "engines": { "node": ">=18" }
 }
