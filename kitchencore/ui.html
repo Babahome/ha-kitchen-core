@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>KitchenCore</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ── VARIABLES ─────────────────────────────────────────────────────────────── */
+:root {
+  --orange:     #E8671A;
+  --orange-d:   #C5560F;
+  --orange-l:   #FDF0E8;
+  --green:      #4CAF50;
+  --amber:      #FF9800;
+  --red:        #F44336;
+  --grey-l:     #F5F5F5;
+  --grey:       #E0E0E0;
+  --grey-d:     #9E9E9E;
+  --text:       #1A1A1A;
+  --text2:      #666;
+  --white:      #FFFFFF;
+  --shadow:     0 2px 12px rgba(0,0,0,.10);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,.15);
+  --radius:     14px;
+  --radius-sm:  10px;
+  --header-h:   60px;
+  --bottom-h:   68px;
+  --font:       'Nunito', sans-serif;
+}
+
+/* ── RESET ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--white); }
+body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+.frame {
+  width: 100%; height: 100dvh;
+  background: var(--white);
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+
+/* ── HEADER ────────────────────────────────────────────────────────────────── */
+.header {
+  background: var(--orange);
+  height: var(--header-h);
+  display: flex; align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+.header-burger {
+  width: 40px; height: 40px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  cursor: pointer; border-radius: 10px;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.header-burger:active { background: rgba(255,255,255,.2); }
+.header-burger span { display: block; width: 22px; height: 2.5px; background: white; border-radius: 2px; }
+.header-title { font-size: 1.25rem; font-weight: 800; color: white; flex: 1; }
+.header-icon {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  cursor: pointer; border-radius: 10px; transition: background .15s;
+  color: white; font-size: 1.2rem;
+}
+.header-icon:active { background: rgba(255,255,255,.2); }
+
+/* ── SCROLLABLE CONTENT ────────────────────────────────────────────────────── */
+.content {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  background: var(--grey-l);
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ── PAGES ─────────────────────────────────────────────────────────────────── */
+.page { display: none; min-height: 100%; }
+.page.active { display: block; }
+
+/* ── BOTTOM NAV ────────────────────────────────────────────────────────────── */
+.bottom-nav {
+  height: var(--bottom-h);
+  background: white;
+  border-top: 1px solid var(--grey);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  flex-shrink: 0;
+  position: relative; z-index: 10;
+  padding-bottom: 8px;
+}
+.nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; cursor: pointer; padding: 6px 4px 2px;
+  transition: all .15s; position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-tab .nav-icon { font-size: 1.35rem; transition: transform .2s; }
+.nav-tab .nav-label { font-size: .6rem; font-weight: 700; color: var(--grey-d); letter-spacing: .02em; }
+.nav-tab.active .nav-icon { transform: scale(1.1); }
+.nav-tab.active .nav-label { color: var(--orange); }
+.nav-badge {
+  position: absolute; top: 4px; right: calc(50% - 18px);
+  background: var(--orange); color: white;
+  font-size: .55rem; font-weight: 800;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 99px; display: grid; place-items: center;
+}
+
+/* ── FAB ───────────────────────────────────────────────────────────────────── */
+.fab {
+  position: absolute; bottom: calc(var(--bottom-h) + 16px); right: 16px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--orange); color: white;
+  display: grid; place-items: center; font-size: 1.6rem;
+  box-shadow: 0 4px 20px rgba(232,103,26,.5);
+  cursor: pointer; z-index: 20;
+  transition: transform .15s, box-shadow .15s;
+  user-select: none;
+}
+.fab:active { transform: scale(.93); box-shadow: 0 2px 10px rgba(232,103,26,.4); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PAGE STOCK
+══════════════════════════════════════════════════════════════════════════════ */
+.stock-filters {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 14px 8px;
+  background: white;
+  border-bottom: 1px solid var(--grey);
+}
+.filter-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--grey-l); border: 1.5px solid var(--grey);
+  border-radius: 99px; padding: 6px 12px;
+  font-size: .8rem; font-weight: 700; color: var(--text2);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: all .15s;
+}
+.filter-pill.active { background: var(--orange-l); border-color: var(--orange); color: var(--orange); }
+.sort-btn {
+  margin-left: auto; display: flex; align-items: center; gap: 4px;
+  font-size: .78rem; font-weight: 700; color: var(--text2);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.view-toggle {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border: 1.5px solid var(--grey); border-radius: 8px;
+  cursor: pointer; flex-shrink: 0; font-size: 1rem; color: var(--text2);
+}
+
+/* Zone section */
+.zone-section { margin: 12px 14px 0; }
+.zone-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0 10px;
+}
+.zone-title { font-size: 1.05rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.zone-title span { font-size: 1.1rem; }
+.zone-count { font-size: .72rem; font-weight: 700; color: var(--grey-d); background: var(--grey-l); padding: 2px 8px; border-radius: 99px; }
+.zone-collapse {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--grey); display: grid; place-items: center;
+  cursor: pointer; font-size: .9rem; color: var(--grey-d);
+  transition: all .2s; flex-shrink: 0;
+}
+.zone-collapse:active { background: var(--grey-l); }
+
+/* Product grid */
+.product-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  overflow: hidden;
+  transition: max-height .3s ease, opacity .3s ease;
+}
+.product-grid.collapsed { max-height: 0 !important; opacity: 0; }
+
+/* Product card */
+.prod-card {
+  background: white; border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); overflow: hidden;
+  position: relative;
+  transition: transform .15s;
+}
+.prod-card:active { transform: scale(.97); }
+
+.prod-img {
+  width: 100%; aspect-ratio: 1;
+  object-fit: cover; display: block;
+  background: var(--grey-l);
+  position: relative; overflow: hidden;
+}
+.prod-img-placeholder {
+  width: 100%; aspect-ratio: 1;
+  background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+}
+
+.prod-status {
+  position: absolute; top: 6px; left: 6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: .65rem; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.prod-status.ok     { background: var(--green); }
+.prod-status.warn   { background: var(--amber); }
+.prod-status.empty  { background: var(--red); }
+.prod-status.unknwn { background: #9E9E9E; }
+
+.prod-recipe {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,.9); display: grid; place-items: center;
+  font-size: .65rem; color: var(--grey-d); box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+
+.prod-check {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px; border-radius: 5px;
+  border: 2px solid rgba(255,255,255,.8); background: rgba(255,255,255,.3);
+  cursor: pointer;
+}
+.prod-check.checked { background: var(--orange); border-color: var(--orange); }
+
+.prod-info { padding: 7px 7px 6px; }
+.prod-name {
+  font-size: .73rem; font-weight: 700; color: var(--text);
+  line-height: 1.25; max-height: 2.5em;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  margin-bottom: 5px;
+}
+.prod-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 2px;
+}
+.prod-del { font-size: .85rem; color: var(--grey-d); cursor: pointer; padding: 2px; }
+.prod-qty {
+  display: flex; align-items: center; gap: 3px;
+}
+.qty-btn {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--grey); background: white;
+  display: grid; place-items: center; cursor: pointer;
+  font-size: .9rem; color: var(--text2); font-weight: 700;
+  transition: all .1s; flex-shrink: 0;
+  line-height: 1;
+}
+.qty-btn:active { background: var(--orange); border-color: var(--orange); color: white; }
+.qty-val {
+  font-size: .85rem; font-weight: 900; color: var(--text);
+  min-width: 14px; text-align: center; line-height: 1;
+}
+.qty-unit { font-size: .6rem; color: var(--grey-d); font-weight: 600; text-align:center; margin-top: 1px; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PAGE COURSES
+══════════════════════════════════════════════════════════════════════════════ */
+.courses-header-bar {
+  background: white; padding: 10px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--grey);
+}
+.courses-title-row { font-size: 1rem; font-weight: 800; }
+.courses-sort { display: flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--text2); cursor: pointer; }
+
+.rayon-section { margin: 0 0 4px; }
+.rayon-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px 8px;
+  background: var(--grey-l);
+}
+.rayon-check {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 2px solid var(--grey); flex-shrink: 0; cursor: pointer;
+  transition: all .15s;
+}
+.rayon-check.checked { background: var(--orange); border-color: var(--orange); }
+.rayon-name { font-size: 1rem; font-weight: 800; flex: 1; }
+
+.course-item {
+  background: white; display: flex; align-items: center;
+  padding: 10px 14px; gap: 10px;
+  border-bottom: 1px solid var(--grey-l);
+  transition: background .15s;
+}
+.course-item.done { opacity: .45; }
+.course-check-box {
+  width: 24px; height: 24px; border-radius: 6px;
+  border: 2px solid var(--grey); flex-shrink: 0; cursor: pointer;
+  transition: all .15s; display: grid; place-items: center;
+}
+.course-check-box.checked { background: var(--orange); border-color: var(--orange); color: white; font-size: .8rem; }
+.course-img {
+  width: 52px; height: 52px; border-radius: 8px;
+  object-fit: cover; background: var(--grey-l);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+.course-body { flex: 1; min-width: 0; }
+.course-name { font-size: .88rem; font-weight: 700; line-height: 1.25; }
+.course-sub  { font-size: .72rem; color: var(--grey-d); margin-top: 2px; }
+.course-del  { font-size: 1rem; color: var(--grey-d); cursor: pointer; padding: 4px; flex-shrink: 0; }
+.course-qty-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
+.course-qty-val { font-size: 1rem; font-weight: 900; }
+.course-qty-unit { font-size: .65rem; color: var(--grey-d); font-weight: 700; }
+.course-qty-add {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--grey); background: white;
+  display: grid; place-items: center; cursor: pointer; font-size: 1rem; color: var(--grey-d);
+}
+.course-qty-add:active { background: var(--orange); color: white; border-color: var(--orange); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PAGE RECETTES
+══════════════════════════════════════════════════════════════════════════════ */
+/* Page recettes a un fond sombre */
+#page-recettes {
+  background: var(--grey-l);
+}
+
+/* Filtres chips scrollables */
+.recettes-filters {
+  background: white;
+  padding: 12px 14px 10px;
+  display: flex; gap: 8px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  flex-shrink: 0;
+}
+.recettes-filters::-webkit-scrollbar { display: none; }
+.r-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: white; border: 1.5px solid var(--grey);
+  border-radius: 99px; padding: 7px 14px;
+  font-size: .8rem; font-weight: 700; color: var(--text2);
+  white-space: nowrap; cursor: pointer; flex-shrink: 0;
+  transition: all .15s;
+}
+.r-chip.active {
+  background: var(--orange); border-color: var(--orange); color: white;
+}
+.r-chip:active { opacity: .75; }
+
+/* Section titre */
+.recettes-section-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px 10px;
+}
+.recettes-section-icon { font-size: 1.1rem; color: var(--grey-d); }
+.recettes-section-title { font-size: 1.2rem; font-weight: 800; color: var(--text); flex: 1; }
+.recettes-section-grid { font-size: 1rem; color: var(--grey-d); cursor: pointer; }
+
+/* Liste recettes */
+.recette-card {
+  background: white; border-radius: 14px;
+  margin: 0 14px 12px; overflow: hidden;
+  display: flex; align-items: stretch;
+  min-height: 100px; cursor: pointer;
+  transition: transform .15s;
+  border: 1px solid var(--grey);
+  box-shadow: var(--shadow);
+}
+.recette-card:active { transform: scale(.98); }
+.recette-img {
+  width: 110px; flex-shrink: 0;
+  object-fit: cover; background: var(--grey-l);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem;
+}
+.recette-body {
+  flex: 1; padding: 12px 12px 10px; display: flex; flex-direction: column; min-width: 0;
+}
+.recette-title {
+  font-size: .92rem; font-weight: 700; color: var(--text);
+  line-height: 1.3; margin-bottom: 4px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.recette-desc {
+  font-size: .75rem; color: var(--text2); line-height: 1.4; flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.recette-footer {
+  display: flex; align-items: center; justify-content: space-between; margin-top: 8px;
+}
+.recette-stars { display: flex; gap: 2px; }
+.recette-star { font-size: .75rem; color: var(--grey); }
+.recette-star.on { color: var(--orange); }
+.recette-like { font-size: .85rem; color: var(--grey-d); }
+.recette-more {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(232,103,26,.15); display: grid; place-items: center;
+  font-size: .75rem; color: var(--orange); flex-shrink: 0;
+}
+
+/* Recette menu contextuel */
+.recette-menu {
+  position: absolute; right: 14px;
+  background: white; border-radius: 12px; border: 1px solid var(--grey);
+  z-index: 30; min-width: 180px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  display: none;
+}
+.recette-menu.open { display: block; }
+.recette-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px; font-size: .88rem; font-weight: 600; color: var(--text);
+  cursor: pointer; transition: background .1s;
+}
+.recette-menu-item:active { background: var(--grey-l); }
+.recette-menu-item span { font-size: 1rem; }
+
+/* FAB secondaire recherche */
+.fab-search {
+  position: absolute; bottom: calc(var(--bottom-h) + 16px); left: 16px;
+  height: 46px; border-radius: 23px;
+  background: white; color: var(--text2);
+  display: none; align-items: center; gap: 8px;
+  padding: 0 16px 0 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  cursor: pointer; z-index: 20;
+  border: 1px solid var(--grey);
+  font-size: .88rem; font-weight: 600; font-family: var(--font);
+  transition: all .2s;
+}
+.fab-search.visible { display: flex; }
+.fab-search-input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--font); font-size: .88rem; font-weight: 600;
+  width: 0; transition: width .25s ease;
+  padding: 0;
+}
+.fab-search-input.expanded { width: 160px; }
+.fab-search-input::placeholder { color: var(--grey-d); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PAGE MENU / PROFIL (placeholder)
+══════════════════════════════════════════════════════════════════════════════ */
+.placeholder-page {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60vh; gap: 12px; color: var(--grey-d);
+}
+.placeholder-icon { font-size: 4rem; opacity: .4; }
+.placeholder-title { font-size: 1.1rem; font-weight: 800; color: var(--text2); }
+.placeholder-sub { font-size: .85rem; text-align: center; max-width: 220px; line-height: 1.5; }
+.placeholder-chip {
+  background: var(--orange-l); color: var(--orange);
+  border: 1.5px solid rgba(232,103,26,.3);
+  border-radius: 99px; padding: 6px 16px;
+  font-size: .8rem; font-weight: 800; margin-top: 8px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SCANNER CODE-BARRES
+══════════════════════════════════════════════════════════════════════════════ */
+.scanner-modal {
+  position: absolute; inset: 0; z-index: 200;
+  background: #000;
+  display: none; flex-direction: column;
+}
+.scanner-modal.open { display: flex; }
+
+.scanner-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  background: rgba(0,0,0,.6);
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+}
+.scanner-close {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,.15); display: grid; place-items: center;
+  cursor: pointer; font-size: 1.1rem; color: white; flex-shrink: 0;
+}
+.scanner-title { color: white; font-size: 1rem; font-weight: 800; flex: 1; }
+.scanner-torch {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,.15); display: grid; place-items: center;
+  cursor: pointer; font-size: 1.1rem; color: white;
+}
+.scanner-torch.on { background: rgba(255,200,0,.3); }
+
+/* Viewfinder */
+.scanner-view {
+  flex: 1; position: relative; overflow: hidden;
+}
+#scanner-video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.scanner-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: grid; place-items: center;
+}
+.scanner-frame {
+  width: 240px; height: 160px; position: relative;
+}
+.scanner-frame::before, .scanner-frame::after,
+.scanner-frame .corner-br, .scanner-frame .corner-bl {
+  content: ''; position: absolute;
+  width: 30px; height: 30px;
+  border-color: var(--orange); border-style: solid;
+}
+.scanner-frame::before  { top: 0;    left: 0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scanner-frame::after   { top: 0;    right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.scanner-frame .corner-br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.scanner-frame .corner-bl { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+
+/* Laser animé */
+.scanner-laser {
+  position: absolute; left: 4px; right: 4px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  box-shadow: 0 0 8px var(--orange);
+  animation: laserScan 2s ease-in-out infinite;
+  top: 50%;
+}
+@keyframes laserScan {
+  0%   { transform: translateY(-70px); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(70px); opacity: 0; }
+}
+
+/* Hint texte */
+.scanner-hint {
+  position: absolute; bottom: 24px; left: 0; right: 0;
+  text-align: center; color: white; font-size: .82rem; font-weight: 600;
+  opacity: .8;
+}
+
+/* Résultat scan */
+.scanner-result {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: white; border-radius: 20px 20px 0 0;
+  padding: 20px 20px 32px;
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  z-index: 20;
+}
+.scanner-result.show { transform: translateY(0); }
+.scanner-result-title { font-size: .75rem; font-weight: 700; color: var(--grey-d); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.scanner-result-name  { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+.scanner-result-sub   { font-size: .82rem; color: var(--grey-d); margin-bottom: 16px; }
+.scanner-result-row   { display: flex; gap: 10px; }
+.scanner-result-btn   {
+  flex: 1; padding: .75rem; border-radius: 10px; border: none; cursor: pointer;
+  font-size: .88rem; font-weight: 700; font-family: var(--font);
+  transition: all .15s;
+}
+.scanner-result-btn.primary { background: var(--orange); color: white; }
+.scanner-result-btn.ghost   { background: var(--grey-l); color: var(--text); }
+
+/* Input manuel code-barres */
+.scanner-manual {
+  background: rgba(255,255,255,.08); border: 1.5px solid rgba(255,255,255,.15);
+  border-radius: 10px; padding: 10px 14px; margin: 0 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.scanner-manual input {
+  background: transparent; border: none; outline: none;
+  color: white; font-family: var(--font); font-size: .95rem;
+  font-weight: 600; letter-spacing: .1em; flex: 1;
+  padding: 0;
+}
+.scanner-manual input::placeholder { color: rgba(255,255,255,.35); letter-spacing: 0; font-weight: 500; }
+.scanner-manual-label { font-size: .75rem; color: rgba(255,255,255,.5); flex-shrink: 0; }
+.scanner-manual-ok {
+  background: var(--orange); color: white; border: none; border-radius: 7px;
+  padding: 6px 12px; font-weight: 700; font-size: .8rem; font-family: var(--font);
+  cursor: pointer; flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BURGER DRAWER
+══════════════════════════════════════════════════════════════════════════════ */
+.drawer-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 50; opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 280px; background: white;
+  z-index: 51; transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-header {
+  background: var(--orange); padding: 20px 16px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.drawer-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,.25); display: grid; place-items: center;
+  font-size: 1.4rem;
+}
+.drawer-user { color: white; }
+.drawer-user .name { font-size: .95rem; font-weight: 800; }
+.drawer-user .sub  { font-size: .72rem; opacity: .8; }
+
+.drawer-items { flex: 1; padding: 8px 0; overflow-y: auto; }
+.drawer-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 18px; cursor: pointer;
+  font-size: .9rem; font-weight: 700; color: var(--text);
+  transition: background .1s;
+}
+.drawer-item:active { background: var(--grey-l); }
+.drawer-item .d-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--grey-l); display: grid; place-items: center; font-size: 1rem; flex-shrink: 0; }
+.drawer-sep { height: 1px; background: var(--grey-l); margin: 4px 16px; }
+.drawer-version { padding: 12px 18px; font-size: .72rem; color: var(--grey-d); border-top: 1px solid var(--grey-l); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════════════════════════ */
+.toast-wrap {
+  position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+  z-index: 100; width: calc(100% - 28px);
+  display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+}
+.toast {
+  background: #1A1A1A; color: white; border-radius: 10px;
+  padding: 11px 14px; font-size: .83rem; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  animation: toastIn .25s ease;
+}
+.toast.ok   { background: #2E7D32; }
+.toast.warn { background: #E65100; }
+@keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="frame" id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-burger" onclick="toggleDrawer()">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="header-title" id="header-title">Stock Cuisine</div>
+    <div class="header-icon">🔍</div>
+    <div class="header-icon">✨</div>
+    <div class="header-icon">⋮</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+
+    <!-- ══ PAGE STOCK ══════════════════════════════════════════════════════ -->
+    <div id="page-stock" class="page active">
+
+      <!-- Filtres zones -->
+      <div class="stock-filters">
+        <div class="filter-pill active" onclick="filterZone(this,'all')">Tout</div>
+        <div class="filter-pill" onclick="filterZone(this,'frigo')">🧊 Frigo</div>
+        <div class="filter-pill" onclick="filterZone(this,'freezer')">❄️ Freezer</div>
+        <div class="filter-pill" onclick="filterZone(this,'placard')">🚪 Placard</div>
+        <div class="sort-btn">Zone ↑</div>
+        <div class="view-toggle">▦</div>
+      </div>
+
+      <!-- Zone Frigo -->
+      <div class="zone-section" data-zone="frigo">
+        <div class="zone-header">
+          <div class="zone-title"><span>🧊</span> Frigo <span class="zone-count">6</span></div>
+          <div class="zone-collapse" onclick="toggleZone(this)">−</div>
+        </div>
+        <div class="product-grid" id="grid-frigo">
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🥛</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Lait demi-écrémé Lactel</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">3</div>
+                    <div class="qty-unit">1L</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🧀</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Emmental râpé 200g</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">2</div>
+                    <div class="qty-unit">200g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🥚</div>
+            <div class="prod-status warn">😐</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Œufs plein air x6</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">1</div>
+                    <div class="qty-unit">boîte</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🧈</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Beurre doux 250g</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">2</div>
+                    <div class="qty-unit">250g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🥩</div>
+            <div class="prod-status empty">😟</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Steak haché 5% MG</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">0</div>
+                    <div class="qty-unit">300g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🍶</div>
+            <div class="prod-status unknwn">?</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Yaourt nature x4</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">20%</div>
+                    <div class="qty-unit">400g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Zone Freezer -->
+      <div class="zone-section" data-zone="freezer">
+        <div class="zone-header">
+          <div class="zone-title"><span>❄️</span> Freezer <span class="zone-count">3</span></div>
+          <div class="zone-collapse" onclick="toggleZone(this)">−</div>
+        </div>
+        <div class="product-grid" id="grid-freezer">
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🥟</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Gyoza légumes x8</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">2</div>
+                    <div class="qty-unit">220g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🍕</div>
+            <div class="prod-status warn">😐</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Pizza jambon mozzarella</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">1</div>
+                    <div class="qty-unit">380g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🫛</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Haricots verts surgelés</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">3</div>
+                    <div class="qty-unit">750g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Zone Placard cuisine -->
+      <div class="zone-section" data-zone="placard">
+        <div class="zone-header">
+          <div class="zone-title"><span>🚪</span> Placard cuisine <span class="zone-count">4</span></div>
+          <div class="zone-collapse" onclick="toggleZone(this)">−</div>
+        </div>
+        <div class="product-grid" id="grid-placard">
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🍝</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Pâtes spaghetti 500g</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">5</div>
+                    <div class="qty-unit">500g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🥫</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Tomates pelées 400g</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">4</div>
+                    <div class="qty-unit">400g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🫙</div>
+            <div class="prod-status warn">😐</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Lentilles vertes bio</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">1</div>
+                    <div class="qty-unit">500g</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-card">
+            <div class="prod-img-placeholder">🛢️</div>
+            <div class="prod-status ok">😊</div>
+            <div class="prod-recipe">🍴</div>
+            <div class="prod-info">
+              <div class="prod-name">Huile d'olive vierge extra</div>
+              <div class="prod-controls">
+                <div class="prod-del">🗑</div>
+                <div class="prod-qty">
+                  <div class="qty-btn" onclick="changeQty(this,-1)">−</div>
+                  <div>
+                    <div class="qty-val">2</div>
+                    <div class="qty-unit">750ml</div>
+                  </div>
+                  <div class="qty-btn" onclick="changeQty(this,1)">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div style="height:80px"></div>
+    </div>
+
+    <!-- ══ PAGE COURSES ════════════════════════════════════════════════════ -->
+    <div id="page-courses" class="page">
+      <div class="courses-header-bar">
+        <div class="courses-title-row">Ma Liste</div>
+        <div class="courses-sort">Trier par Rayon ↑</div>
+      </div>
+
+      <!-- Rayon Boulangerie -->
+      <div class="rayon-section">
+        <div class="rayon-header">
+          <div class="rayon-check" onclick="toggleCheck(this)"></div>
+          <div class="rayon-name">Boulangerie</div>
+        </div>
+        <div class="course-item">
+          <div class="course-check-box" onclick="toggleItem(this)"></div>
+          <div class="course-img">🍞</div>
+          <div class="course-body">
+            <div class="course-name">Pain de mie complet</div>
+            <div class="course-sub">Ajout Auto (Faible Quantité)</div>
+          </div>
+          <div class="course-del">🗑</div>
+          <div class="course-qty-col">
+            <div class="course-qty-val">1</div>
+            <div class="course-qty-unit">550g</div>
+            <div class="course-qty-add">⊕</div>
+          </div>
+        </div>
+        <div class="course-item">
+          <div class="course-check-box" onclick="toggleItem(this)"></div>
+          <div class="course-img">🥐</div>
+          <div class="course-body">
+            <div class="course-name">Pains au lait Bio x8</div>
+            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
+          </div>
+          <div class="course-del">🗑</div>
+          <div class="course-qty-col">
+            <div class="course-qty-val">1</div>
+            <div class="course-qty-unit">280g</div>
+            <div class="course-qty-add">⊕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rayon Fromage -->
+      <div class="rayon-section">
+        <div class="rayon-header">
+          <div class="rayon-check" onclick="toggleCheck(this)"></div>
+          <div class="rayon-name">Fromage</div>
+        </div>
+        <div class="course-item">
+          <div class="course-check-box" onclick="toggleItem(this)"></div>
+          <div class="course-img">🧀</div>
+          <div class="course-body">
+            <div class="course-name">Emmental râpé</div>
+            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
+          </div>
+          <div class="course-del">🗑</div>
+          <div class="course-qty-col">
+            <div class="course-qty-val">1</div>
+            <div class="course-qty-unit">200g</div>
+            <div class="course-qty-add">⊕</div>
+          </div>
+        </div>
+        <div class="course-item">
+          <div class="course-check-box" onclick="toggleItem(this)"></div>
+          <div class="course-img">🥛</div>
+          <div class="course-body">
+            <div class="course-name">Fromage frais 3,2% MG</div>
+            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
+          </div>
+          <div class="course-del">🗑</div>
+          <div class="course-qty-col">
+            <div class="course-qty-val">1</div>
+            <div class="course-qty-unit">400g</div>
+            <div class="course-qty-add">⊕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rayon Viande -->
+      <div class="rayon-section">
+        <div class="rayon-header">
+          <div class="rayon-check" onclick="toggleCheck(this)"></div>
+          <div class="rayon-name">Viandes &amp; Poissons</div>
+        </div>
+        <div class="course-item done" id="done-item">
+          <div class="course-check-box checked" onclick="toggleItem(this)">✓</div>
+          <div class="course-img">🥩</div>
+          <div class="course-body">
+            <div class="course-name">Steak haché 5% MG</div>
+            <div class="course-sub">Seuil d'alerte atteint</div>
+          </div>
+          <div class="course-del">🗑</div>
+          <div class="course-qty-col">
+            <div class="course-qty-val">2</div>
+            <div class="course-qty-unit">300g</div>
+            <div class="course-qty-add">⊕</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:80px"></div>
+    </div>
+
+    <!-- ══ PAGE RECETTES ═══════════════════════════════════════════════════ -->
+    <div id="page-recettes" class="page">
+
+      <!-- Chips filtres -->
+      <div class="recettes-filters" id="recettes-filters">
+        <div class="r-chip active" onclick="filterRecette(this,'tout')">🍽️ Tout</div>
+        <div class="r-chip" onclick="filterRecette(this,'soupe')">🍲 Soupe</div>
+        <div class="r-chip" onclick="filterRecette(this,'tarte')">🥧 Tarte</div>
+        <div class="r-chip" onclick="filterRecette(this,'onepot')">🫕 One Pot</div>
+        <div class="r-chip" onclick="filterRecette(this,'diner')">🍽️ Dîner</div>
+        <div class="r-chip" onclick="filterRecette(this,'dessert')">🍰 Dessert</div>
+        <div class="r-chip" onclick="filterRecette(this,'rapide')">⚡ Rapide</div>
+        <div class="r-chip" onclick="filterRecette(this,'veggie')">🥗 Végétarien</div>
+      </div>
+
+      <!-- Section recettes -->
+      <div class="recettes-section-head">
+        <span class="recettes-section-icon">🍴</span>
+        <span class="recettes-section-title">Recettes</span>
+        <span class="recettes-section-grid">▦</span>
+      </div>
+
+      <!-- Cards recettes -->
+      <div id="recettes-list">
+
+        <div class="recette-card" data-cat="diner tarte" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🥧</div>
+          <div class="recette-body">
+            <div class="recette-title">Tarte tatin aux poireaux et feta</div>
+            <div class="recette-desc">Une tarte renversée où les poireaux caramélisés se marient à la feta fondante…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star">★</span><span class="recette-star">★</span>
+                <span class="recette-star">★</span><span class="recette-star">★</span><span class="recette-star">★</span>
+              </div>
+              <span class="recette-like">♡</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recette-card" data-cat="diner veggie" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🍝</div>
+          <div class="recette-body">
+            <div class="recette-title">Tagliatelles aux asperges et parmesan</div>
+            <div class="recette-desc">Pâtes fraîches avec asperges vertes sautées, parmesan et citron…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star on">★</span><span class="recette-star on">★</span>
+                <span class="recette-star on">★</span><span class="recette-star on">★</span><span class="recette-star">★</span>
+              </div>
+              <span class="recette-like" style="color:var(--orange)">♥</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recette-card" data-cat="soupe onepot" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🍲</div>
+          <div class="recette-body">
+            <div class="recette-title">Soupe de lentilles corail au curry</div>
+            <div class="recette-desc">Une soupe réconfortante aux épices douces, prête en 25 minutes…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star on">★</span><span class="recette-star on">★</span>
+                <span class="recette-star on">★</span><span class="recette-star on">★</span><span class="recette-star on">★</span>
+              </div>
+              <span class="recette-like">♡</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recette-card" data-cat="dessert rapide" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🍰</div>
+          <div class="recette-body">
+            <div class="recette-title">Mousse au chocolat express</div>
+            <div class="recette-desc">Seulement 3 ingrédients, 15 minutes de préparation…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star on">★</span><span class="recette-star on">★</span>
+                <span class="recette-star on">★</span><span class="recette-star on">★</span><span class="recette-star">★</span>
+              </div>
+              <span class="recette-like">♡</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recette-card" data-cat="onepot diner" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🫕</div>
+          <div class="recette-body">
+            <div class="recette-title">Poulet basquaise one pot</div>
+            <div class="recette-desc">Poulet mijoté aux poivrons, tomates et herbes basques, tout en un…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star on">★</span><span class="recette-star on">★</span>
+                <span class="recette-star on">★</span><span class="recette-star on">★</span><span class="recette-star on">★</span>
+              </div>
+              <span class="recette-like" style="color:var(--orange)">♥</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="recette-card" data-cat="rapide veggie" onclick="openRecetteMenu(event,this)">
+          <div class="recette-img">🥗</div>
+          <div class="recette-body">
+            <div class="recette-title">Buddha bowl avocat & pois chiches</div>
+            <div class="recette-desc">Bol complet et coloré, vinaigrette au tahini maison…</div>
+            <div class="recette-footer">
+              <div class="recette-stars">
+                <span class="recette-star on">★</span><span class="recette-star on">★</span>
+                <span class="recette-star on">★</span><span class="recette-star">★</span><span class="recette-star">★</span>
+              </div>
+              <span class="recette-like">♡</span>
+              <div class="recette-more">•••</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /recettes-list -->
+      <div style="height:90px"></div>
+
+      <!-- Menu contextuel recette -->
+      <div class="recette-menu" id="recette-ctx-menu">
+        <div class="recette-menu-item" onclick="closeRecetteMenu()"><span>⬇️</span> Télécharger</div>
+        <div class="recette-menu-item" onclick="closeRecetteMenu()"><span>📅</span> Ajouter au menu</div>
+        <div class="recette-menu-item" onclick="closeRecetteMenu()"><span>🛒</span> Ajouter à la liste</div>
+        <div class="recette-menu-item" onclick="closeRecetteMenu()"><span>↗️</span> Partager</div>
+      </div>
+
+    </div>
+
+    <!-- ══ PAGE MENU ═══════════════════════════════════════════════════════ -->
+    <div id="page-menu" class="page">
+      <div class="placeholder-page">
+        <div class="placeholder-icon">📅</div>
+        <div class="placeholder-title">Menu de la semaine</div>
+        <div class="placeholder-sub">Planifiez vos repas et générez automatiquement votre liste de courses.</div>
+        <div class="placeholder-chip">Bientôt disponible</div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE PROFIL ══════════════════════════════════════════════════════ -->
+    <div id="page-profil" class="page">
+      <div class="placeholder-page">
+        <div class="placeholder-icon">👤</div>
+        <div class="placeholder-title">Profil</div>
+        <div class="placeholder-sub">Paramètres, zones de rangement, préférences alimentaires.</div>
+        <div class="placeholder-chip">Bientôt disponible</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FAB SEARCH (recettes) -->
+  <div class="fab-search" id="fab-search" onclick="toggleSearch()">
+    <span>🔍</span>
+    <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
+  </div>
+
+  <!-- FAB -->
+  <div class="fab" id="main-fab" onclick="fabAction()">+</div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-tab active" onclick="switchPage(this,'stock','Stock Cuisine')">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Cuisine</div>
+    </div>
+    <div class="nav-tab" onclick="switchPage(this,'courses','Courses')">
+      <div class="nav-icon">🛒</div>
+      <div class="nav-label">Courses</div>
+      <div class="nav-badge">4</div>
+    </div>
+    <div class="nav-tab" onclick="switchPage(this,'recettes','Recettes')">
+      <div class="nav-icon">🍳</div>
+      <div class="nav-label">Recettes</div>
+      <div class="nav-badge">92</div>
+    </div>
+    <div class="nav-tab" onclick="switchPage(this,'menu','Menu')">
+      <div class="nav-icon">📅</div>
+      <div class="nav-label">Menu</div>
+    </div>
+  </div>
+
+
+  <!-- ══ SCANNER MODAL ══════════════════════════════════════════════════════ -->
+  <div class="scanner-modal" id="scanner-modal">
+
+    <!-- Header -->
+    <div class="scanner-header">
+      <div class="scanner-close" onclick="closeScanner()">✕</div>
+      <div class="scanner-title">Scanner un produit</div>
+      <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()">🔦</div>
+    </div>
+
+    <!-- Caméra -->
+    <div class="scanner-view">
+      <video id="scanner-video" autoplay playsinline muted></video>
+      <div class="scanner-overlay">
+        <div class="scanner-frame">
+          <div class="scanner-laser"></div>
+          <div class="corner-br"></div>
+          <div class="corner-bl"></div>
+        </div>
+      </div>
+      <div class="scanner-hint">Placez le code-barres dans le cadre</div>
+    </div>
+
+    <!-- Saisie manuelle -->
+    <div class="scanner-manual" style="margin-top:14px; margin-bottom:14px;">
+      <span class="scanner-manual-label">EAN</span>
+      <input id="manual-barcode" type="tel" placeholder="Saisir manuellement…" onkeydown="if(event.key==='Enter')confirmManual()">
+      <button class="scanner-manual-ok" onclick="confirmManual()">OK</button>
+    </div>
+
+    <!-- Résultat -->
+    <div class="scanner-result" id="scanner-result">
+      <div class="scanner-result-title">Produit détecté</div>
+      <div class="scanner-result-name" id="result-name">—</div>
+      <div class="scanner-result-sub"  id="result-sub">—</div>
+      <div class="scanner-result-row">
+        <button class="scanner-result-btn ghost" onclick="resetScan()">↩ Rescanner</button>
+        <button class="scanner-result-btn primary" onclick="addToStock()">+ Ajouter au stock</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- DRAWER -->
+  <div class="drawer-overlay" id="overlay" onclick="toggleDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-avatar">🥦</div>
+      <div class="drawer-user">
+        <div class="name">KitchenCore</div>
+        <div class="sub">v0.3 · Home Assistant</div>
+      </div>
+    </div>
+    <div class="drawer-items">
+      <div class="drawer-item"><div class="d-icon">🫙</div> Aliments</div>
+      <div class="drawer-item"><div class="d-icon">🏷️</div> Produits</div>
+      <div class="drawer-sep"></div>
+      <div class="drawer-item"><div class="d-icon">📡</div> Scanner IoT</div>
+      <div class="drawer-item"><div class="d-icon">📋</div> Historique</div>
+      <div class="drawer-sep"></div>
+      <div class="drawer-item"><div class="d-icon">⚙️</div> Zones de rangement</div>
+      <div class="drawer-item"><div class="d-icon">🔔</div> Alertes de stock</div>
+      <div class="drawer-sep"></div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(document.querySelector('.nav-tab'),'profil','Profil')"><div class="d-icon">👤</div> Profil &amp; Paramètres</div>
+      <div class="drawer-item"><div class="d-icon">❓</div> Aide</div>
+    </div>
+    <div class="drawer-version">KitchenCore v0.3 · Home Assistant Add-on</div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toast-wrap" id="toasts"></div>
+
+</div><!-- /frame -->
+
+<script>
+// ── Navigation ───────────────────────────────────────────────────────────────
+function switchPage(tab, page, title) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  tab.classList.add('active');
+  document.getElementById('header-title').textContent = title;
+  document.getElementById('content').scrollTop = 0;
+}
+
+// ── Drawer ───────────────────────────────────────────────────────────────────
+function toggleDrawer() {
+  document.getElementById('drawer').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+// ── Zone collapse ────────────────────────────────────────────────────────────
+function toggleZone(btn) {
+  const grid = btn.closest('.zone-section').querySelector('.product-grid');
+  const collapsed = grid.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '+' : '−';
+  if (!collapsed) grid.style.maxHeight = '';
+  else { grid.style.maxHeight = grid.scrollHeight + 'px'; grid.offsetHeight; grid.style.maxHeight = '0'; }
+}
+
+// ── Qty controls ─────────────────────────────────────────────────────────────
+function changeQty(btn, delta) {
+  const valEl = btn.parentElement.querySelector('.qty-val');
+  const current = parseInt(valEl.textContent) || 0;
+  const next = Math.max(0, current + delta);
+  valEl.textContent = next;
+  // Update status indicator
+  const card = btn.closest('.prod-card');
+  const status = card.querySelector('.prod-status');
+  if (next === 0) { status.className = 'prod-status empty'; status.textContent = '😟'; }
+  else if (next <= 1) { status.className = 'prod-status warn'; status.textContent = '😐'; }
+  else { status.className = 'prod-status ok'; status.textContent = '😊'; }
+  showToast(next === 0 ? 'Stock vide — ajouté en liste de courses' : `Stock mis à jour : ${next}`, next === 0 ? 'warn' : 'ok');
+}
+
+// ── Course item check ────────────────────────────────────────────────────────
+function toggleItem(el) {
+  const checked = el.classList.toggle('checked');
+  el.textContent = checked ? '✓' : '';
+  el.closest('.course-item').classList.toggle('done', checked);
+}
+
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+}
+
+// ── Zone filter ──────────────────────────────────────────────────────────────
+function filterZone(pill, zone) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  document.querySelectorAll('.zone-section').forEach(s => {
+    s.style.display = (zone === 'all' || s.dataset.zone === zone) ? '' : 'none';
+  });
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'ok') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = (type === 'ok' ? '✓ ' : '⚠ ') + msg;
+  const wrap = document.getElementById('toasts');
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 2800);
+}
+
+// ── Init zones max-height ────────────────────────────────────────────────────
+document.querySelectorAll('.product-grid').forEach(g => {
+  g.style.maxHeight = g.scrollHeight + 500 + 'px';
+});
+
+// ── Navigation améliorée (FAB + fab-search selon page) ───────────────────────
+const PAGE_CONFIG = {
+  stock:    { title: 'Stock Cuisine', fab: true,  search: false, fabIcon: '+', dark: false },
+  courses:  { title: 'Courses',       fab: true,  search: false, fabIcon: '+', dark: false },
+  recettes: { title: 'Recettes',      fab: true,  search: true,  fabIcon: '+', dark: true  },
+  menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
+  profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
+};
+
+// Override switchPage pour gérer FAB/search/header couleur
+const _origSwitch = switchPage;
+function switchPage(tab, page, title) {
+  // pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (tab) tab.classList.add('active');
+
+  const cfg = PAGE_CONFIG[page] || { title: title, fab: true, search: false, dark: false };
+  document.getElementById('header-title').textContent = cfg.title || title;
+  document.getElementById('content').scrollTop = 0;
+
+  // Header couleur
+  const header = document.querySelector('.header');
+  header.style.background = 'var(--orange)';
+
+  // FAB principal
+  const fab = document.getElementById('main-fab');
+  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
+
+  // FAB search
+  const fabSearch = document.getElementById('fab-search');
+  if (fabSearch) {
+    if (cfg.search) {
+      fabSearch.classList.add('visible');
+    } else {
+      fabSearch.classList.remove('visible');
+      // reset search
+      const inp = document.getElementById('search-input');
+      if (inp) { inp.value = ''; inp.classList.remove('expanded'); }
+      document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
+    }
+  }
+
+  // Fermer menu contextuel recette
+  closeRecetteMenu();
+}
+
+// ── FAB action selon page active ─────────────────────────────────────────────
+function fabAction() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const page = active.id.replace('page-', '');
+  if (page === 'recettes') showToast('Ajouter une recette — bientôt', 'warn');
+  else if (page === 'courses') showToast('Ajouter un article', 'warn');
+  else showToast('Ajouter un produit — bientôt', 'warn');
+}
+
+// ── Recettes : filtre par catégorie ──────────────────────────────────────────
+let _activeFilter = 'tout';
+
+function filterRecette(chip, cat) {
+  document.querySelectorAll('.r-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  _activeFilter = cat;
+  applyRecettesFilter();
+}
+
+function applyRecettesFilter() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  document.querySelectorAll('.recette-card').forEach(card => {
+    const cats = card.dataset.cat || '';
+    const title = card.querySelector('.recette-title')?.textContent.toLowerCase() || '';
+    const matchCat = _activeFilter === 'tout' || cats.includes(_activeFilter);
+    const matchQ   = !q || title.includes(q);
+    card.style.display = (matchCat && matchQ) ? '' : 'none';
+  });
+}
+
+// ── Recettes : recherche flottante ────────────────────────────────────────────
+let _searchOpen = false;
+
+function toggleSearch() {
+  const inp = document.getElementById('search-input');
+  if (!inp) return;
+  _searchOpen = !_searchOpen;
+  if (_searchOpen) {
+    inp.classList.add('expanded');
+    setTimeout(() => inp.focus(), 50);
+  } else {
+    inp.classList.remove('expanded');
+    inp.value = '';
+    applyRecettesFilter();
+    inp.blur();
+  }
+}
+
+function searchRecettes(val) {
+  applyRecettesFilter();
+}
+
+// ── Recettes : menu contextuel ────────────────────────────────────────────────
+let _ctxCard = null;
+
+function openRecetteMenu(e, card) {
+  e.stopPropagation();
+  const menu = document.getElementById('recette-ctx-menu');
+  const existing = menu.classList.contains('open') && _ctxCard === card;
+  closeRecetteMenu();
+  if (existing) return;
+
+  _ctxCard = card;
+  // Positionner le menu sous la card
+  const rect = card.getBoundingClientRect();
+  const frameRect = document.getElementById('app').getBoundingClientRect();
+  let top = rect.bottom - frameRect.top + 4;
+  // Si ça déborde en bas, mettre au-dessus
+  if (top + 180 > frameRect.height - 80) top = rect.top - frameRect.top - 184;
+  menu.style.top = top + 'px';
+  menu.classList.add('open');
+
+  // Fermer si on clique ailleurs
+  setTimeout(() => document.addEventListener('click', closeRecetteMenu, { once: true }), 10);
+}
+
+function closeRecetteMenu() {
+  document.getElementById('recette-ctx-menu')?.classList.remove('open');
+  _ctxCard = null;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Appliquer la config de la page initiale (stock)
+(function() {
+  const cfg = PAGE_CONFIG['stock'];
+  document.querySelector('.header').style.background = 'var(--orange)';
+  document.getElementById('fab-search')?.classList.remove('visible');
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCANNER CODE-BARRES
+// ════════════════════════════════════════════════════════════════════════════
+let _stream = null;
+let _detector = null;
+let _scanLoop = null;
+let _torchOn = false;
+let _lastCode = null;
+
+// Produits fictifs pour la démo (remplacés par /api/produits/barcode/:code en prod)
+const DEMO_PRODUCTS = {
+  '3451030003445': { nom: 'Lait Lactel demi-écrémé 1L', zone: 'Frigo', contenance: '1L' },
+  '3017620422003': { nom: 'Nutella 400g', zone: 'Placard cuisine', contenance: '400g' },
+  '3228021180014': { nom: 'Évian 1,5L x6', zone: 'Étagère vrac', contenance: '1,5L' },
+  '3175680011480': { nom: 'Jambon supérieur x4 tranches', zone: 'Frigo', contenance: '160g' },
+  '3560070976478': { nom: 'Pain de mie complet Jacquet', zone: 'Placard cuisine', contenance: '550g' },
+};
+
+async function openScanner() {
+  const modal = document.getElementById('scanner-modal');
+  modal.classList.add('open');
+  resetScan();
+
+  // Init BarcodeDetector (Chrome Android natif)
+  if ('BarcodeDetector' in window) {
+    _detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'qr_code'] });
+  }
+
+  // Démarrer la caméra
+  try {
+    _stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('scanner-video');
+    video.srcObject = _stream;
+    await video.play();
+
+    if (_detector) {
+      startDetectionLoop();
+    } else {
+      // Fallback : afficher message + saisie manuelle uniquement
+      document.querySelector('.scanner-hint').textContent = 'Caméra active — saisir le code manuellement ci-dessous';
+    }
+  } catch (err) {
+    // Pas de caméra ou refus permission → mode saisie manuelle
+    document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
+    console.warn('Scanner camera error:', err.message);
+  }
+}
+
+function startDetectionLoop() {
+  const video = document.getElementById('scanner-video');
+  const detect = async () => {
+    if (!_detector || !video.readyState === 4) return;
+    try {
+      const codes = await _detector.detect(video);
+      if (codes.length > 0) {
+        const code = codes[0].rawValue;
+        if (code !== _lastCode) {
+          _lastCode = code;
+          onCodeDetected(code);
+          return; // pause loop pendant affichage résultat
+        }
+      }
+    } catch(_) {}
+    _scanLoop = requestAnimationFrame(detect);
+  };
+  _scanLoop = requestAnimationFrame(detect);
+}
+
+function onCodeDetected(code) {
+  // Vibration feedback
+  if (navigator.vibrate) navigator.vibrate(80);
+
+  // Chercher dans les démos ou afficher le code brut
+  const product = DEMO_PRODUCTS[code];
+  document.getElementById('result-name').textContent = product ? product.nom : 'Produit inconnu';
+  document.getElementById('result-sub').textContent  = product
+    ? `Zone : ${product.zone} · ${product.contenance}`
+    : `Code : ${code} — à associer dans le catalogue`;
+
+  document.getElementById('manual-barcode').value = code;
+  document.getElementById('scanner-result').classList.add('show');
+
+  // Arrêter la détection
+  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+}
+
+function confirmManual() {
+  const code = document.getElementById('manual-barcode').value.trim();
+  if (!code) return;
+  onCodeDetected(code);
+}
+
+function resetScan() {
+  _lastCode = null;
+  document.getElementById('scanner-result').classList.remove('show');
+  document.getElementById('manual-barcode').value = '';
+  document.getElementById('result-name').textContent = '—';
+  document.getElementById('result-sub').textContent = '—';
+  // Relancer la détection
+  if (_detector && _stream) startDetectionLoop();
+}
+
+function addToStock() {
+  const name = document.getElementById('result-name').textContent;
+  showToast('✓ ' + name + ' ajouté au stock', 'ok');
+  closeScanner();
+}
+
+function closeScanner() {
+  // Arrêter caméra
+  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+  _torchOn = false;
+  document.getElementById('torch-btn').classList.remove('on');
+  document.getElementById('scanner-modal').classList.remove('open');
+  resetScan();
+}
+
+async function toggleTorch() {
+  if (!_stream) return;
+  const track = _stream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities().torch) {
+    showToast('Torche non supportée sur cet appareil', 'warn'); return;
+  }
+  _torchOn = !_torchOn;
+  await track.applyConstraints({ advanced: [{ torch: _torchOn }] });
+  document.getElementById('torch-btn').classList.toggle('on', _torchOn);
+}
+
+// Override fabAction pour ouvrir le scanner sur la page stock
+const _origFabAction = fabAction;
+function fabAction() {
+  const active = document.querySelector('.page.active');
+  const page = active?.id.replace('page-', '');
+  if (page === 'stock') { openScanner(); return; }
+  _origFabAction();
+}
+
+</script>
+</body>
+</html>
