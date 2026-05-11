@@ -1403,14 +1403,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 <script>
 // ── Navigation ───────────────────────────────────────────────────────────────
-function switchPage(tab, page, title) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  tab.classList.add('active');
-  document.getElementById('header-title').textContent = title;
-  document.getElementById('content').scrollTop = 0;
-}
+/* switchPage def1 supprimée */
 
 // ── Drawer ───────────────────────────────────────────────────────────────────
 function toggleDrawer() {
@@ -1486,44 +1479,7 @@ const PAGE_CONFIG = {
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
 };
 
-// Override switchPage pour gérer FAB/search/header couleur
-const _origSwitch = switchPage;
-function switchPage(tab, page, title) {
-  // pages
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  if (tab) tab.classList.add('active');
-
-  const cfg = PAGE_CONFIG[page] || { title: title, fab: true, search: false, dark: false };
-  document.getElementById('header-title').textContent = cfg.title || title;
-  document.getElementById('content').scrollTop = 0;
-
-  // Header couleur
-  const header = document.querySelector('.header');
-  header.style.background = 'var(--orange)';
-
-  // FAB principal
-  const fab = document.getElementById('main-fab');
-  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
-
-  // FAB search
-  const fabSearch = document.getElementById('fab-search');
-  if (fabSearch) {
-    if (cfg.search) {
-      fabSearch.classList.add('visible');
-    } else {
-      fabSearch.classList.remove('visible');
-      // reset search
-      const inp = document.getElementById('search-input');
-      if (inp) { inp.value = ''; inp.classList.remove('expanded'); }
-      document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
-    }
-  }
-
-  // Fermer menu contextuel recette
-  closeRecetteMenu();
-}
+/* switchPage def2 supprimée */
 
 // ── FAB action selon page active ─────────────────────────────────────────────
 function fabAction() {
@@ -1904,12 +1860,44 @@ function mTM(e){if(!_mTC)return;e.preventDefault();const t=e.touches[0];const r=
 function mTE(e){if(!_mTC||!_mTD)return;const t=e.changedTouches[0];_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.remove();_mTC=null;if(_mTc)_mTc.style.opacity='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){const p=c.id.split('-');const tx=parseInt(p[p.length-1]);const tk=p.slice(1,p.length-1).join('-');mMv(_mTD.k,_mTD.x,tk,tx,mHf(t.clientY,c));_mTc=null;_mTD=null;return;}const z=u?.closest('[id^="mz-"]');if(z){const tk=z.id.replace('mz-','');const it=_md[_mTD.k].splice(_mTD.x,1)[0];if(!_md[_mTD.k].length)delete _md[_mTD.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);mSv();mBuild();}_mTc=null;_mTD=null;}
 
 // ── Hook switchPage pour menu ───────────────────────────────────────────────
-const _mSP=switchPage;
-function switchPage(tab,page,title){
-  _mSP(tab,page,title);
-  const b=document.getElementById('btn-tod');
-  if(b) b.style.display=page==='menu'?'flex':'none';
-  if(page==='menu') mBuild();
+function switchPage(tab, page, title) {
+  // Pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (tab) tab.classList.add('active');
+  document.getElementById('content').scrollTop = 0;
+
+  // Titre header
+  const cfg = PAGE_CONFIG[page] || {};
+  document.getElementById('header-title').textContent = cfg.title || title;
+
+  // FAB
+  const fab = document.getElementById('main-fab');
+  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
+
+  // FAB search (recettes)
+  const fabSearch = document.getElementById('fab-search');
+  if (fabSearch) {
+    if (cfg.search) {
+      fabSearch.classList.add('visible');
+    } else {
+      fabSearch.classList.remove('visible');
+      const inp = document.getElementById('search-input');
+      if (inp) { inp.value = ''; inp.classList.remove('expanded'); }
+      document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
+    }
+  }
+
+  // Fermer menu contextuel recette
+  if (typeof closeRecetteMenu === 'function') closeRecetteMenu();
+
+  // Bouton aujourd'hui (menu uniquement)
+  const btnTod = document.getElementById('btn-tod');
+  if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
+
+  // Construire la timeline menu
+  if (page === 'menu') mBuild();
 }
 
 // ── Seed démo ────────────────────────────────────────────────────────────────
