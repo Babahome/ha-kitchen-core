@@ -636,62 +636,129 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .toast.warn { background: #E65100; }
 @keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
-/* ══ PAGE MENU ═════════════════════════════════════════════════════════════ */
-#page-menu { background: var(--grey-l); }
-.m-tl      { padding: 4px 14px 100px; }
-.m-day     { margin-bottom: 2px; }
-.m-dh      { display:flex;align-items:center;gap:10px;padding:12px 0 8px;position:sticky;top:0;background:var(--grey-l);z-index:5; }
-.m-dot     { width:11px;height:11px;border-radius:50%;background:var(--grey);flex-shrink:0; }
-.m-day.tod .m-dot { background:var(--orange);box-shadow:0 0 0 3px rgba(232,103,26,.15); }
-.m-dlbl    { font-size:.85rem;font-weight:700;color:var(--text2);flex:1; }
-.m-day.tod .m-dlbl { color:var(--orange);font-weight:900;font-size:.92rem; }
-.m-dadd    { width:28px;height:28px;border-radius:50%;border:2px dashed var(--grey);display:grid;place-items:center;cursor:pointer;font-size:1.1rem;color:var(--grey-d);background:none;font-family:var(--font);transition:all .15s;flex-shrink:0; }
-.m-dadd:active { border-color:var(--orange);color:var(--orange);background:var(--orange-l); }
-.m-zone    { display:flex;flex-direction:column;gap:7px;padding-left:21px;margin-bottom:4px;min-height:8px;border-radius:8px;transition:background .15s; }
-.m-zone.dz { background:var(--orange-l);min-height:40px; }
-.m-empty   { font-size:.78rem;color:var(--grey-d);font-style:italic;padding:4px 0; }
-.mcard     { background:white;border-radius:12px;border:1px solid var(--grey);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:stretch;min-height:64px;transition:opacity .15s,transform .15s; }
-.mcard.mg  { opacity:.4;transform:scale(.97); }
-.m-grip    { display:flex;align-items:center;padding:0 6px 0 10px;color:var(--grey);font-size:1rem;flex-shrink:0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none; }
-.m-grip:active { color:var(--orange); }
-.m-st      { width:5px;flex-shrink:0; }
-.sp{background:#66BB6A}.sd{background:#42A5F5}.sg{background:#AB47BC}.sn{background:var(--orange)}.sa{background:var(--grey-d)}
-.m-bd      { flex:1;padding:9px 8px 9px 12px;display:flex;flex-direction:column;justify-content:center;min-width:0; }
-.m-tg      { font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px; }
-.tp{color:#66BB6A}.td{color:#42A5F5}.tg{color:#AB47BC}.tn{color:var(--orange)}.ta{color:var(--grey-d)}
-.m-nm      { font-size:.9rem;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.m-nt      { font-size:.7rem;color:var(--grey-d);margin-top:1px; }
-.m-bts     { display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px 8px;flex-shrink:0; }
-.m-bt      { width:26px;height:26px;border-radius:7px;border:none;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:.8rem; }
-.m-bt:active { background:var(--grey); }
-.m-bar     { height:3px;background:var(--orange);border-radius:2px;margin:1px 0;pointer-events:none; }
-/* Bouton aujourd'hui dans header */
-.btn-tod   { background:rgba(255,255,255,.2);border-radius:8px;padding:5px 9px;cursor:pointer;color:white;font-size:.72rem;font-weight:800;display:none;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0; }
-.btn-tod:active { background:rgba(255,255,255,.35); }
-/* Modal ajout repas */
-.m-modal   { position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;flex-direction:column;justify-content:flex-end; }
-.m-modal.on { display:flex; }
-.m-sh      { background:white;border-radius:22px 22px 0 0;padding:16px 18px 40px;max-height:88vh;overflow-y:auto;animation:mup .25s cubic-bezier(.4,0,.2,1); }
-@keyframes mup{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.m-hn      { width:40px;height:4px;background:var(--grey);border-radius:2px;margin:0 auto 16px; }
-.m-tt      { font-size:1rem;font-weight:900;color:var(--text);margin-bottom:3px; }
-.m-dt      { font-size:.8rem;color:var(--orange);font-weight:700;margin-bottom:14px; }
-.m-tr      { display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:2px; }
-.m-tr::-webkit-scrollbar{display:none}
-.m-tb      { padding:7px 12px;border-radius:99px;border:2px solid var(--grey);font-size:.78rem;font-weight:800;color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;background:white;font-family:var(--font);transition:all .15s; }
-.m-tb.on   { background:var(--orange);border-color:var(--orange);color:white; }
-.m-sr      { display:flex;gap:8px;align-items:center;margin-bottom:8px; }
-.m-si      { flex:1;background:var(--grey-l);border:1.5px solid var(--grey);border-radius:10px;padding:10px 12px;font-size:.9rem;font-family:var(--font);outline:none;transition:border-color .15s; }
-.m-si:focus{ border-color:var(--orange);background:white; }
-.m-rd      { width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--orange-l);border:2px solid var(--orange);display:grid;place-items:center;cursor:pointer;font-size:1.1rem; }
-.m-rd:active{background:var(--orange)}
-.m-sg      { background:white;border:1px solid var(--grey);border-radius:10px;overflow:hidden;display:none;box-shadow:var(--shadow);margin-bottom:10px; }
-.m-sg.on   { display:block; }
-.m-si2     { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--grey-l); }
-.m-si2:last-child{border-bottom:none}
-.m-si2:active{background:var(--orange-l)}
-.m-ok      { width:100%;padding:.85rem;border-radius:12px;border:none;background:var(--orange);color:white;font-size:.92rem;font-weight:800;font-family:var(--font);cursor:pointer;margin-top:4px; }
-.m-ok:active{background:var(--orange-d)}
+/* ══ COURSES v2 ════════════════════════════════════════════════════════════ */
+.cl-header    { background:white;border-bottom:1px solid var(--grey);position:sticky;top:0;z-index:10; }
+.cl-top       { display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0; }
+.cl-title     { font-size:1rem;font-weight:800; }
+.cl-count     { font-size:.75rem;color:var(--grey-d);font-weight:700; }
+.cl-tabs      { display:flex;overflow-x:auto;scrollbar-width:none;padding:8px 14px 0; }
+.cl-tabs::-webkit-scrollbar{display:none}
+.cl-tab       { padding:8px 14px;font-size:.8rem;font-weight:800;color:var(--text2);cursor:pointer;
+                border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0; }
+.cl-tab.on    { color:var(--orange);border-bottom-color:var(--orange); }
+.cl-marchand  { display:none; }
+.cl-marchand.on{ display:block; }
+.cl-banner    { display:flex;align-items:center;justify-content:space-between;
+                padding:12px 14px;background:white;border-bottom:1px solid var(--grey); }
+.cl-banner-l  { display:flex;align-items:center;gap:10px; }
+.cl-banner-ico{ font-size:1.5rem; }
+.cl-banner-name{ font-size:.95rem;font-weight:900; }
+.cl-banner-n  { font-size:.75rem;color:var(--grey-d);margin-top:1px; }
+.cl-banner-btn{ padding:7px 14px;border-radius:8px;border:none;font-size:.78rem;font-weight:800;
+                font-family:var(--font);cursor:pointer;transition:all .15s; }
+.cl-banner-btn.drive  { background:#0070cc;color:white; }
+.cl-banner-btn.fourche{ background:#2d8a4e;color:white; }
+.cl-banner-btn.magasin{ background:var(--grey-l);color:var(--text);border:1.5px solid var(--grey); }
+.cl-rayon     { }
+.cl-rayon-hd  { display:flex;align-items:center;gap:10px;padding:10px 14px 6px;background:var(--grey-l); }
+.cl-rayon-chk { width:20px;height:20px;border-radius:5px;border:2px solid var(--grey);
+                flex-shrink:0;cursor:pointer;transition:all .15s; }
+.cl-rayon-chk.on{ background:var(--orange);border-color:var(--orange); }
+.cl-rayon-name{ font-size:.88rem;font-weight:800;flex:1; }
+.cl-item      { background:white;display:flex;align-items:center;padding:10px 14px;gap:10px;
+                border-bottom:1px solid var(--grey-l);transition:opacity .2s; }
+.cl-item.done { opacity:.4; }
+.cl-chk       { width:24px;height:24px;border-radius:6px;border:2px solid var(--grey);
+                flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .15s; }
+.cl-chk.on    { background:var(--orange);border-color:var(--orange);color:white;font-size:.8rem; }
+.cl-emoji     { width:46px;height:46px;border-radius:8px;background:var(--grey-l);
+                display:grid;place-items:center;font-size:1.3rem;flex-shrink:0; }
+.cl-body      { flex:1;min-width:0; }
+.cl-name      { font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.cl-origin    { font-size:.7rem;color:var(--grey-d);margin-top:2px; }
+.cl-actions   { display:flex;align-items:center;gap:4px;flex-shrink:0; }
+/* Quantité horizontale */
+.cl-qty-ctrl  { display:flex;align-items:center;gap:5px;flex-shrink:0; }
+.cl-qbtn      { width:26px;height:26px;border-radius:50%;border:1.5px solid var(--grey);
+                background:white;display:grid;place-items:center;cursor:pointer;
+                font-size:.9rem;font-weight:700;color:var(--text2);transition:all .12s;flex-shrink:0; }
+.cl-qbtn:active{ background:var(--orange);border-color:var(--orange);color:white; }
+.cl-qbtn.del  { border-color:rgba(248,113,113,.3);color:#f87171; }
+.cl-qbtn.del:active{ background:#f87171;border-color:#f87171;color:white; }
+.cl-qnum      { font-size:.92rem;font-weight:900;min-width:20px;text-align:center;color:var(--text); }
+/* Bouton ••• style recette */
+.cl-more-btn  { width:28px;height:28px;border-radius:50%;border:none;
+                background:rgba(232,103,26,.12);display:grid;place-items:center;
+                font-size:.72rem;color:var(--orange);flex-shrink:0;cursor:pointer; }
+.cl-more-btn:active{ background:rgba(232,103,26,.25); }
+/* Menu contextuel style recette-menu */
+.cl-ctx-menu  { position:absolute;right:14px;background:white;border-radius:12px;
+                border:1px solid var(--grey);z-index:50;min-width:200px;overflow:hidden;
+                box-shadow:0 8px 32px rgba(0,0,0,.15);display:none; }
+.cl-ctx-menu.open{ display:block; }
+.cl-ctx-item  { display:flex;align-items:center;gap:10px;padding:13px 16px;
+                font-size:.88rem;font-weight:600;color:var(--text);cursor:pointer;transition:background .1s; }
+.cl-ctx-item:active{ background:var(--grey-l); }
+.cl-ctx-item span{ font-size:1rem; }
+.cl-ctx-item.danger{ color:#f87171; }
+/* Marchand badge */
+.cl-mbadge    { padding:2px 7px;border-radius:99px;font-size:.65rem;font-weight:800;cursor:pointer;
+                border:1.5px solid var(--grey);color:var(--text2);background:white;transition:all .12s; }
+.cl-mbadge.drive  { border-color:#0070cc22;background:#e8f4ff;color:#0070cc; }
+.cl-mbadge.fourche{ border-color:#2d8a4e22;background:#e8f5ee;color:#2d8a4e; }
+/* Modal marchand */
+.cl-mmodal    { position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:100;
+                display:none;flex-direction:column;justify-content:flex-end; }
+.cl-mmodal.on { display:flex; }
+.cl-msheet    { background:white;border-radius:22px 22px 0 0;padding:20px 18px 40px;
+                animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.cl-mopt      { display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;
+                border:2px solid var(--grey);cursor:pointer;transition:all .15s;margin-bottom:8px; }
+.cl-mopt.sel  { border-color:var(--orange);background:var(--orange-l); }
+.cl-mopt-ico  { font-size:1.4rem;flex-shrink:0; }
+.cl-mopt-name { font-size:.9rem;font-weight:800; }
+.cl-mopt-desc { font-size:.72rem;color:var(--grey-d);margin-top:1px; }
+/* fab-search courses */
+.cl-fab-search{ position:absolute;bottom:calc(var(--bottom-h) + 16px);left:16px;
+                height:46px;border-radius:23px;background:white;color:var(--text2);
+                display:none;align-items:center;gap:8px;padding:0 16px 0 12px;
+                box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;z-index:20;
+                border:1px solid var(--grey);font-size:.88rem;font-weight:600;font-family:var(--font); }
+.cl-fab-search.visible{ display:flex; }
+.cl-fab-search-input{ background:transparent;border:none;outline:none;color:var(--text);
+                      font-family:var(--font);font-size:.88rem;font-weight:600;
+                      width:0;transition:width .25s ease;padding:0; }
+.cl-fab-search-input.expanded{ width:160px; }
+.cl-fab-search-input::placeholder{ color:var(--grey-d); }
+/* Recettes liées */
+.cl-rl-wrap   { margin:16px 14px 8px; }
+.cl-rl-title  { font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+                color:var(--grey-d);margin-bottom:10px;display:flex;align-items:center;gap:6px; }
+.cl-rl-title::after{ content:'';flex:1;height:1px;background:var(--grey); }
+.cl-rl-card   { background:white;border-radius:14px;border:1px solid var(--grey);
+                box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;margin-bottom:10px; }
+.cl-rl-top    { display:flex;align-items:center;gap:12px;padding:12px 14px 10px; }
+.cl-rl-ico    { width:46px;height:46px;border-radius:12px;
+                background:linear-gradient(135deg,var(--orange),var(--orange-d));
+                display:grid;place-items:center;font-size:1.5rem;flex-shrink:0; }
+.cl-rl-info   { flex:1;min-width:0; }
+.cl-rl-name   { font-size:.95rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.cl-rl-sub    { font-size:.72rem;color:var(--grey-d);margin-top:2px; }
+.cl-rl-pctrl  { display:flex;align-items:center;gap:6px;flex-shrink:0; }
+.cl-rl-plabel { font-size:.65rem;font-weight:700;color:var(--grey-d);text-align:center;margin-bottom:2px; }
+.cl-rl-pbtn   { width:26px;height:26px;border-radius:50%;border:1.5px solid var(--grey);
+                background:white;display:grid;place-items:center;cursor:pointer;
+                font-size:.9rem;font-weight:700;color:var(--text2);transition:all .12s; }
+.cl-rl-pbtn:active{ background:var(--orange);border-color:var(--orange);color:white; }
+.cl-rl-pval   { font-size:1rem;font-weight:900;min-width:20px;text-align:center; }
+.cl-rl-divider{ height:1px;background:var(--grey-l);margin:0 14px; }
+.cl-rl-ingr   { padding:8px 14px 12px;display:flex;gap:6px;flex-wrap:wrap; }
+.cl-rl-chip   { background:var(--grey-l);border-radius:99px;padding:3px 10px;
+                font-size:.72rem;font-weight:700;color:var(--text2);border:1px solid var(--grey); }
+.cl-rl-chip.done{ opacity:.45;text-decoration:line-through; }
+.cl-recipe-badge{ display:inline-flex;align-items:center;justify-content:center;
+                  width:22px;height:22px;border-radius:50%;background:var(--orange);
+                  color:white;font-size:.7rem;flex-shrink:0;cursor:pointer; }
 </style>
 </head>
 <body>
@@ -704,7 +771,6 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
       <span></span><span></span><span></span>
     </div>
     <div class="header-title" id="header-title">Stock Cuisine</div>
-    <div class="btn-tod" id="btn-tod" onclick="mToday()">📍 Aujourd'hui</div>
     <div class="header-icon">🔍</div>
     <div class="header-icon">✨</div>
     <div class="header-icon">⋮</div>
@@ -1021,108 +1087,72 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
       <div style="height:80px"></div>
     </div>
 
-    <!-- ══ PAGE COURSES ════════════════════════════════════════════════════ -->
-    <div id="page-courses" class="page">
-      <div class="courses-header-bar">
-        <div class="courses-title-row">Ma Liste</div>
-        <div class="courses-sort">Trier par Rayon ↑</div>
-      </div>
+    <!-- ══ PAGE COURSES v2 ══════════════════════════════════════════════════ -->
+    <div id="page-courses" class="page" style="background:var(--grey-l)">
 
-      <!-- Rayon Boulangerie -->
-      <div class="rayon-section">
-        <div class="rayon-header">
-          <div class="rayon-check" onclick="toggleCheck(this)"></div>
-          <div class="rayon-name">Boulangerie</div>
+      <div class="cl-header">
+        <div class="cl-top">
+          <div class="cl-title">Ma Liste</div>
+          <div class="cl-count" id="cl-count">0 article</div>
         </div>
-        <div class="course-item">
-          <div class="course-check-box" onclick="toggleItem(this)"></div>
-          <div class="course-img">🍞</div>
-          <div class="course-body">
-            <div class="course-name">Pain de mie complet</div>
-            <div class="course-sub">Ajout Auto (Faible Quantité)</div>
-          </div>
-          <div class="course-del">🗑</div>
-          <div class="course-qty-col">
-            <div class="course-qty-val">1</div>
-            <div class="course-qty-unit">550g</div>
-            <div class="course-qty-add">⊕</div>
-          </div>
-        </div>
-        <div class="course-item">
-          <div class="course-check-box" onclick="toggleItem(this)"></div>
-          <div class="course-img">🥐</div>
-          <div class="course-body">
-            <div class="course-name">Pains au lait Bio x8</div>
-            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
-          </div>
-          <div class="course-del">🗑</div>
-          <div class="course-qty-col">
-            <div class="course-qty-val">1</div>
-            <div class="course-qty-unit">280g</div>
-            <div class="course-qty-add">⊕</div>
-          </div>
+        <div class="cl-tabs">
+          <div class="cl-tab on"  data-m="all"     onclick="clTab(this,'all')">Tout</div>
+          <div class="cl-tab"     data-m="drive"   onclick="clTab(this,'drive')">🚗 Drive</div>
+          <div class="cl-tab"     data-m="fourche" onclick="clTab(this,'fourche')">🌿 La Fourche</div>
+          <div class="cl-tab"     data-m="magasin" onclick="clTab(this,'magasin')">🏪 Magasin</div>
         </div>
       </div>
 
-      <!-- Rayon Fromage -->
-      <div class="rayon-section">
-        <div class="rayon-header">
-          <div class="rayon-check" onclick="toggleCheck(this)"></div>
-          <div class="rayon-name">Fromage</div>
+      <div class="cl-marchand on" id="clv-all"><div id="cl-all-list"></div><div style="height:100px"></div></div>
+      <div class="cl-marchand" id="clv-drive">
+        <div class="cl-banner">
+          <div class="cl-banner-l"><div class="cl-banner-ico">🚗</div>
+            <div><div class="cl-banner-name">Carrefour Drive</div><div class="cl-banner-n" id="cl-drive-n">0 article</div></div></div>
+          <button class="cl-banner-btn drive" onclick="clOpenDrive()">Ouvrir →</button>
         </div>
-        <div class="course-item">
-          <div class="course-check-box" onclick="toggleItem(this)"></div>
-          <div class="course-img">🧀</div>
-          <div class="course-body">
-            <div class="course-name">Emmental râpé</div>
-            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
-          </div>
-          <div class="course-del">🗑</div>
-          <div class="course-qty-col">
-            <div class="course-qty-val">1</div>
-            <div class="course-qty-unit">200g</div>
-            <div class="course-qty-add">⊕</div>
-          </div>
+        <div id="cl-drive-list"></div><div style="height:100px"></div>
+      </div>
+      <div class="cl-marchand" id="clv-fourche">
+        <div class="cl-banner">
+          <div class="cl-banner-l"><div class="cl-banner-ico">🌿</div>
+            <div><div class="cl-banner-name">La Fourche</div><div class="cl-banner-n" id="cl-fourche-n">0 article</div></div></div>
+          <button class="cl-banner-btn fourche" onclick="clCopyFourche()">📋 Copier</button>
         </div>
-        <div class="course-item">
-          <div class="course-check-box" onclick="toggleItem(this)"></div>
-          <div class="course-img">🥛</div>
-          <div class="course-body">
-            <div class="course-name">Fromage frais 3,2% MG</div>
-            <div class="course-sub">Ajout Auto (Effacé Récemment)</div>
-          </div>
-          <div class="course-del">🗑</div>
-          <div class="course-qty-col">
-            <div class="course-qty-val">1</div>
-            <div class="course-qty-unit">400g</div>
-            <div class="course-qty-add">⊕</div>
-          </div>
+        <div id="cl-fourche-list"></div><div style="height:100px"></div>
+      </div>
+      <div class="cl-marchand" id="clv-magasin">
+        <div class="cl-banner">
+          <div class="cl-banner-l"><div class="cl-banner-ico">🏪</div>
+            <div><div class="cl-banner-name">Carrefour Magasin</div><div class="cl-banner-n" id="cl-magasin-n">0 article</div></div></div>
+        </div>
+        <div id="cl-magasin-list"></div><div style="height:100px"></div>
+      </div>
+
+      <!-- Menu contextuel ••• -->
+      <div class="cl-ctx-menu" id="cl-ctx-menu">
+        <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
+        <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
+        <div class="cl-ctx-item" onclick="clCtxUnit()"><span>✏️</span> Modifier l'unité</div>
+        <div class="cl-ctx-item danger" onclick="clCtxDel()"><span>🗑</span> Supprimer</div>
+      </div>
+
+      <!-- Modal marchand -->
+      <div class="cl-mmodal" id="cl-mmodal" onclick="if(event.target===this)clCloseMmodal()">
+        <div class="cl-msheet" onclick="event.stopPropagation()">
+          <div class="m-hn"></div>
+          <div style="font-size:1rem;font-weight:900;margin-bottom:4px">Changer de marchand</div>
+          <div style="font-size:.8rem;color:var(--grey-d);margin-bottom:16px" id="cl-msheet-sub"></div>
+          <div id="cl-mopts"></div>
         </div>
       </div>
 
-      <!-- Rayon Viande -->
-      <div class="rayon-section">
-        <div class="rayon-header">
-          <div class="rayon-check" onclick="toggleCheck(this)"></div>
-          <div class="rayon-name">Viandes &amp; Poissons</div>
-        </div>
-        <div class="course-item done" id="done-item">
-          <div class="course-check-box checked" onclick="toggleItem(this)">✓</div>
-          <div class="course-img">🥩</div>
-          <div class="course-body">
-            <div class="course-name">Steak haché 5% MG</div>
-            <div class="course-sub">Seuil d'alerte atteint</div>
-          </div>
-          <div class="course-del">🗑</div>
-          <div class="course-qty-col">
-            <div class="course-qty-val">2</div>
-            <div class="course-qty-unit">300g</div>
-            <div class="course-qty-add">⊕</div>
-          </div>
-        </div>
+      <!-- fab-search courses -->
+      <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
+        <span>🔍</span>
+        <input class="cl-fab-search-input" id="cl-search-input" placeholder="Rechercher…"
+          onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)">
       </div>
 
-      <div style="height:80px"></div>
     </div>
 
     <!-- ══ PAGE RECETTES ═══════════════════════════════════════════════════ -->
@@ -1261,26 +1291,11 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
     <!-- ══ PAGE MENU ═══════════════════════════════════════════════════════ -->
     <div id="page-menu" class="page">
-      <div class="m-tl" id="m-tl"></div>
-      <div class="m-modal" id="m-modal" onclick="if(event.target===this)mClose()">
-        <div class="m-sh" onclick="event.stopPropagation()">
-          <div class="m-hn"></div>
-          <div class="m-tt">Planifier un repas</div>
-          <div class="m-dt" id="m-dt"></div>
-          <div class="m-tr">
-            <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
-            <button class="m-tb" data-t="d" onclick="mTyp(this)">☀️ Déjeuner</button>
-            <button class="m-tb on"  data-t="n" onclick="mTyp(this)">🌙 Dîner</button>
-            <button class="m-tb" data-t="g" onclick="mTyp(this)">🍪 Goûter</button>
-            <button class="m-tb" data-t="a" onclick="mTyp(this)">📌 Autre</button>
-          </div>
-          <div class="m-sr">
-            <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
-            <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
-          </div>
-          <div class="m-sg" id="m-sg"></div>
-          <button class="m-ok" onclick="mAdd()">Ajouter au menu</button>
-        </div>
+      <div class="placeholder-page">
+        <div class="placeholder-icon">📅</div>
+        <div class="placeholder-title">Menu de la semaine</div>
+        <div class="placeholder-sub">Planifiez vos repas et générez automatiquement votre liste de courses.</div>
+        <div class="placeholder-chip">Bientôt disponible</div>
       </div>
     </div>
 
@@ -1403,7 +1418,14 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 <script>
 // ── Navigation ───────────────────────────────────────────────────────────────
-/* switchPage def1 supprimée */
+function switchPage(tab, page, title) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  tab.classList.add('active');
+  document.getElementById('header-title').textContent = title;
+  document.getElementById('content').scrollTop = 0;
+}
 
 // ── Drawer ───────────────────────────────────────────────────────────────────
 function toggleDrawer() {
@@ -1479,16 +1501,72 @@ const PAGE_CONFIG = {
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
 };
 
-/* switchPage def2 supprimée */
+// Override switchPage pour gérer FAB/search/header couleur
+const _origSwitch = switchPage;
+function switchPage(tab, page, title) {
+  // pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (tab) tab.classList.add('active');
+
+  const cfg = PAGE_CONFIG[page] || { title: title, fab: true, search: false, dark: false };
+  document.getElementById('header-title').textContent = cfg.title || title;
+  document.getElementById('content').scrollTop = 0;
+
+  // Header couleur
+  const header = document.querySelector('.header');
+  header.style.background = 'var(--orange)';
+
+  // FAB principal
+  const fab = document.getElementById('main-fab');
+  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
+
+  // FAB search
+  const fabSearch = document.getElementById('fab-search');
+  if (fabSearch) {
+    if (cfg.search) {
+      fabSearch.classList.add('visible');
+    } else {
+      fabSearch.classList.remove('visible');
+      // reset search
+      const inp = document.getElementById('search-input');
+      if (inp) { inp.value = ''; inp.classList.remove('expanded'); }
+      document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
+    }
+  }
+
+  // Fermer menu contextuel recette
+  closeRecetteMenu();
+
+  // fab-search courses
+  const clFs = document.getElementById('cl-fab-search');
+  if (clFs) {
+    if (page === 'courses') {
+      clFs.classList.add('visible');
+    } else {
+      clFs.classList.remove('visible');
+      const ci = document.getElementById('cl-search-input');
+      if (ci) { ci.value = ''; ci.classList.remove('expanded'); }
+      if (typeof _clSearchOpen !== 'undefined') _clSearchOpen = false;
+      if (typeof clSearchFilter === 'function') clSearchFilter('');
+    }
+  }
+  // Bouton aujourd'hui (menu)
+  const btnTod = document.getElementById('btn-tod');
+  if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
+  // Build menu timeline
+  if (page === 'menu' && typeof mBuild === 'function') mBuild();
+}
 
 // ── FAB action selon page active ─────────────────────────────────────────────
 function fabAction() {
   const active = document.querySelector('.page.active');
   if (!active) return;
   const page = active.id.replace('page-', '');
-  if (page === 'recettes') showToast('Ajouter une recette — bientôt', 'warn');
-  else if (page === 'courses') showToast('Ajouter un article', 'warn');
-  else showToast('Ajouter un produit — bientôt', 'warn');
+  if (page === 'stock')    { if(typeof openScanner==='function') openScanner(); return; }
+  if (page === 'courses')  { clFabAction(); return; }
+  showToast('Bientôt disponible', 'warn');
 }
 
 // ── Recettes : filtre par catégorie ──────────────────────────────────────────
@@ -1713,205 +1791,339 @@ function fabAction() {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// PAGE MENU — Timeline + Modal + Drag&Drop
+// COURSES v2
 // ════════════════════════════════════════════════════════════════════════════
-const MR = [
-  {n:'Poulet basquaise',e:'🫕',t:'one pot'},{n:'Tarte tatin poireaux',e:'🥧',t:'tarte'},
-  {n:'Soupe lentilles',e:'🍲',t:'soupe'},{n:'Tagliatelles asperges',e:'🍝',t:'pâtes'},
-  {n:'Mousse chocolat',e:'🍰',t:'dessert'},{n:'Buddha bowl',e:'🥗',t:'salade'},
-  {n:'Pizza maison',e:'🍕',t:'pizza'},{n:'Quiche lorraine',e:'🥧',t:'tarte'},
-  {n:'Risotto champignons',e:'🍚',t:'riz'},{n:'Gratin dauphinois',e:'🥔',t:'gratin'},
-  {n:'Saumon papillote',e:'🐟',t:'poisson'},{n:'Steak frites',e:'🥩',t:'viande'},
-  {n:'Omelette champignons',e:'🍳',t:'rapide'},{n:'Curry pois chiches',e:'🍛',t:'végé'},
-  {n:'Crêpes maison',e:'🥞',t:'dessert'},
-];
-const MC = {
-  p:{l:'Petit-déj',s:'sp',t:'tp',e:'🌅',o:0},
-  d:{l:'Déjeuner', s:'sd',t:'td',e:'☀️',o:1},
-  g:{l:'Goûter',   s:'sg2',t:'tg',e:'🍪',o:2},
-  n:{l:'Dîner',    s:'sn',t:'tn',e:'🌙',o:3},
-  a:{l:'Autre',    s:'sa',t:'ta',e:'📌',o:4},
+const CL_MARCHANDS = {
+  drive:  {label:'Carrefour Drive', ico:'🚗'},
+  fourche:{label:'La Fourche',      ico:'🌿'},
+  magasin:{label:'Carrefour Magasin',ico:'🏪'},
 };
-// Fix: sg2 pour éviter conflit avec .m-sg
-document.head.insertAdjacentHTML('beforeend','<style>.sg2{background:#AB47BC}.tg2{color:#AB47BC}</style>');
+const CL_RAYONS = ['Fruits & Légumes','Boulangerie','Crèmerie',
+  'Boucherie & Poissonnerie','Épicerie','Boissons','Surgelés','Autre'];
+const CL_CATALOG = [
+  {n:'Lait demi-écrémé',  e:'🥛',m:'drive',  r:'Crèmerie'},
+  {n:'Emmental râpé',     e:'🧀',m:'drive',  r:'Crèmerie'},
+  {n:'Beurre doux',       e:'🧈',m:'drive',  r:'Crèmerie'},
+  {n:'Oeufs plein air',   e:'🥚',m:'drive',  r:'Crèmerie'},
+  {n:'Pain de mie',       e:'🍞',m:'drive',  r:'Boulangerie'},
+  {n:'Steak haché',       e:'🥩',m:'drive',  r:'Boucherie & Poissonnerie'},
+  {n:'Poulet fermier',    e:'🍗',m:'magasin',r:'Boucherie & Poissonnerie'},
+  {n:'Tomates pelées',    e:'🥫',m:'drive',  r:'Épicerie'},
+  {n:'Pâtes spaghetti',   e:'🍝',m:'drive',  r:'Épicerie'},
+  {n:'Huile olive BIO',   e:'🫙',m:'fourche',r:'Épicerie'},
+  {n:'Lentilles BIO',     e:'🌱',m:'fourche',r:'Épicerie'},
+  {n:'Chocolat noir 85%', e:'🍫',m:'fourche',r:'Épicerie'},
+  {n:'Fromage de chèvre', e:'🧀',m:'magasin',r:'Crèmerie'},
+  {n:'Poivrons rouges',   e:'🫑',m:'magasin',r:'Fruits & Légumes'},
+];
 
-const MD=['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
-const MM=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov','déc'];
-
-let _md   = JSON.parse(localStorage.getItem('kc_menu')||'{}');
-let _mKey = null, _mT = 'n', _mP = null;
-
-function mdk(d){ return d.toISOString().split('T')[0]; }
-function mSv(){ localStorage.setItem('kc_menu',JSON.stringify(_md)); }
-function mSrt(k){ if(_md[k]) _md[k].sort((a,b)=>(MC[a.t]?.o??9)-(MC[b.t]?.o??9)); }
-
-// ── Build ──────────────────────────────────────────────────────────────────
-function mBuild(){
-  const tl=document.getElementById('m-tl'); if(!tl)return;
-  const now=new Date(); now.setHours(0,0,0,0);
-  let h='';
-  for(let i=-30;i<=60;i++){
-    const d=new Date(now); d.setDate(now.getDate()+i);
-    const k=mdk(d);
-    const b=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
-    const l=i===0?'📍 Aujourd\'hui — '+b:i===1?'Demain — '+b:i===-1?'Hier — '+b:b;
-    const rp=_md[k]||[];
-    const cards=rp.map((r,x)=>{
-      const c=MC[r.t]||MC.a;
-      // Fix tg class: gouter uses tg2 to avoid CSS conflict with .tg global
-      const tCls = r.t==='g' ? 'tg2' : c.t;
-      return `<div class="mcard" id="mc-${k}-${x}">
-        <div class="m-grip" draggable="true"
-          ondragstart="mDS(event,'${k}',${x})" ondragend="mDE()"
-          ontouchstart="mTS(event,'${k}',${x})" ontouchmove="mTM(event)" ontouchend="mTE(event)">⠿</div>
-        <div class="m-st ${c.s}"></div>
-        <div class="m-bd">
-          <div class="m-tg ${tCls}">${c.e} ${c.l}</div>
-          <div class="m-nm">${r.e||'🍽️'} ${r.n}</div>
-          ${r.note?`<div class="m-nt">${r.note}</div>`:''}
-        </div>
-        <div class="m-bts">
-          <button class="m-bt" onclick="mDel('${k}',${x})">🗑</button>
-          <button class="m-bt" onclick="showToast('🛒 Ajouté aux courses','ok')">🛒</button>
-        </div>
-      </div>`;
-    }).join('');
-    h+=`<div class="m-day${i===0?' tod':''}" id="mday-${k}">
-      <div class="m-dh">
-        <div class="m-dot"></div>
-        <div class="m-dlbl">${l}</div>
-        <button class="m-dadd" onclick="mOpen('${k}','${l.replace(/'/g,"\\'")}')">+</button>
-      </div>
-      <div class="m-zone" id="mz-${k}"
-        ondragover="mZO(event,'${k}')" ondragleave="mZL(event)" ondrop="mZD(event,'${k}')">
-        ${rp.length===0?'<div class="m-empty">Rien de prévu — tapez + pour planifier</div>':''}
-        ${cards}
-      </div>
-    </div>`;
-  }
-  tl.innerHTML=h;
-  const el=document.getElementById('mday-'+mdk(now));
-  if(el) setTimeout(()=>el.scrollIntoView({behavior:'instant',block:'start'}),30);
+// Reset localStorage si ancienne version
+if(localStorage.getItem('kc_seed_v') !== '3') {
+  localStorage.removeItem('kc_courses');
+  localStorage.removeItem('kc_cl_recipes');
+  localStorage.setItem('kc_seed_v','3');
 }
+let _cl = JSON.parse(localStorage.getItem('kc_courses') || '[]');
+let _clRecipes = JSON.parse(localStorage.getItem('kc_cl_recipes') || '[]');
+function clSave()        { localStorage.setItem('kc_courses', JSON.stringify(_cl)); }
+function clSaveRecipes() { localStorage.setItem('kc_cl_recipes', JSON.stringify(_clRecipes)); }
+function clId()          { return Date.now() + Math.random().toString(36).slice(2); }
 
-function mDel(k,x){
-  _md[k].splice(x,1); if(!_md[k].length)delete _md[k];
-  mSv(); mBuild();
-}
-function mToday(){
-  const n=new Date();n.setHours(0,0,0,0);
-  document.getElementById('mday-'+mdk(n))?.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-// ── Modal ──────────────────────────────────────────────────────────────────
-function mOpen(k,l){
-  _mKey=k;_mP=null;
-  document.getElementById('m-dt').textContent=l.replace('📍 ','');
-  document.getElementById('m-si').value='';
-  document.getElementById('m-sg').className='m-sg';
-  document.querySelectorAll('.m-tb').forEach(b=>b.classList.remove('on'));
-  document.querySelector('.m-tb[data-t="n"]').classList.add('on');
-  _mT='n';
-  document.getElementById('m-modal').classList.add('on');
-  setTimeout(()=>document.getElementById('m-si').focus(),200);
-}
-function mClose(){ document.getElementById('m-modal').classList.remove('on'); }
-function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
-function mSrch(v){
-  _mP=null; const q=v.trim().toLowerCase(); const w=document.getElementById('m-sg');
-  if(!q){w.className='m-sg';return;}
-  const hits=MR.filter(r=>r.n.toLowerCase().includes(q)).slice(0,5);
-  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.n.replace(/'/g,"\\'")}','${r.e}')"><span style="font-size:1.1rem">${r.e}</span><span style="font-size:.87rem;font-weight:700;flex:1">${r.n}</span><span style="font-size:.7rem;color:var(--grey-d)">${r.t}</span></div>`).join('')
-    +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\\'")}','📝')"><span style="font-size:1.1rem">📝</span><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
-  w.className='m-sg on';
-}
-function mPk(n,e){ _mP={n,e}; document.getElementById('m-si').value=n; document.getElementById('m-sg').className='m-sg'; }
-function mRnd(){
-  const r=MR[Math.floor(Math.random()*MR.length)]; mPk(r.n,r.e);
-  const b=document.getElementById('m-rd');
-  b.style.transition='transform .4s ease'; b.style.transform='rotate(360deg)';
-  setTimeout(()=>{b.style.transform='';},420);
-}
-function mAdd(){
-  const v=document.getElementById('m-si').value.trim();
-  if(!v){showToast('Entrez une recette ou une note','warn');return;}
-  const item={...(_mP||{n:v,e:'📝'}),t:_mT};
-  if(!_md[_mKey])_md[_mKey]=[];
-  _md[_mKey].push(item); mSrt(_mKey); mSv();
-  mClose(); mBuild(); showToast('✓ Ajouté au menu','ok');
-}
-
-// ── Drag desktop ────────────────────────────────────────────────────────────
-let _mDg=null;
-function mDS(e,k,x){ _mDg={k,x}; e.currentTarget.closest('.mcard').classList.add('mg'); e.dataTransfer.effectAllowed='move'; }
-function mDE(){ mCl(); document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('mg')); _mDg=null; }
-function mZO(e,k){ e.preventDefault(); mCl(); const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mcard'); if(c&&c.id.startsWith('mc-'+k)){mBr(e.clientY,c);}else{document.getElementById('mz-'+k)?.classList.add('dz');} }
-function mZL(e){ if(!e.currentTarget.contains(e.relatedTarget))mCl(); }
-function mZD(e,tk){ e.preventDefault();mCl();if(!_mDg)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mcard');if(c&&c.id.startsWith('mc-'+tk)){const p=c.id.split('-');const ti=parseInt(p[p.length-1]);mMv(_mDg.k,_mDg.x,tk,ti,mHf(e.clientY,c));}else{const it=_md[_mDg.k].splice(_mDg.x,1)[0];if(!_md[_mDg.k].length)delete _md[_mDg.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);mSv();mBuild();} }
-function mHf(cy,c){const r=c.getBoundingClientRect();return cy<r.top+r.height/2?'b':'a';}
-function mBr(cy,c){mCl();const b=document.createElement('div');b.className='m-bar';b.id='_mb';const p=mHf(cy,c);if(p==='b')c.parentNode.insertBefore(b,c);else c.parentNode.insertBefore(b,c.nextSibling);}
-function mCl(){document.getElementById('_mb')?.remove();document.querySelectorAll('.dz').forEach(el=>el.classList.remove('dz'));}
-function mMv(fk,fx,tk,tx,p){if(fk===tk&&fx===tx)return;const it=_md[fk].splice(fx,1)[0];if(!_md[fk].length)delete _md[fk];if(!_md[tk])_md[tk]=[];let at=tx;if(fk===tk&&fx<tx)at--;if(p==='a')at++;at=Math.max(0,Math.min(at,_md[tk].length));_md[tk].splice(at,0,it);mSrt(tk);mSv();mBuild();}
-
-// ── Drag touch ──────────────────────────────────────────────────────────────
-let _mTc=null,_mTC=null,_mTD=null;
-function mTS(e,k,x){e.stopPropagation();_mTD={k,x};_mTc=e.currentTarget.closest('.mcard');const r=_mTc.getBoundingClientRect();_mTC=_mTc.cloneNode(true);Object.assign(_mTC.style,{position:'fixed',top:r.top+'px',left:r.left+'px',width:r.width+'px',opacity:'.85',pointerEvents:'none',zIndex:'999',boxShadow:'0 8px 24px rgba(0,0,0,.2)',transform:'scale(1.02)',borderRadius:'12px',transition:'none'});document.getElementById('app').appendChild(_mTC);_mTc.style.opacity='.3';}
-function mTM(e){if(!_mTC)return;e.preventDefault();const t=e.touches[0];const r=_mTc.getBoundingClientRect();_mTC.style.top=(t.clientY-r.height/2)+'px';_mTC.style.left=(t.clientX-r.width/2)+'px';_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.style.display='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){mBr(t.clientY,c);return;}const z=u?.closest('[id^="mz-"]');if(z)z.classList.add('dz');}
-function mTE(e){if(!_mTC||!_mTD)return;const t=e.changedTouches[0];_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.remove();_mTC=null;if(_mTc)_mTc.style.opacity='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){const p=c.id.split('-');const tx=parseInt(p[p.length-1]);const tk=p.slice(1,p.length-1).join('-');mMv(_mTD.k,_mTD.x,tk,tx,mHf(t.clientY,c));_mTc=null;_mTD=null;return;}const z=u?.closest('[id^="mz-"]');if(z){const tk=z.id.replace('mz-','');const it=_md[_mTD.k].splice(_mTD.x,1)[0];if(!_md[_mTD.k].length)delete _md[_mTD.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);mSv();mBuild();}_mTc=null;_mTD=null;}
-
-// ── Hook switchPage pour menu ───────────────────────────────────────────────
-function switchPage(tab, page, title) {
-  // Pages
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  if (tab) tab.classList.add('active');
-  document.getElementById('content').scrollTop = 0;
-
-  // Titre header
-  const cfg = PAGE_CONFIG[page] || {};
-  document.getElementById('header-title').textContent = cfg.title || title;
-
-  // FAB
-  const fab = document.getElementById('main-fab');
-  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
-
-  // FAB search (recettes)
-  const fabSearch = document.getElementById('fab-search');
-  if (fabSearch) {
-    if (cfg.search) {
-      fabSearch.classList.add('visible');
-    } else {
-      fabSearch.classList.remove('visible');
-      const inp = document.getElementById('search-input');
-      if (inp) { inp.value = ''; inp.classList.remove('expanded'); }
-      document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
-    }
-  }
-
-  // Fermer menu contextuel recette
-  if (typeof closeRecetteMenu === 'function') closeRecetteMenu();
-
-  // Bouton aujourd'hui (menu uniquement)
-  const btnTod = document.getElementById('btn-tod');
-  if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
-
-  // Construire la timeline menu
-  if (page === 'menu') mBuild();
-}
-
-// ── Seed démo ────────────────────────────────────────────────────────────────
+// Seed
 (function(){
-  if(Object.keys(_md).length>0)return;
-  const now=new Date();now.setHours(0,0,0,0);
-  const add=(i,t,n,e)=>{const d=new Date(now);d.setDate(now.getDate()+i);const k=mdk(d);if(!_md[k])_md[k]=[];_md[k].push({n,e,t});};
-  add(-2,'n','Gratin dauphinois','🥔'); add(-1,'n','Soupe lentilles','🍲');
-  add(-1,'d','Buddha bowl','🥗');       add(0,'p','Crêpes maison','🥞');
-  add(0,'d','Salade César','🥗');       add(0,'n','Poulet basquaise','🫕');
-  add(1,'n','Tagliatelles asperges','🍝'); add(2,'g','Mousse chocolat','🍰');
-  add(2,'n','Pizza maison','🍕');        add(4,'n','Quiche lorraine','🥧');
-  Object.keys(_md).forEach(mSrt); mSv();
+  if(_cl.length > 0) return;
+  _clRecipes = [
+    {id:'r1',nom:'Poulet basquaise',  e:'🫕',portions:2},
+    {id:'r2',nom:'Mousse au chocolat',e:'🍰',portions:4},
+  ];
+  clSaveRecipes();
+  _cl = [
+    {id:clId(),n:'Lait demi-écrémé',   e:'🥛',m:'drive',  r:'Crèmerie',                qty:3,done:false,origin:'stock bas'},
+    {id:clId(),n:'Emmental râpé',       e:'🧀',m:'drive',  r:'Crèmerie',                qty:2,done:false,origin:'stock bas'},
+    {id:clId(),n:'Pain de mie',         e:'🍞',m:'drive',  r:'Boulangerie',             qty:1,done:false,origin:'stock bas'},
+    {id:clId(),n:'Steak haché 5% MG',   e:'🥩',m:'drive',  r:'Boucherie & Poissonnerie',qty:2,done:true, origin:'stock bas'},
+    {id:clId(),n:'Huile olive BIO',     e:'🫙',m:'fourche',r:'Épicerie',                qty:2,done:false,origin:'recette',recipeId:'r1'},
+    {id:clId(),n:'Poivrons rouges',     e:'🫑',m:'magasin',r:'Fruits & Légumes',        qty:2,done:false,origin:'recette',recipeId:'r1'},
+    {id:clId(),n:'Poulet fermier',       e:'🍗',m:'magasin',r:'Boucherie & Poissonnerie',qty:1,done:false,origin:'recette',recipeId:'r1'},
+    {id:clId(),n:'Chocolat noir 85%',   e:'🍫',m:'fourche',r:'Épicerie',                qty:3,done:false,origin:'recette',recipeId:'r2'},
+    {id:clId(),n:'Oeufs plein air',     e:'🥚',m:'drive',  r:'Crèmerie',                qty:1,done:false,origin:'recette',recipeId:'r2'},
+    {id:clId(),n:'Fromage de chèvre',   e:'🧀',m:'magasin',r:'Crèmerie',                qty:2,done:false,origin:'manuel'},
+    {id:clId(),n:'Lentilles BIO',       e:'🌱',m:'fourche',r:'Épicerie',                qty:1,done:false,origin:'manuel'},
+  ];
+  clSave();
 })();
+
+// ── Rendu ─────────────────────────────────────────────────────────────────────
+function clRender() {
+  const total = _cl.filter(i=>!i.done).length;
+  document.getElementById('cl-count').textContent = total + ' article' + (total>1?'s':'');
+  const byM = {drive:[],fourche:[],magasin:[]};
+  _cl.forEach(i=>{ if(byM[i.m]) byM[i.m].push(i); });
+  ['drive','fourche','magasin'].forEach(m=>{
+    const n = byM[m].filter(i=>!i.done).length;
+    const el = document.getElementById('cl-'+m+'-n');
+    if(el) el.textContent = n+' article'+(n>1?'s':'');
+  });
+  clRenderAll(byM);
+  clRenderMarchand('drive',   byM.drive,   false);
+  clRenderMarchand('fourche', byM.fourche, false);
+  clRenderMarchand('magasin', byM.magasin, true);
+}
+
+function clItemHTML(item) {
+  const qty    = item.qty || 1;
+  const unit   = item.unit || '';
+  const isDel  = qty <= 1;
+  const qLabel = qty + (unit ? ' '+unit : '');
+  const recipe = item.recipeId ? _clRecipes.find(r=>r.id===item.recipeId) : null;
+  const badge  = recipe
+    ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${recipe.e}</div>`
+    : '';
+  return `<div class="cl-item${item.done?' done':''}" id="cli-${item.id}">
+    <div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?'✓':''}</div>
+    <div class="cl-emoji">${item.e||'🛒'}</div>
+    <div class="cl-body">
+      <div class="cl-name">${item.n}</div>
+      <div class="cl-origin">${item.origin||'manuel'}${recipe?' · '+recipe.nom:''}</div>
+    </div>
+    <div class="cl-actions">
+      ${badge}
+      <div class="cl-qty-ctrl">
+        <button class="cl-qbtn${isDel?' del':''}"
+          onclick="${isDel?`clDel('${item.id}')`:`clQty('${item.id}',-1)`}">${isDel?'🗑':'−'}</button>
+        <span class="cl-qnum">${qLabel}</span>
+        <button class="cl-qbtn" onclick="clQty('${item.id}',1)">+</button>
+      </div>
+      <div class="cl-more-btn" onclick="clOpenCtx(event,'${item.id}')">•••</div>
+    </div>
+  </div>`;
+}
+
+function clRenderAll(byM) {
+  const el = document.getElementById('cl-all-list'); if(!el) return;
+  let h = '';
+  ['drive','fourche','magasin'].forEach(m=>{
+    const items = byM[m]; if(!items.length) return;
+    const mc = CL_MARCHANDS[m];
+    const n  = items.filter(i=>!i.done).length;
+    h += `<div style="padding:10px 14px 6px;background:var(--grey-l);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--grey)">
+      <span style="font-size:1.1rem">${mc.ico}</span>
+      <span style="font-size:.85rem;font-weight:800;flex:1">${mc.label}</span>
+      <span style="font-size:.72rem;color:var(--grey-d)">${n} à prendre</span></div>`;
+    items.forEach(i=>h+=clItemHTML(i));
+  });
+  if(!h) h = '<div style="text-align:center;padding:3rem 1rem;color:var(--grey-d)">🛒 Liste vide</div>';
+  h += clRecipesSectionHTML();
+  el.innerHTML = h;
+}
+
+function clRenderMarchand(m, items, byRayon) {
+  const el = document.getElementById('cl-'+m+'-list'); if(!el) return;
+  if(!items.length){ el.innerHTML='<div style="text-align:center;padding:3rem 1rem;color:var(--grey-d)">Aucun article</div>'; return; }
+  if(!byRayon){ el.innerHTML = items.map(clItemHTML).join(''); return; }
+  const groups = {};
+  items.forEach(i=>{ const r=i.r||'Autre'; if(!groups[r])groups[r]=[]; groups[r].push(i); });
+  let h='';
+  CL_RAYONS.forEach(r=>{
+    if(!groups[r]) return;
+    const n=groups[r].filter(i=>!i.done).length;
+    h+=`<div class="cl-rayon"><div class="cl-rayon-hd">
+      <div class="cl-rayon-chk${groups[r].every(i=>i.done)?' on':''}" onclick="clToggleRayon('${r}')"></div>
+      <div class="cl-rayon-name">${r}</div>
+      <span style="font-size:.72rem;color:var(--grey-d)">${n} article${n>1?'s':''}</span></div>
+      ${groups[r].map(clItemHTML).join('')}</div>`;
+  });
+  el.innerHTML = h;
+}
+
+// ── Recettes liées ─────────────────────────────────────────────────────────────
+function clRecipesSectionHTML() {
+  if(!_clRecipes||!_clRecipes.length) return '';
+  const active = _clRecipes.filter(rec=>_cl.some(i=>i.recipeId===rec.id));
+  if(!active.length) return '';
+  const cards = active.map(rec=>{
+    const items = _cl.filter(i=>i.recipeId===rec.id);
+    const done  = items.filter(i=>i.done).length;
+    const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.e} ${i.n}</span>`).join('');
+    return `<div class="cl-rl-card">
+      <div class="cl-rl-top">
+        <div class="cl-rl-ico">${rec.e}</div>
+        <div class="cl-rl-info">
+          <div class="cl-rl-name">${rec.nom}</div>
+          <div class="cl-rl-sub">${done}/${items.length} ingrédients cochés</div>
+        </div>
+        <div>
+          <div class="cl-rl-plabel">portions</div>
+          <div class="cl-rl-pctrl">
+            <button class="cl-rl-pbtn" onclick="clRecipePortions('${rec.id}',-1)">−</button>
+            <span class="cl-rl-pval">${rec.portions}</span>
+            <button class="cl-rl-pbtn" onclick="clRecipePortions('${rec.id}',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="cl-rl-divider"></div>
+      <div class="cl-rl-ingr">${chips}</div>
+    </div>`;
+  }).join('');
+  return `<div class="cl-rl-wrap"><div class="cl-rl-title">🍴 Recettes liées</div>${cards}</div>`;
+}
+
+function clRecipePortions(recipeId, delta) {
+  const rec = _clRecipes.find(r=>r.id===recipeId); if(!rec) return;
+  const newP = rec.portions + delta;
+  if(newP<=0){ _cl=_cl.filter(i=>i.recipeId!==recipeId); _clRecipes=_clRecipes.filter(r=>r.id!==recipeId); clSaveRecipes(); clSave(); clRender(); showToast('Recette supprimée','ok'); return; }
+  const ratio = newP/rec.portions;
+  _cl.forEach(i=>{ if(i.recipeId===recipeId) i.qty=Math.round((i.qty||1)*ratio*10)/10; });
+  rec.portions=newP; clSaveRecipes(); clSave(); clRender();
+  showToast(`${rec.nom} : ${newP} portion${newP>1?'s':''}`, 'ok');
+}
+function clShowBadge(e,recipeId) {
+  e.stopPropagation();
+  const rec=_clRecipes.find(r=>r.id===recipeId);
+  if(rec) showToast(`${rec.e} ${rec.nom} · ${rec.portions} portion${rec.portions>1?'s':''}`, 'ok');
+}
+
+// ── Onglets ───────────────────────────────────────────────────────────────────
+function clTab(tab, m) {
+  document.querySelectorAll('.cl-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.cl-marchand').forEach(v=>v.classList.remove('on'));
+  tab.classList.add('on');
+  document.getElementById('clv-'+m).classList.add('on');
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;clSave();clRender();} }
+function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); clSave(); clRender(); }
+function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){i.qty=Math.max(1,(i.qty||1)+d);clSave();clRender();} }
+function clToggleRayon(rayon){ const items=_cl.filter(i=>i.m==='magasin'&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>i.done=!allDone); clSave();clRender(); }
+
+// ── Ajout depuis recherche ────────────────────────────────────────────────────
+function clAddItem() {
+  const inp = document.getElementById('cl-search-input');
+  const v   = inp?.value.trim(); if(!v) return;
+  const found = CL_CATALOG.find(c=>c.n.toLowerCase()===v.toLowerCase());
+  _cl.unshift({id:clId(),qty:1,done:false,origin:'manuel',
+    n:found?found.n:v, e:found?found.e:'🛒', m:found?found.m:'drive', r:found?found.r:'Autre'});
+  clSave(); clRender();
+  if(inp){ inp.value=''; inp.classList.remove('expanded'); }
+  _clSearchOpen=false;
+  showToast('✓ Ajouté à la liste','ok');
+}
+
+// ── fab-search courses (copie toggleSearch) ────────────────────────────────────
+let _clSearchOpen = false;
+function clToggleSearch() {
+  const inp = document.getElementById('cl-search-input'); if(!inp) return;
+  _clSearchOpen = !_clSearchOpen;
+  if(_clSearchOpen){ inp.classList.add('expanded'); setTimeout(()=>inp.focus(),50); }
+  else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); inp.blur(); }
+}
+function clSearchFilter(val) {
+  const q = val.trim().toLowerCase();
+  document.querySelectorAll('.cl-item').forEach(el=>{
+    const name = el.querySelector('.cl-name')?.textContent.toLowerCase()||'';
+    el.style.display=(!q||name.includes(q))?'':'none';
+  });
+  document.querySelectorAll('.cl-rayon').forEach(sec=>{
+    const vis=[...sec.querySelectorAll('.cl-item')].some(i=>i.style.display!=='none');
+    sec.style.display=vis?'':'none';
+  });
+}
+
+// ── FAB courses ───────────────────────────────────────────────────────────────
+function clFabAction() {
+  const v = document.getElementById('cl-search-input')?.value.trim();
+  if(v) { clAddItem(); }
+  else  { clToggleSearch(); }
+}
+
+// ── Menu contextuel ••• ───────────────────────────────────────────────────────
+let _clCtxId = null;
+function clOpenCtx(e, id) {
+  e.stopPropagation();
+  _clCtxId = id;
+  const menu = document.getElementById('cl-ctx-menu'); if(!menu) return;
+  if(menu.classList.contains('open')&&menu._ctxId===id){ menu.classList.remove('open'); return; }
+  menu._ctxId = id;
+  const btn=e.currentTarget, bRect=btn.getBoundingClientRect(), appRect=document.getElementById('app').getBoundingClientRect();
+  menu.style.right=(appRect.right-bRect.right+4)+'px';
+  const spaceBelow=appRect.bottom-bRect.bottom;
+  if(spaceBelow<180){ menu.style.bottom=(appRect.bottom-bRect.top+4)+'px'; menu.style.top='auto'; }
+  else { menu.style.top=(bRect.bottom-appRect.top+4)+'px'; menu.style.bottom='auto'; }
+  menu.classList.add('open');
+  setTimeout(()=>document.addEventListener('click',clCloseCtx,{once:true}),10);
+}
+function clCloseCtx(){ document.getElementById('cl-ctx-menu')?.classList.remove('open'); _clCtxId=null; }
+function clCtxLink()    { const i=_cl.find(x=>x.id===_clCtxId); if(i) window.open(clSearchURL(i),'_blank'); clCloseCtx(); }
+function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpenMmodal(id),100); }
+function clCtxDel()     { const id=_clCtxId; clCloseCtx(); clDel(id); }
+function clCtxUnit() {
+  const item=_cl.find(i=>i.id===_clCtxId); if(!item) return;
+  const units=['','pièce','pack','kg','g','L','cl','ml','bouteille','boîte','sachet'];
+  const cur=item.unit||'';
+  item.unit=units[(units.indexOf(cur)+1)%units.length];
+  clSave(); clRender(); clCloseCtx();
+  showToast(item.unit?'Unité : '+item.unit:'Unité supprimée','ok');
+}
+function clSearchURL(item) {
+  const q=encodeURIComponent(item.n);
+  if(item.m==='fourche') return 'https://lafourche.fr/search?q='+q;
+  return 'https://www.carrefour.fr/s?q='+q;
+}
+
+// ── Modal marchand ────────────────────────────────────────────────────────────
+let _clEditId = null;
+function clOpenMmodal(id) {
+  _clEditId=id;
+  const item=_cl.find(i=>i.id===id); if(!item) return;
+  document.getElementById('cl-msheet-sub').textContent=item.n;
+  document.getElementById('cl-mopts').innerHTML=Object.entries(CL_MARCHANDS).map(([k,mc])=>`
+    <div class="cl-mopt${item.m===k?' sel':''}" onclick="clSetMarchand('${id}','${k}')">
+      <div class="cl-mopt-ico">${mc.ico}</div>
+      <div><div class="cl-mopt-name">${mc.label}</div></div>
+      ${item.m===k?'<span style="font-size:.65rem;font-weight:800;color:var(--orange)">Actuel</span>':''}
+    </div>`).join('');
+  document.getElementById('cl-mmodal').classList.add('on');
+}
+function clCloseMmodal(){ document.getElementById('cl-mmodal').classList.remove('on'); }
+function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;clSave();clRender();} clCloseMmodal(); showToast('✓ Marchand mis à jour','ok'); }
+
+// ── Boutons marchands ─────────────────────────────────────────────────────────
+function clOpenDrive() {
+  const items=_cl.filter(i=>i.m==='drive'&&!i.done);
+  if(!items.length){ showToast('Aucun article Drive','warn'); return; }
+  window.open('https://www.carrefour.fr/s?q='+encodeURIComponent(items[0].n),'_blank');
+}
+function clCopyFourche() {
+  const items=_cl.filter(i=>i.m==='fourche'&&!i.done);
+  if(!items.length){ showToast('Aucun article La Fourche','warn'); return; }
+  const txt='🌿 La Fourche\n\n'+items.map(i=>`• ${i.n} ×${i.qty}`).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>showToast('✓ Liste copiée','ok')).catch(()=>alert(txt));
+}
+
+// ── Init (sans toucher à switchPage) ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialiser la liste au premier affichage de la page courses
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(n) {
+        if(n.classList && n.classList.contains('active') && n.id === 'page-courses') {
+          clRender();
+        }
+      });
+    });
+  });
+  const content = document.getElementById('content');
+  if(content) observer.observe(content, {childList:false, subtree:true, attributes:true, attributeFilter:['class']});
+  // Aussi au clic sur l'onglet courses dans le bottom nav
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      if(tab.querySelector('.nav-label')?.textContent === 'Courses') {
+        setTimeout(clRender, 50);
+      }
+    });
+  });
+});
 
 </script>
 </body>
