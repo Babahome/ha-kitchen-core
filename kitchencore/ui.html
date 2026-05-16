@@ -998,6 +998,7 @@ textarea.einput{ resize:none;min-height:60px; }
 .sp{background:#66BB6A}.sd{background:#42A5F5}.sg2{background:#AB47BC}.sn{background:var(--orange)}.sa{background:var(--grey-d)}
 .m-bd      { flex:1;padding:9px 8px 9px 12px;display:flex;flex-direction:column;justify-content:center;min-width:0; }
 .m-tg      { font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px; }
+.m-port    { font-weight:700;color:var(--grey-d);text-transform:none;letter-spacing:.02em;margin-left:6px; }
 .tp{color:#66BB6A}.td{color:#42A5F5}.tg2{color:#AB47BC}.tn{color:var(--orange)}.ta{color:var(--grey-d)}
 .m-nm      { font-size:.9rem;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .m-nt      { font-size:.7rem;color:var(--grey-d);margin-top:1px; }
@@ -1005,6 +1006,24 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-bt      { width:26px;height:26px;border-radius:7px;border:none;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:.8rem; }
 .m-bt:active { background:var(--grey); }
 .m-bar     { height:3px;background:var(--orange);border-radius:2px;margin:1px 0;pointer-events:none; }
+/* Mode sélection menu — checkbox en overlay à gauche, centrée verticalement */
+.mcard { position:relative; }
+.m-sel { position:absolute; top:50%; left:6px; transform:translateY(-50%); z-index:5; display:none; pointer-events:none; }
+.m-sel-box { width:22px;height:22px;border-radius:6px;border:2px solid var(--grey);background:white;display:grid;place-items:center;font-size:.75rem;color:transparent;font-weight:900;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.15); }
+body[data-menu-sel="1"] #page-menu .m-sel { display:block; }
+body[data-menu-sel="1"] #page-menu .mcard { cursor:pointer;user-select:none;-webkit-user-select:none; }
+body[data-menu-sel="1"] #page-menu .m-grip { pointer-events:none;opacity:.3; }
+body[data-menu-sel="1"] #page-menu .m-bts { pointer-events:none;opacity:.3; }
+.mcard.m-on .m-sel-box { background:var(--orange);border-color:var(--orange);color:white; }
+.mcard.m-on { background:var(--orange-l);border-color:var(--orange); }
+/* Cacher FAB en mode sélection */
+body[data-menu-sel="1"] #main-fab { display:none; }
+/* Menu contextuel header (sélection menu) */
+.m-hdmenu { position:absolute; top:54px; right:12px; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:6px 0; min-width:200px; z-index:50; display:none; }
+.m-hdmenu.on { display:block; }
+.m-hdmenu-item { padding:11px 14px; display:flex; align-items:center; gap:10px; font-size:.88rem; font-weight:700; cursor:pointer; color:var(--text); }
+.m-hdmenu-item:active { background:var(--grey-l); }
+.m-hdmenu-item.danger { color:var(--red); }
 /* Bouton aujourd'hui dans header */
 .btn-tod   { background:rgba(255,255,255,.2);border-radius:8px;padding:5px 9px;cursor:pointer;color:white;font-size:.72rem;font-weight:800;display:none;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0; }
 .btn-tod:active { background:rgba(255,255,255,.35); }
@@ -1032,6 +1051,13 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-si2:active{background:var(--orange-l)}
 .m-ok      { width:100%;padding:.85rem;border-radius:12px;border:none;background:var(--orange);color:white;font-size:.92rem;font-weight:800;font-family:var(--font);cursor:pointer;margin-top:4px; }
 .m-ok:active{opacity:.85}
+/* Sélecteur portions dans le sheet édition */
+.m-portrow { display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-bottom:8px; }
+.m-portlbl { font-size:.88rem;font-weight:800;color:var(--text); }
+.m-portctrl { display:flex;align-items:center;gap:10px;background:var(--grey-l);border-radius:99px;padding:4px 6px; }
+.m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:white;color:var(--orange);font-size:1.1rem;font-weight:900;cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.m-portbtn:active { background:var(--orange);color:white; }
+.m-portval { font-size:1rem;font-weight:900;color:var(--text);min-width:24px;text-align:center; }
 
 
 
@@ -1535,7 +1561,7 @@ textarea.einput{ resize:none;min-height:60px; }
     <div class="ing-header-actions" id="ing-headerActions">
       <button class="ing-header-btn" id="ing-selectBtn" onclick="ingToggleSelectMode()">Sélectionner</button>
     </div>
-    <div class="header-icon">⋮</div>
+    <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
   </div>
 
   <!-- CONTENT -->
@@ -1970,11 +1996,15 @@ textarea.einput{ resize:none;min-height:60px; }
 
         <!-- ══ PAGE MENU ═══════════════════════════════════════════════════════ -->
     <div id="page-menu" class="page">
+      <div class="m-hdmenu" id="m-hdmenu" onclick="event.stopPropagation()">
+        <div class="m-hdmenu-item" onclick="mSelAddToCourses();mHideHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
+        <div class="m-hdmenu-item danger" onclick="mSelExit();mHideHdmenu()"><span>✕</span><span>Annuler la sélection</span></div>
+      </div>
       <div class="m-tl" id="m-tl"></div>
       <div class="m-modal" id="m-modal" onclick="if(event.target===this)mClose()">
         <div class="m-sh" onclick="event.stopPropagation()">
           <div class="m-hn"></div>
-          <div class="m-tt">Planifier un repas</div>
+          <div class="m-tt" id="m-tt">Planifier un repas</div>
           <div class="m-dt" id="m-dt"></div>
           <div class="m-tr">
             <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
@@ -1988,7 +2018,15 @@ textarea.einput{ resize:none;min-height:60px; }
             <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
           </div>
           <div class="m-sg" id="m-sg"></div>
-          <button class="m-ok" onclick="mAdd()">Ajouter au menu</button>
+          <div class="m-portrow">
+            <span class="m-portlbl">👥 Portions</span>
+            <div class="m-portctrl">
+              <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
+              <span class="m-portval" id="m-portval">2</span>
+              <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
+            </div>
+          </div>
+          <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
         </div>
       </div>
     </div>
@@ -3327,7 +3365,7 @@ const MD=['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
 const MM=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov','déc'];
 
 let _md   = JSON.parse(localStorage.getItem('kc_menu')||'{}');
-let _mKey = null, _mT = 'n', _mP = null;
+let _mKey = null, _mT = 'n', _mP = null, _mEditIdx = null, _mPortions = 2;
 
 function mdk(d){ return d.toISOString().split('T')[0]; }
 function mSv(){ localStorage.setItem('kc_menu',JSON.stringify(_md)); }
@@ -3347,19 +3385,21 @@ function mBuild(){
     const cards=rp.map((r,x)=>{
       const c=MC[r.t]||MC.a;
       const tCls = r.t==='g' ? 'tg2' : c.t;
-      return `<div class="mcard" id="mc-${k}-${x}">
+      const portStr = r.portions ? `<span class="m-port">👥 ${r.portions} port.</span>` : '';
+      return `<div class="mcard" id="mc-${k}-${x}" data-k="${k}" data-x="${x}">
         <div class="m-grip" draggable="true"
           ondragstart="mDS(event,'${k}',${x})" ondragend="mDE()"
           ontouchstart="mTS(event,'${k}',${x})" ontouchmove="mTM(event)" ontouchend="mTE(event)">⠿</div>
+        <div class="m-sel"><span class="m-sel-box">✓</span></div>
         <div class="m-st ${c.s}"></div>
         <div class="m-bd">
-          <div class="m-tg ${tCls}">${c.e} ${c.l}</div>
+          <div class="m-tg ${tCls}">${c.e} ${c.l}${portStr}</div>
           <div class="m-nm">${r.e||'🍽️'} ${r.n}</div>
           ${r.note?`<div class="m-nt">${r.note}</div>`:''}
         </div>
         <div class="m-bts">
-          <button class="m-bt" onclick="mDel('${k}',${x})">🗑</button>
-          <button class="m-bt" onclick="showToast('🛒 Ajouté aux courses','ok')">🛒</button>
+          <button class="m-bt m-bt-edit" data-act="edit">✏️</button>
+          <button class="m-bt m-bt-del" data-act="del">🗑</button>
         </div>
       </div>`;
     }).join('');
@@ -3392,17 +3432,40 @@ function mToday(){
 
 // ── Modal ──────────────────────────────────────────────────────────────────
 function mOpen(k,l){
-  _mKey=k;_mP=null;
+  _mKey=k; _mP=null; _mEditIdx=null; _mPortions=2;
   document.getElementById('m-dt').textContent=l.replace('📍 ','');
   document.getElementById('m-si').value='';
   document.getElementById('m-sg').className='m-sg';
   document.querySelectorAll('.m-tb').forEach(b=>b.classList.remove('on'));
   document.querySelector('.m-tb[data-t="n"]').classList.add('on');
   _mT='n';
+  document.getElementById('m-tt').textContent='Planifier un repas';
+  document.getElementById('m-ok').textContent='Ajouter au menu';
+  _mPortRender();
   document.getElementById('m-modal').classList.add('on');
   setTimeout(()=>document.getElementById('m-si').focus(),200);
 }
-function mClose(){ document.getElementById('m-modal').classList.remove('on'); }
+function mEdit(k,x){
+  const item=(_md[k]||[])[x]; if(!item)return;
+  _mKey=k; _mEditIdx=x;
+  _mP={n:item.n,e:item.e};
+  _mPortions = item.portions || 2;
+  // Label du jour
+  const d=new Date(k+'T00:00:00');
+  const lbl=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
+  document.getElementById('m-dt').textContent=lbl;
+  document.getElementById('m-si').value=item.n;
+  document.getElementById('m-sg').className='m-sg';
+  document.querySelectorAll('.m-tb').forEach(b=>b.classList.remove('on'));
+  const tb=document.querySelector('.m-tb[data-t="'+item.t+'"]');
+  if(tb)tb.classList.add('on'); _mT=item.t;
+  document.getElementById('m-tt').textContent='Modifier le repas';
+  document.getElementById('m-ok').textContent='Enregistrer';
+  _mPortRender();
+  document.getElementById('m-modal').classList.add('on');
+  setTimeout(()=>document.getElementById('m-si').focus(),200);
+}
+function mClose(){ document.getElementById('m-modal').classList.remove('on'); _mEditIdx=null; }
 function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
 function mSrch(v){
   _mP=null; const q=v.trim().toLowerCase(); const w=document.getElementById('m-sg');
@@ -3418,7 +3481,25 @@ function mSrch(v){
     +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\'")}','📝')"><span style="font-size:1.1rem">📝</span><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
   w.className='m-sg on';
 }
-function mPk(n,e){ _mP={n,e}; document.getElementById('m-si').value=n; document.getElementById('m-sg').className='m-sg'; }
+function mPk(n,e){
+  _mP={n,e};
+  document.getElementById('m-si').value=n;
+  document.getElementById('m-sg').className='m-sg';
+  // Si on n'est pas en mode édition et qu'on trouve la recette → pré-remplir portions
+  if(_mEditIdx===null){
+    const rvList = (typeof _rv!=='undefined') ? _rv : [];
+    const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===n.toLowerCase());
+    if(r && r.portions) { _mPortions = r.portions; _mPortRender(); }
+  }
+}
+// Sélecteur portions
+function mPortDelta(d){
+  _mPortions = Math.max(1, Math.min(20, _mPortions + d));
+  _mPortRender();
+}
+function _mPortRender(){
+  const el=document.getElementById('m-portval'); if(el) el.textContent=_mPortions;
+}
 function mRnd(){
   const pool = [...MR, ...(typeof _rv!=='undefined'?_rv.map(r=>({n:r.nom,e:r.emoji||'🍽️'})):[])];
   const r=pool[Math.floor(Math.random()*pool.length)]; mPk(r.n||r.nom,r.e||r.emoji||'🍽️');
@@ -3429,10 +3510,18 @@ function mRnd(){
 function mAdd(){
   const v=document.getElementById('m-si').value.trim();
   if(!v){showToast('Entrez une recette ou une note','warn');return;}
-  const item={...(_mP||{n:v,e:'📝'}),t:_mT};
+  const item={...(_mP||{n:v,e:'📝'}),t:_mT,portions:_mPortions};
   if(!_md[_mKey])_md[_mKey]=[];
-  _md[_mKey].push(item); mSrt(_mKey); mSv();
-  mClose(); mBuild(); showToast('✓ Ajouté au menu','ok');
+  if(_mEditIdx!==null){
+    // Mode édition : remplacer l'item existant
+    _md[_mKey][_mEditIdx]=item;
+    mSrt(_mKey); mSv();
+    mClose(); mBuild(); showToast('✓ Repas modifié','ok');
+  } else {
+    // Mode ajout
+    _md[_mKey].push(item); mSrt(_mKey); mSv();
+    mClose(); mBuild(); showToast('✓ Ajouté au menu','ok');
+  }
 }
 
 // ── Drag desktop ────────────────────────────────────────────────────────────
@@ -3465,6 +3554,216 @@ function mTE(e){if(!_mTC||!_mTD)return;const t=e.changedTouches[0];_mTC.style.di
   add(2,'n','Pizza maison','🍕');        add(4,'n','Quiche lorraine','🥧');
   Object.keys(_md).forEach(mSrt); mSv();
 })();
+
+// ── Menu : interactions cards (tap voir / long press sélection) ─────────────
+let _mSelMode = false;
+const _mSelSet = new Set(); // clés "k|x"
+let _mLpTimer = null, _mLpStartXY = null, _mLpFired = false;
+const LP_MS = 500, LP_TOLERANCE = 12;
+
+function _mSelKey(k,x){ return k+'|'+x; }
+
+function mSelStart(card){
+  _mSelMode = true;
+  document.body.setAttribute('data-menu-sel','1');
+  const k=card.dataset.k, x=card.dataset.x;
+  _mSelSet.add(_mSelKey(k,x));
+  card.classList.add('m-on');
+  // Vibration légère si dispo
+  if(navigator.vibrate) try{ navigator.vibrate(30); }catch(e){}
+  _mSelUpdateHeader();
+}
+function mSelToggle(card){
+  const k=card.dataset.k, x=card.dataset.x;
+  const key=_mSelKey(k,x);
+  if(_mSelSet.has(key)){ _mSelSet.delete(key); card.classList.remove('m-on'); }
+  else { _mSelSet.add(key); card.classList.add('m-on'); }
+  if(_mSelSet.size===0) mSelExit();
+  else _mSelUpdateHeader();
+}
+function mSelExit(){
+  _mSelMode=false;
+  _mSelSet.clear();
+  document.body.removeAttribute('data-menu-sel');
+  document.querySelectorAll('#page-menu .mcard.m-on').forEach(c=>c.classList.remove('m-on'));
+  _mSelUpdateHeader();
+  mHideHdmenu();
+}
+function _mSelUpdateHeader(){
+  const ttl = document.getElementById('header-title');
+  if(!ttl) return;
+  if(_mSelMode){
+    ttl.textContent = _mSelSet.size+' sélectionné'+(_mSelSet.size>1?'s':'');
+  } else {
+    // Restaurer le titre selon la page active
+    const active = document.querySelector('.page.active');
+    const p = active?.id.replace('page-','');
+    const titles = {stock:'Stock Cuisine',courses:'Courses',recettes:'Recettes',menu:'Menu',profil:'Profil',ingredients:'Ingrédients'};
+    ttl.textContent = titles[p] || 'KitchenCore';
+  }
+}
+function mHeaderDotsClick(){
+  // En mode sélection menu → afficher le menu d'actions, sinon comportement neutre
+  if(_mSelMode){
+    const m = document.getElementById('m-hdmenu');
+    if(m) m.classList.toggle('on');
+  }
+}
+function mHideHdmenu(){
+  document.getElementById('m-hdmenu')?.classList.remove('on');
+}
+
+// Tap card → ouvrir détail recette si trouvée
+function mOpenDetailFromCard(k,x){
+  const item=(_md[k]||[])[x]; if(!item)return;
+  // Chercher dans _rv par nom (case insensitive)
+  const rvList = (typeof _rv!=='undefined') ? _rv : [];
+  const r = rvList.find(x=>x.nom && x.nom.toLowerCase()===item.n.toLowerCase());
+  if(r && typeof openDetail==='function'){
+    openDetail(r.id);
+  } else {
+    showToast('Recette non enregistrée — utilisez ✏️ pour modifier','warn');
+  }
+}
+
+// Ajouter à la liste de courses les ingrédients des recettes sélectionnées
+function mSelAddToCourses(){
+  if(_mSelSet.size===0) return;
+  const rvList = (typeof _rv!=='undefined') ? _rv : [];
+  let nbRecettes = 0, nbIngredients = 0, nbNonTrouvees = 0;
+  const recipesToAdd = []; // pour _clRecipes
+
+  _mSelSet.forEach(key=>{
+    const [k,xs] = key.split('|'); const x = parseInt(xs);
+    const item=(_md[k]||[])[x]; if(!item) return;
+    const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===item.n.toLowerCase());
+    if(!r || !r.ingredients || r.ingredients.length===0){ nbNonTrouvees++; return; }
+    nbRecettes++;
+    // Ratio portions menu / portions recette
+    const portMenu = item.portions || 2;
+    const portRec  = r.portions || 2;
+    const ratio    = portMenu / portRec;
+    // Enregistrer la recette dans _clRecipes si pas déjà présente
+    if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>cr.id===r.id)){
+      recipesToAdd.push({id:r.id,nom:r.nom,e:r.emoji||'🍽️',portions:portMenu});
+    }
+    // Ajouter chaque ingrédient (qty multipliée par ratio)
+    (r.ingredients||[]).forEach(ing=>{
+      if(!ing.nom) return;
+      const baseQty = parseFloat(ing.qty)||1;
+      const scaledQty = Math.round(baseQty * ratio * 100) / 100;
+      const newItem = {
+        id: (typeof clId==='function') ? clId() : (Date.now()+Math.random().toString(36).slice(2)),
+        n: ing.nom,
+        e: '🍽️',
+        m: 'drive',
+        r: 'Épicerie',
+        qty: scaledQty,
+        unit: ing.unite||'',
+        done: false,
+        origin: 'recette',
+        recipeId: r.id
+      };
+      if(typeof _cl!=='undefined') _cl.push(newItem);
+      nbIngredients++;
+    });
+  });
+
+  // Ajouter recipesToAdd à _clRecipes
+  if(typeof _clRecipes!=='undefined' && recipesToAdd.length>0){
+    recipesToAdd.forEach(rr=>_clRecipes.push(rr));
+    if(typeof clSaveRecipes==='function') clSaveRecipes();
+  }
+  if(typeof clSave==='function') clSave();
+  if(typeof clRender==='function') clRender();
+
+  // Toast récap
+  let msg='';
+  if(nbIngredients>0) msg='✓ '+nbIngredients+' ingrédient'+(nbIngredients>1?'s':'')+' ajouté'+(nbIngredients>1?'s':'')+' aux courses';
+  else msg='Aucun ingrédient à ajouter';
+  if(nbNonTrouvees>0) msg+=' ('+nbNonTrouvees+' recette'+(nbNonTrouvees>1?'s':'')+' sans données)';
+  showToast(msg, nbIngredients>0?'ok':'warn');
+  mSelExit();
+}
+
+// Event delegation sur page-menu
+document.addEventListener('DOMContentLoaded', function(){
+  const pageMenu = document.getElementById('page-menu');
+  if(!pageMenu) return;
+
+  // Gestion DEDIEE des boutons ✏️ et 🗑 (avant tout autre handler, pour éviter long-press)
+  pageMenu.addEventListener('click', function(e){
+    const btn = e.target.closest('.m-bt');
+    if(!btn) return;
+    const card = btn.closest('.mcard');
+    if(!card) return;
+    e.stopPropagation();
+    const act = btn.dataset.act;
+    const k = card.dataset.k, x = parseInt(card.dataset.x);
+    if(act==='edit') mEdit(k,x);
+    else if(act==='del') mDel(k,x);
+  }, true); // capture = true → s'exécute avant les autres
+
+  // Tap / long press sur cards (hors boutons)
+  pageMenu.addEventListener('pointerdown', function(e){
+    const card = e.target.closest('.mcard');
+    if(!card) return;
+    // Ignorer si pointer sur grip / boutons : pas de long press, pas de tap-détail
+    if(e.target.closest('.m-grip') || e.target.closest('.m-bt')) return;
+    _mLpFired = false;
+    _mLpStartXY = {x:e.clientX, y:e.clientY};
+    _mLpTimer = setTimeout(()=>{
+      _mLpFired = true;
+      if(!_mSelMode) mSelStart(card);
+      else mSelToggle(card); // long press en mode sel = toggle aussi
+    }, LP_MS);
+  });
+
+  pageMenu.addEventListener('pointermove', function(e){
+    if(!_mLpTimer || !_mLpStartXY) return;
+    const dx = Math.abs(e.clientX-_mLpStartXY.x), dy = Math.abs(e.clientY-_mLpStartXY.y);
+    if(dx>LP_TOLERANCE || dy>LP_TOLERANCE){
+      clearTimeout(_mLpTimer); _mLpTimer=null;
+    }
+  });
+
+  pageMenu.addEventListener('pointerup', function(e){
+    if(_mLpTimer){ clearTimeout(_mLpTimer); _mLpTimer=null; }
+    if(_mLpFired){ _mLpFired=false; _mLpStartXY=null; return; }
+    _mLpStartXY = null;
+
+    const card = e.target.closest('.mcard');
+    if(!card) return;
+    // Ignorer boutons et grip (déjà gérés ou à ignorer)
+    if(e.target.closest('.m-bt') || e.target.closest('.m-grip')) return;
+
+    if(_mSelMode){
+      mSelToggle(card);
+    } else {
+      const k = card.dataset.k, x = parseInt(card.dataset.x);
+      mOpenDetailFromCard(k,x);
+    }
+  });
+
+  pageMenu.addEventListener('pointercancel', function(){
+    if(_mLpTimer){ clearTimeout(_mLpTimer); _mLpTimer=null; }
+    _mLpStartXY=null; _mLpFired=false;
+  });
+
+  // Quitter le mode sélection quand on change de page
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    t.addEventListener('click', function(){
+      if(_mSelMode) mSelExit();
+      mHideHdmenu();
+    });
+  });
+
+  // Fermer le menu header en cliquant ailleurs
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#header-dots')) return;
+    mHideHdmenu();
+  });
+});
 
 
 
