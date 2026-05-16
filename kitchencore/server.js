@@ -10,7 +10,7 @@ const path     = require('path');
 const fs       = require('fs');
 
 const app  = express();
-const PORT = 8099;
+const PORT = 8080;
 
 const DATA_DIR = process.env.DATA_PATH || '/data';
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -532,4 +532,4 @@ app.get('/api/recettes/:id/courses', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // START
 // ══════════════════════════════════════════════════════════════════════════════
-app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.5 démarré sur http://0.0.0.0:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.9 démarré sur http://0.0.0.0:${PORT}`));
