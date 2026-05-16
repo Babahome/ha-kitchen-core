@@ -3614,17 +3614,46 @@ function mHideHdmenu(){
 }
 
 // Tap card → ouvrir détail recette si trouvée
+let _mReturnPage = null; // page d'où on vient avant d'ouvrir le détail recette
 function mOpenDetailFromCard(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
   // Chercher dans _rv par nom (case insensitive)
   const rvList = (typeof _rv!=='undefined') ? _rv : [];
   const r = rvList.find(x=>x.nom && x.nom.toLowerCase()===item.n.toLowerCase());
   if(r && typeof openDetail==='function'){
-    openDetail(r.id);
+    // Mémoriser la page actuelle pour y revenir à la fermeture
+    const active = document.querySelector('.page.active');
+    _mReturnPage = active?.id.replace('page-','');
+    // Basculer vers la page recettes pour que le panel soit visible
+    const recTab = Array.from(document.querySelectorAll('.nav-tab'))
+      .find(t=>t.querySelector('.nav-label')?.textContent==='Recettes');
+    if(typeof switchPage==='function') switchPage(recTab, 'recettes', 'Recettes');
+    // Laisser le temps à la transition + au rendu de la page
+    setTimeout(()=>openDetail(r.id), 80);
   } else {
     showToast('Recette non enregistrée — utilisez ✏️ pour modifier','warn');
   }
 }
+// Hook closeDetail : si on venait du menu, y revenir
+(function(){
+  if(typeof window.closeDetail !== 'function') return;
+  const _origCloseDetail = window.closeDetail;
+  window.closeDetail = function(){
+    _origCloseDetail();
+    if(_mReturnPage && _mReturnPage !== 'recettes'){
+      const tab = Array.from(document.querySelectorAll('.nav-tab'))
+        .find(t=>{
+          const lbl = t.querySelector('.nav-label')?.textContent;
+          // Mapping label → page id
+          const map = {'Cuisine':'stock','Courses':'courses','Recettes':'recettes','Menu':'menu'};
+          return map[lbl] === _mReturnPage;
+        });
+      const titles = {stock:'Stock Cuisine',courses:'Courses',recettes:'Recettes',menu:'Menu'};
+      if(typeof switchPage==='function') switchPage(tab||null, _mReturnPage, titles[_mReturnPage]||_mReturnPage);
+    }
+    _mReturnPage = null;
+  };
+})();
 
 // Ajouter à la liste de courses les ingrédients des recettes sélectionnées
 function mSelAddToCourses(){
