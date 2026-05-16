@@ -1532,6 +1532,7 @@ textarea.einput{ resize:none;min-height:60px; }
     </div>
     <div class="header-title" id="header-title">Stock Cuisine</div>
     <div class="btn-tod" id="btn-tod" onclick="mToday()">📍 Aujourd'hui</div>
+    <div class="btn-tod" id="btn-mealie-hdr" onclick="kcOpenMealieImport()" style="display:none">🥗 Mealie</div>
     <div class="header-icon">⋮</div>
   </div>
 
@@ -2394,6 +2395,10 @@ function switchPage(tab, page, title) {
       document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
     }
   }
+
+  // Bouton Mealie header (page recettes uniquement)
+  const btnMealieHdr = document.getElementById('btn-mealie-hdr');
+  if (btnMealieHdr) btnMealieHdr.style.display = (page === 'recettes') ? 'flex' : 'none';
 
   // Fermer menu contextuel recette
   closeCtx();
@@ -4399,8 +4404,8 @@ function _kcInitAPI() {
   }).catch(() => {});
 
   // 3. Charger les aliments depuis l'API pour l'autocomplétion des ingrédients
-  _apiFetch('/api/aliments').then(aliments => {
-    _kcAliments = aliments.map(a => ({ nom: a.nom, icone: a.icone || '🥫' }));
+  _apiFetch('/api/ingredients').then(aliments => {
+    _kcIngredients = aliments.map(a => ({ nom: a.nom, icone: a.icone || '🥫' }));
   }).catch(() => {});
 
   // 4. Patcher save() pour écrire via l'API
@@ -4523,7 +4528,7 @@ function _kcInitAPI() {
 // UNITÉS + ALIMENTS — état partagé
 // ════════════════════════════════════════════════════════════════════════════
 let _kcUnits   = typeof UNITS !== 'undefined' ? UNITS.filter(Boolean) : [];
-let _kcAliments = [];
+let _kcIngredients = [];
 
 // ════════════════════════════════════════════════════════════════════════════
 // AUTOCOMPLÉTION INGRÉDIENTS — toggle 🥕 / 🍳
@@ -4641,8 +4646,8 @@ window.kcIngrAC = function(input, x, mode) {
   let items = [];
 
   if (mode === 'ingredient') {
-    // Suggestions depuis /api/aliments + ingrédients déjà dans d'autres recettes
-    const fromAliments = _kcAliments
+    // Suggestions depuis /api/ingredients + ingrédients déjà dans d'autres recettes
+    const fromAliments = _kcIngredients
       .filter(a => a.nom.toLowerCase().includes(q))
       .map(a => ({ label: a.nom, icon: a.icone || '🥕', source: 'aliment' }));
 
@@ -4938,7 +4943,7 @@ window.kcMealieImport = async function(url, slug, token) {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
-// ALIMENTS — branchement page Ingrédients sur /api/aliments
+// INGRÉDIENTS — branchement page Ingrédients sur /api/ingredients
 // ════════════════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
   // On patch _ingLoadData pour qu'il essaie l'API en premier
@@ -4949,7 +4954,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (_origIngBoot) _origIngBoot();
     // Après le boot local, on tente un refresh depuis l'API
     if (_apiAvailable) {
-      _apiFetch('/api/aliments').then(aliments => {
+      _apiFetch('/api/ingredients').then(aliments => {
         if (!aliments.length) return;
         // Convertir le format API → format ingrédients UI
         const fromApi = aliments.map(a => ({
@@ -4966,7 +4971,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const localOnly = (window._ingAll || []).filter(i => !apiNoms.has(i.nom.toLowerCase()));
         window._ingAll = [...fromApi, ...localOnly];
         if (typeof window.__ingRender === 'function') window.__ingRender();
-        _kcAliments = fromApi.map(a => ({ nom: a.nom, icone: a.emoji }));
+        _kcIngredients = fromApi.map(a => ({ nom: a.nom, icone: a.emoji }));
       }).catch(() => {});
     }
   };
