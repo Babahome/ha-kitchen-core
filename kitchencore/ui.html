@@ -1507,7 +1507,7 @@ textarea.einput{ resize:none;min-height:60px; }
     display: none; gap: 8px; align-items: center;
     margin-left: auto;
   }
-  body[data-page="ingredients"] .ing-header-actions { display: flex; }
+  .ing-header-actions.visible { display: flex; }
   .ing-header-btn {
     background: rgba(255,255,255,0.2); border: none;
     border-radius: 20px; color: white;
@@ -1532,7 +1532,9 @@ textarea.einput{ resize:none;min-height:60px; }
     </div>
     <div class="header-title" id="header-title">Stock Cuisine</div>
     <div class="btn-tod" id="btn-tod" onclick="mToday()">📍 Aujourd'hui</div>
-    <div class="btn-tod" id="btn-mealie-hdr" onclick="kcOpenMealieImport()" style="display:none">🥗 Mealie</div>
+    <div class="ing-header-actions" id="ing-headerActions">
+      <button class="ing-header-btn" id="ing-selectBtn" onclick="ingToggleSelectMode()">Sélectionner</button>
+    </div>
     <div class="header-icon">⋮</div>
   </div>
 
@@ -2395,10 +2397,6 @@ function switchPage(tab, page, title) {
       document.querySelectorAll('.recette-card').forEach(c => c.style.display = '');
     }
   }
-
-  // Bouton Mealie header (page recettes uniquement)
-  const btnMealieHdr = document.getElementById('btn-mealie-hdr');
-  if (btnMealieHdr) btnMealieHdr.style.display = (page === 'recettes') ? 'flex' : 'none';
 
   // Fermer menu contextuel recette
   closeCtx();
@@ -3864,9 +3862,32 @@ function _ingSetFilter(f, btn) {
 }
 
 // ─── Select mode ───
+function _ingToggleSelectMode() {
+  _ingSelectMode = !_ingSelectMode;
+  if (!_ingSelectMode) {
+    _ingSelectedIds.clear();
+  }
+  _ingUpdateSelectModeUI();
+  _ingRender();
+}
+
 function _ingUpdateSelectModeUI() {
   const bar = document.getElementById('ing-mergeBar');
+  const btn = document.getElementById('ing-selectBtn');
   if (!bar) return;
+  // Bouton Sélectionner : état actif/inactif
+  if (btn) {
+    if (_ingSelectMode) {
+      btn.textContent = _ingSelectedIds.size > 0
+        ? `✕ Annuler (${_ingSelectedIds.size})`
+        : '✕ Annuler';
+      btn.style.background = 'rgba(255,255,255,0.35)';
+    } else {
+      btn.textContent = 'Sélectionner';
+      btn.style.background = '';
+    }
+  }
+  // FAB Fusionner
   if (_ingSelectedIds.size >= 2) {
     bar.classList.add('visible');
     const el = document.getElementById('ing-mergeCount');
@@ -4171,8 +4192,10 @@ function _ingCloseAllSheets() {
 function _ingApplyPageVisibility(page) {
   const fabS = document.getElementById('ing-fabSearch');
   const mb = document.getElementById('ing-mergeBar');
+  const ha = document.getElementById('ing-headerActions');
   if (page === 'ingredients') {
     if (fabS) fabS.classList.add('visible');
+    if (ha) ha.classList.add('visible');
   } else {
     if (fabS) {
       fabS.classList.remove('visible', 'open');
@@ -4181,6 +4204,11 @@ function _ingApplyPageVisibility(page) {
       _ingSearchQuery = '';
     }
     if (mb) mb.classList.remove('visible');
+    if (ha) ha.classList.remove('visible');
+    // Réinitialiser le mode sélection
+    _ingSelectMode = false;
+    _ingSelectedIds.clear();
+    _ingUpdateSelectModeUI();
     // fermer tout overlay encore ouvert
     _ingCloseAllSheets();
     const dp = document.getElementById('ing-detailPanel');
@@ -4198,6 +4226,7 @@ function _ingBoot() {
 
 // Exposer les handlers utilisés par les onclick HTML
 window.ingSwitchTab        = _ingSwitchTab;
+window.ingToggleSelectMode = _ingToggleSelectMode;
 window.ingSetFilter        = _ingSetFilter;
 window.ingOnCardClick      = _ingOnCardClick;
 window.ingOpenDetailPanel  = _ingOpenDetailPanel;
@@ -4262,726 +4291,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 })();
-
-// ════════════════════════════════════════════════════════════════════════════
-// KC-API — Branchement données réelles (recettes + aliments/unités)
-// Mode démo silencieux si le serveur ne répond pas
-// Règle : zéro redéfinition de switchPage / fabAction
-// ════════════════════════════════════════════════════════════════════════════
-(function() {
-'use strict';
-
-// ── Config ───────────────────────────────────────────────────────────────────
-const KC_API_BASE    = '';          // vide = même origine (HA add-on)
-const KC_API_TIMEOUT = 3000;       // ms avant de basculer sur le démo
-let   _apiAvailable  = null;       // null=inconnu, true/false après probe
-
-// ── Probe serveur (1 seul appel au démarrage) ────────────────────────────────
-async function _probe() {
-  try {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), KC_API_TIMEOUT);
-    const r    = await fetch(`${KC_API_BASE}/health`, { signal: ctrl.signal });
-    clearTimeout(tid);
-    _apiAvailable = r.ok;
-  } catch(_) {
-    _apiAvailable = false;
-  }
-  if (_apiAvailable) {
-    _kcInitAPI();
-  }
-}
-
-// ── Fetch avec timeout ───────────────────────────────────────────────────────
-async function _apiFetch(path, opts = {}) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), KC_API_TIMEOUT);
-  try {
-    const res = await fetch(`${KC_API_BASE}${path}`, { ...opts, signal: ctrl.signal });
-    clearTimeout(tid);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || res.statusText);
-    }
-    return await res.json();
-  } catch(e) {
-    clearTimeout(tid);
-    throw e;
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// RECETTES — remplacement du localStorage par l'API
-// ════════════════════════════════════════════════════════════════════════════
-
-/** Transforme un objet recette API → format attendu par l'UI */
-function _apiToUI(r) {
-  return {
-    id:             String(r.id),
-    nom:            r.nom,
-    emoji:          r.emoji          || '🍽️',
-    photo:          r.photo          || '',
-    desc:           r.description    || '',
-    portions:       r.portions       || 2,
-    temps_prep:     r.temps_prep     || 0,
-    temps_cuisson:  r.temps_cuisson  || 0,
-    tags:           r.tags           || [],
-    favori:         !!r.favori,
-    note:           r.note           || 0,
-    source:         r.source         || '',
-    ingredients:    (r.ingredients   || []).map(i => ({
-      nom:              i.nom,
-      qty:              i.qty   || '',
-      unite:            i.unite || '',
-      type:             i.type  || 'ingredient',
-      sous_recette_id:  i.sous_recette_id || null,
-    })),
-    etapes: (r.etapes || []).map(e => ({
-      titre: e.titre || '',
-      texte: e.texte || '',
-      timer: e.timer || 0,
-    })),
-  };
-}
-
-/** Transforme un objet UI → format API */
-function _uiToApi(r) {
-  return {
-    nom:           r.nom,
-    emoji:         r.emoji          || '🍽️',
-    photo:         r.photo          || '',
-    description:   r.desc           || '',
-    portions:      r.portions       || 2,
-    temps_prep:    r.temps_prep     || 0,
-    temps_cuisson: r.temps_cuisson  || 0,
-    tags:          r.tags           || [],
-    favori:        !!r.favori,
-    note:          r.note           || 0,
-    source:        r.source         || '',
-    ingredients:   (r.ingredients || []).map((i, pos) => ({
-      position:        pos,
-      type:            i.type            || 'ingredient',
-      nom:             i.nom             || '',
-      qty:             i.qty             || '',
-      unite:           i.unite           || '',
-      sous_recette_id: i.sous_recette_id || null,
-    })),
-    etapes: (r.etapes || []).map((e, pos) => ({
-      position: pos,
-      titre:    e.titre || '',
-      texte:    e.texte || '',
-      timer:    e.timer || 0,
-    })),
-  };
-}
-
-// ── Patch des fonctions recettes ──────────────────────────────────────────────
-function _kcInitAPI() {
-
-  // 1. Charger les recettes depuis l'API et remplacer _rv
-  _apiFetch('/api/recettes').then(list => {
-    // On charge les détails complets pour avoir les ingrédients/étapes
-    // On le fait en parallèle mais on cap à 10 pour ne pas surcharger
-    const ids = list.map(r => r.id);
-    Promise.all(ids.slice(0, 50).map(id =>
-      _apiFetch(`/api/recettes/${id}`).then(_apiToUI).catch(() => null)
-    )).then(full => {
-      const valid = full.filter(Boolean);
-      if (valid.length) {
-        _rv.length = 0;
-        valid.forEach(r => _rv.push(r));
-        if (typeof renderList === 'function') renderList();
-      }
-    });
-  }).catch(e => console.warn('[KC-API] recettes:', e.message));
-
-  // 2. Charger les unités depuis l'API et peupler le datalist
-  _apiFetch('/api/unites').then(units => {
-    _kcUnits = units.map(u => u.label);
-    // Mettre à jour le datalist si présent (panel édition ouvert)
-    const dl = document.getElementById('units-dl');
-    if (dl) dl.innerHTML = _kcUnits.map(u => `<option value="${u}">`).join('');
-  }).catch(() => {});
-
-  // 3. Charger les aliments depuis l'API pour l'autocomplétion des ingrédients
-  _apiFetch('/api/ingredients').then(aliments => {
-    _kcIngredients = aliments.map(a => ({ nom: a.nom, icone: a.icone || '🥫' }));
-  }).catch(() => {});
-
-  // 4. Patcher save() pour écrire via l'API
-  const _origSave = window.save;
-  window.save = function() {
-    // Fallback localStorage toujours maintenu
-    if (_origSave) _origSave();
-  };
-
-  // 5. Patcher saveRecette() pour POST/PATCH sur l'API
-  const _origSaveRecette = window.saveRecette;
-  window.saveRecette = async function() {
-    const nom = document.getElementById('e-nom')?.value.trim();
-    if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
-
-    const tags = [...document.querySelectorAll('.etags .etag.on')].map(b => b.dataset.tag);
-    const source = document.getElementById('e-source')?.value?.trim() || '';
-    const recUI = {
-      id:            _editId,
-      nom,
-      emoji:         document.getElementById('e-emoji')?.value    || '🍽️',
-      photo:         document.getElementById('e-photo')?.value    || '',
-      desc:          document.getElementById('e-desc')?.value.trim() || '',
-      portions:      parseInt(document.getElementById('e-portions')?.value) || 2,
-      temps_prep:    parseInt(document.getElementById('e-prep')?.value)     || 0,
-      temps_cuisson: parseInt(document.getElementById('e-cuisson')?.value)  || 0,
-      tags,
-      source,
-      favori: _rv.find(r => r.id === _editId)?.favori || false,
-      note:   _rv.find(r => r.id === _editId)?.note   || 0,
-      ingredients: _eIngr.filter(i => i.nom?.trim()),
-      etapes:      _eSteps.filter(s => s.texte?.trim()),
-    };
-
-    try {
-      let saved;
-      if (_editId && !_editId.startsWith('r_')) {
-        // Recette API existante → PATCH
-        saved = await _apiFetch(`/api/recettes/${_editId}`, {
-          method:  'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(_uiToApi(recUI)),
-        });
-      } else {
-        // Nouvelle recette ou locale → POST
-        saved = await _apiFetch('/api/recettes', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(_uiToApi(recUI)),
-        });
-      }
-      const recConverted = _apiToUI(saved);
-      if (_editId) {
-        const x = _rv.findIndex(r => r.id === _editId);
-        if (x >= 0) _rv[x] = recConverted;
-        else _rv.unshift(recConverted);
-      } else {
-        _rv.unshift(recConverted);
-      }
-      if (typeof window.save === 'function') window.save();
-      closeEdit();
-      renderList();
-      if (_editId) openDetail(recConverted.id);
-      showToast(_editId ? 'Recette mise à jour ✓' : 'Recette créée ✓', 'ok');
-    } catch(e) {
-      showToast('Erreur : ' + e.message, 'warn');
-    }
-  };
-
-  // 6. Patcher deleteRecette() pour DELETE sur l'API
-  const _origDelete = window.deleteRecette;
-  window.deleteRecette = async function(id) {
-    if (!confirm('Supprimer cette recette ?')) return;
-    try {
-      if (!id.startsWith('r_')) {
-        await _apiFetch(`/api/recettes/${id}`, { method: 'DELETE' });
-      }
-      _rv = _rv.filter(r => r.id !== id);
-      if (typeof window.save === 'function') window.save();
-      renderList();
-      showToast('Recette supprimée', 'ok');
-    } catch(e) {
-      showToast('Erreur : ' + e.message, 'warn');
-    }
-  };
-
-  // 7. Patcher toggleFav() pour appel API
-  const _origFav = window.toggleFav;
-  window.toggleFav = async function(id) {
-    const r = _rv.find(x => x.id === id);
-    if (!r) return;
-    r.favori = !r.favori;
-    if (typeof window.save === 'function') window.save();
-    openDetail(id);
-    if (!id.startsWith('r_')) {
-      try {
-        await _apiFetch(`/api/recettes/${id}/favori`, { method: 'POST' });
-      } catch(e) { console.warn('[KC-API] favori:', e.message); }
-    }
-  };
-
-  // 8. Patcher setNote() pour appel API
-  const _origNote = window.setNote;
-  window.setNote = async function(id, n) {
-    const r = _rv.find(x => x.id === id);
-    if (r) { r.note = n; if (typeof window.save === 'function') window.save(); openDetail(id); }
-    if (!id.startsWith('r_')) {
-      try {
-        await _apiFetch(`/api/recettes/${id}/note`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ note: n }),
-        });
-      } catch(e) { console.warn('[KC-API] note:', e.message); }
-    }
-  };
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// UNITÉS + ALIMENTS — état partagé
-// ════════════════════════════════════════════════════════════════════════════
-let _kcUnits   = typeof UNITS !== 'undefined' ? UNITS.filter(Boolean) : [];
-let _kcIngredients = [];
-
-// ════════════════════════════════════════════════════════════════════════════
-// AUTOCOMPLÉTION INGRÉDIENTS — toggle 🥕 / 🍳
-// Injecté dans renderIngrs() via patch de la fonction existante
-// ════════════════════════════════════════════════════════════════════════════
-
-// Patch renderIngrs pour ajouter autocomplétion et toggle type
-const _origRenderIngrs = window.renderIngrs;
-window.renderIngrs = function() {
-  const container = document.getElementById('e-ingrs');
-  if (!container) return;
-
-  container.innerHTML = _eIngr.map((ing, x) => {
-    const isSubRecette = ing.type === 'sous_recette';
-    return `
-    <div class="ingr-row" id="ingr-row-${x}" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">
-      <div style="display:flex;gap:6px;width:100%">
-        <button
-          class="ingr-type-btn"
-          title="${isSubRecette ? 'Sous-recette' : 'Ingrédient'}"
-          onclick="kcToggleIngrType(${x})"
-          style="
-            flex-shrink:0;width:36px;height:36px;border-radius:10px;
-            border:1.5px solid var(--grey);background:${isSubRecette?'var(--orange-l)':'var(--grey-l)'};
-            font-size:1.1rem;cursor:pointer;display:grid;place-items:center;
-          ">${isSubRecette ? '🍳' : '🥕'}</button>
-
-        ${isSubRecette ? `
-          <div style="flex:1;position:relative">
-            <input class="einput" placeholder="Nom de la recette *"
-              value="${ing.nom || ''}"
-              oninput="_eIngr[${x}].nom=this.value;kcIngrAC(this,${x},'recette')"
-              onfocus="kcIngrAC(this,${x},'recette')"
-              autocomplete="off"
-              style="width:100%">
-            <div id="ac-${x}" class="kc-ac-list" style="display:none"></div>
-          </div>
-          <input class="einput qty-inp" placeholder="×" value="${ing.qty||''}"
-            title="Nombre de portions"
-            oninput="_eIngr[${x}].qty=this.value" style="width:52px;flex-shrink:0">
-        ` : `
-          <input class="einput qty-inp" placeholder="Qté" value="${ing.qty||''}"
-            oninput="_eIngr[${x}].qty=this.value" style="width:52px;flex-shrink:0">
-          <input class="einput unit-inp" placeholder="Unité" list="units-dl"
-            value="${ing.unite||''}" oninput="_eIngr[${x}].unite=this.value"
-            style="width:72px;flex-shrink:0">
-          <div style="flex:1;position:relative">
-            <input class="einput" placeholder="Ingrédient *"
-              value="${ing.nom || ''}"
-              oninput="_eIngr[${x}].nom=this.value;kcIngrAC(this,${x},'ingredient')"
-              onfocus="kcIngrAC(this,${x},'ingredient')"
-              autocomplete="off"
-              style="width:100%">
-            <div id="ac-${x}" class="kc-ac-list" style="display:none"></div>
-          </div>
-        `}
-
-        <button class="del-btn" onclick="delIngr(${x})" style="flex-shrink:0">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Mettre à jour le datalist unités depuis l'état API
-  const dl = document.getElementById('units-dl');
-  if (dl) dl.innerHTML = _kcUnits.map(u => `<option value="${u}">`).join('');
-};
-
-// Style CSS pour la liste d'autocomplétion (injecté une seule fois)
-if (!document.getElementById('kc-ac-style')) {
-  const s = document.createElement('style');
-  s.id = 'kc-ac-style';
-  s.textContent = `
-    .kc-ac-list {
-      position:absolute; top:calc(100% + 4px); left:0; right:0;
-      background:white; border:1.5px solid var(--grey);
-      border-radius:10px; z-index:200; max-height:180px;
-      overflow-y:auto; box-shadow:var(--shadow-lg);
-    }
-    .kc-ac-item {
-      display:flex; align-items:center; gap:8px;
-      padding:9px 12px; cursor:pointer; font-size:.85rem; font-weight:600;
-    }
-    .kc-ac-item:active, .kc-ac-item:hover { background:var(--orange-l); }
-    .kc-ac-sep {
-      padding:4px 12px; font-size:.7rem; font-weight:700;
-      color:var(--grey-d); text-transform:uppercase; letter-spacing:.04em;
-      background:var(--grey-l);
-    }
-    .ingr-type-btn:active { transform:scale(.93); }
-    /* Champ source dans le formulaire recette */
-    .e-source-wrap { margin-top: 10px; }
-  `;
-  document.head.appendChild(s);
-}
-
-/** Toggle 🥕 ↔ 🍳 sur un ingrédient */
-window.kcToggleIngrType = function(x) {
-  const ing = _eIngr[x];
-  ing.type = ing.type === 'sous_recette' ? 'ingredient' : 'sous_recette';
-  ing.sous_recette_id = null;
-  ing.nom = '';
-  ing.qty = '';
-  ing.unite = '';
-  window.renderIngrs();
-};
-
-/** Autocomplétion selon le mode (ingredient ou recette) */
-window.kcIngrAC = function(input, x, mode) {
-  const q   = input.value.trim().toLowerCase();
-  const box = document.getElementById(`ac-${x}`);
-  if (!box) return;
-
-  if (!q) { box.style.display = 'none'; return; }
-
-  let items = [];
-
-  if (mode === 'ingredient') {
-    // Suggestions depuis /api/ingredients + ingrédients déjà dans d'autres recettes
-    const fromAliments = _kcIngredients
-      .filter(a => a.nom.toLowerCase().includes(q))
-      .map(a => ({ label: a.nom, icon: a.icone || '🥕', source: 'aliment' }));
-
-    // Ingrédients uniques déjà utilisés dans les recettes locales
-    const usedNames = new Set();
-    _rv.forEach(r => (r.ingredients || []).forEach(i => {
-      if (i.type !== 'sous_recette' && i.nom) usedNames.add(i.nom);
-    }));
-    const fromRecipes = [...usedNames]
-      .filter(n => n.toLowerCase().includes(q) && !fromAliments.find(a => a.label === n))
-      .map(n => ({ label: n, icon: '🥄', source: 'recette' }));
-
-    items = [...fromAliments, ...fromRecipes].slice(0, 8);
-
-  } else {
-    // Suggestions depuis _rv (recettes existantes)
-    items = _rv
-      .filter(r => r.nom.toLowerCase().includes(q) && r.id !== _editId)
-      .slice(0, 6)
-      .map(r => ({ label: r.nom, icon: r.emoji || '🍳', source: 'sous_recette', id: r.id }));
-  }
-
-  if (!items.length) { box.style.display = 'none'; return; }
-
-  box.innerHTML = items.map((it, i) => `
-    <div class="kc-ac-item" onmousedown="kcIngrACSelect(event,${x},'${escHtml(it.label)}','${it.source}','${it.id||''}')">
-      <span>${it.icon}</span><span>${escHtml(it.label)}</span>
-    </div>
-  `).join('');
-  box.style.display = 'block';
-
-  // Fermer si clic ailleurs
-  setTimeout(() => {
-    document.addEventListener('click', function close(e) {
-      if (!box.contains(e.target) && e.target !== input) {
-        box.style.display = 'none';
-        document.removeEventListener('click', close);
-      }
-    });
-  }, 0);
-};
-
-function escHtml(s) {
-  return String(s).replace(/'/g,"&#39;").replace(/"/g,"&quot;");
-}
-
-window.kcIngrACSelect = function(e, x, label, source, recetteId) {
-  e.preventDefault();
-  _eIngr[x].nom = label;
-  if (source === 'sous_recette' && recetteId) {
-    _eIngr[x].type = 'sous_recette';
-    _eIngr[x].sous_recette_id = recetteId;
-  }
-  window.renderIngrs();
-  // Fermer la liste
-  const box = document.getElementById(`ac-${x}`);
-  if (box) box.style.display = 'none';
-};
-
-// ════════════════════════════════════════════════════════════════════════════
-// CHAMP SOURCE — injection dans buildForm
-// ════════════════════════════════════════════════════════════════════════════
-const _origBuildForm = window.buildForm;
-window.buildForm = function(r) {
-  if (_origBuildForm) _origBuildForm(r);
-  // Injecter le champ source après le bloc "Identité"
-  setTimeout(() => {
-    const eCard = document.querySelector('#edit-form .e-card');
-    if (!eCard || document.getElementById('e-source')) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'efg e-source-wrap';
-    wrap.innerHTML = `
-      <div class="elbl">Source (livre, site, Instagram…)</div>
-      <input class="einput" id="e-source" placeholder="Ex: https://... ou Livre Ottolenghi p.42"
-        value="${escHtml(r?.source || '')}">
-    `;
-    eCard.appendChild(wrap);
-  }, 0);
-};
-
-// ════════════════════════════════════════════════════════════════════════════
-// IMPORT MEALIE — UI dans le drawer
-// ════════════════════════════════════════════════════════════════════════════
-
-// Injecter un item "Importer depuis Mealie" dans le drawer
-document.addEventListener('DOMContentLoaded', function() {
-  const sep = document.querySelector('.drawer-sep:last-of-type');
-  if (sep) {
-    const item = document.createElement('div');
-    item.className = 'drawer-item';
-    item.innerHTML = '<div class="d-icon">🥗</div> Importer depuis Mealie';
-    item.onclick = function() {
-      toggleDrawer();
-      kcOpenMealieImport();
-    };
-    sep.parentNode.insertBefore(item, sep);
-  }
-
-  // Overlay Mealie
-  const overlay = document.createElement('div');
-  overlay.id = 'kc-mealie-overlay';
-  overlay.style.cssText = `
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
-    z-index:1000;overflow-y:auto;padding:20px 16px 80px;
-  `;
-  overlay.innerHTML = `
-    <div style="background:white;border-radius:var(--radius);max-width:520px;margin:0 auto;overflow:hidden">
-      <div style="background:var(--orange);padding:14px 16px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:1.4rem">🥗</span>
-        <span style="font-size:1rem;font-weight:800;color:white;flex:1">Importer depuis Mealie</span>
-        <span style="color:white;font-size:1.3rem;cursor:pointer;padding:4px 8px" onclick="kcCloseMealieImport()">✕</span>
-      </div>
-      <div style="padding:16px">
-        <div class="efg" style="margin-bottom:10px">
-          <div class="elbl">URL de ton Mealie</div>
-          <input class="einput" id="kc-m-url" placeholder="http://192.168.1.123:30111"
-            value="${localStorage.getItem('kc_mealie_url')||''}">
-        </div>
-        <div class="efg" style="margin-bottom:10px">
-          <div class="elbl">Token API (optionnel — pour les recettes privées)</div>
-          <input class="einput" id="kc-m-token" type="password"
-            placeholder="Coller ton token Mealie ici"
-            value="${localStorage.getItem('kc_mealie_token')||''}">
-          <div style="font-size:.72rem;color:var(--grey-d);margin-top:4px">
-            Dans Mealie → Profil → Clés API → Créer une clé
-          </div>
-        </div>
-        <div class="efg" style="margin-bottom:14px">
-          <div class="elbl">Rechercher une recette</div>
-          <div style="display:flex;gap:8px">
-            <input class="einput" id="kc-m-search" placeholder="Nom de la recette…" style="flex:1"
-              onkeydown="if(event.key==='Enter')kcMealieSearch()">
-            <button onclick="kcMealieSearch()"
-              style="padding:0 16px;background:var(--orange);color:white;border:none;
-                     border-radius:10px;font-weight:700;cursor:pointer;font-family:var(--font)">
-              Chercher
-            </button>
-          </div>
-        </div>
-        <div id="kc-m-results" style="display:none">
-          <div style="font-size:.78rem;font-weight:700;color:var(--grey-d);margin-bottom:8px"
-               id="kc-m-count"></div>
-          <div id="kc-m-list"></div>
-        </div>
-        <div id="kc-m-spinner" style="display:none;text-align:center;padding:20px;color:var(--grey-d)">
-          ⏳ Connexion à Mealie…
-        </div>
-        <div id="kc-m-error" style="display:none;background:#fff3f3;border:1.5px solid var(--red);
-          border-radius:10px;padding:10px 14px;font-size:.82rem;color:var(--red);margin-top:8px"></div>
-      </div>
-    </div>
-  `;
-  document.getElementById('app').appendChild(overlay);
-});
-
-window.kcOpenMealieImport = function() {
-  document.getElementById('kc-mealie-overlay').style.display = 'block';
-};
-window.kcCloseMealieImport = function() {
-  document.getElementById('kc-mealie-overlay').style.display = 'none';
-};
-
-window.kcMealieSearch = async function() {
-  const url    = document.getElementById('kc-m-url')?.value.trim();
-  const token  = document.getElementById('kc-m-token')?.value.trim();
-  const q      = document.getElementById('kc-m-search')?.value.trim();
-  const err    = document.getElementById('kc-m-error');
-  const spin   = document.getElementById('kc-m-spinner');
-  const res    = document.getElementById('kc-m-results');
-
-  if (!url) { err.textContent = 'URL Mealie obligatoire'; err.style.display='block'; return; }
-  err.style.display = 'none';
-  res.style.display = 'none';
-  spin.style.display = 'block';
-
-  // Mémoriser URL/token pour la prochaine fois
-  localStorage.setItem('kc_mealie_url', url);
-  if (token) localStorage.setItem('kc_mealie_token', token);
-
-  try {
-    const params = new URLSearchParams({ url });
-    if (q) params.set('q', q);
-    if (token) params.set('token', token);
-
-    let data;
-    if (_apiAvailable) {
-      data = await _apiFetch(`/api/recettes/import/mealie/search?${params}`);
-    } else {
-      // Mode standalone : appel direct Mealie depuis le navigateur
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const search = q ? `&search=${encodeURIComponent(q)}` : '';
-      const mRes = await fetch(`${url.replace(/\/$/,'')}/api/recipes?page=1&perPage=50${search}`, { headers });
-      if (!mRes.ok) throw new Error('Mealie inaccessible');
-      const raw = await mRes.json();
-      data = {
-        total: raw.total || 0,
-        items: (raw.items || []).map(r => ({
-          slug: r.slug, nom: r.name, description: r.description || '',
-          photo: r.image ? `${url.replace(/\/$/,'')}${r.image}` : '',
-        }))
-      };
-    }
-
-    spin.style.display = 'none';
-    document.getElementById('kc-m-count').textContent = `${data.total} recette(s) trouvée(s)`;
-    document.getElementById('kc-m-list').innerHTML = (data.items || []).map(it => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grey-l)">
-        ${it.photo ? `<img src="${it.photo}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">` : '<div style="width:48px;height:48px;border-radius:8px;background:var(--grey-l);display:grid;place-items:center;font-size:1.5rem;flex-shrink:0">🥗</div>'}
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.nom}</div>
-          <div style="font-size:.72rem;color:var(--grey-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.description}</div>
-        </div>
-        <button onclick="kcMealieImport('${escHtml(url)}','${it.slug}','${escHtml(token)}')"
-          style="flex-shrink:0;padding:6px 12px;background:var(--orange);color:white;border:none;
-                 border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font)">
-          Importer
-        </button>
-      </div>
-    `).join('') || '<div style="color:var(--grey-d);padding:12px 0">Aucun résultat</div>';
-    res.style.display = 'block';
-  } catch(e) {
-    spin.style.display = 'none';
-    err.textContent = e.message;
-    err.style.display = 'block';
-  }
-};
-
-window.kcMealieImport = async function(url, slug, token) {
-  const btn = event.currentTarget;
-  btn.textContent = '⏳'; btn.disabled = true;
-
-  try {
-    let recette;
-    if (_apiAvailable) {
-      const data = await _apiFetch('/api/recettes/import/mealie', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ mealie_url: url, recipe_slug: slug, api_token: token || undefined }),
-      });
-      recette = _apiToUI(data.recette);
-    } else {
-      // Mode standalone : import direct + sauvegarde localStorage
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const mRes = await fetch(`${url.replace(/\/$/,'')}/api/recipes/${slug}`, { headers });
-      if (!mRes.ok) throw new Error('Recette introuvable sur Mealie');
-      const m = await mRes.json();
-      const parseDur = d => {
-        if (!d) return 0;
-        const match = String(d).match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-        return match ? (parseInt(match[1]||0)*60)+parseInt(match[2]||0) : (parseInt(d)||0);
-      };
-      recette = {
-        id: 'r_'+Date.now(),
-        nom: m.name || 'Recette Mealie',
-        emoji: '🍽️', photo: m.image ? `${url.replace(/\/$/,'')}${m.image}` : '',
-        desc: m.description || '',
-        portions: m.recipeYield ? parseInt(m.recipeYield)||2 : 2,
-        temps_prep: parseDur(m.prepTime), temps_cuisson: parseDur(m.performTime||m.cookTime),
-        tags: [...(m.tags||[]).map(t=>t.name?.toLowerCase()).filter(Boolean),
-               ...(m.categories||[]).map(c=>c.name?.toLowerCase()).filter(Boolean)].slice(0,5),
-        favori: false, note: m.rating ? Math.round(parseFloat(m.rating)) : 0,
-        source: m.orgURL || `${url}/g/home/r/${slug}`,
-        ingredients: (m.recipeIngredient||[]).map((i,pos)=>({
-          nom: [i.food?.name,i.note].filter(Boolean).join(' ')||i.display||'',
-          qty: i.quantity!=null?String(i.quantity):'', unite: i.unit?.name||'',
-          type:'ingredient', sous_recette_id:null
-        })),
-        etapes: (m.recipeInstructions||[]).map(e=>({
-          titre:e.title||'', texte:e.text||'', timer:0
-        })),
-      };
-      _rv.unshift(recette);
-      if (typeof window.save === 'function') window.save();
-    }
-
-    if (recette && _apiAvailable) {
-      const existing = _rv.findIndex(r => r.id === recette.id);
-      if (existing >= 0) _rv[existing] = recette; else _rv.unshift(recette);
-    }
-
-    if (typeof renderList === 'function') renderList();
-    btn.textContent = '✓'; btn.style.background = 'var(--green)';
-    showToast(`"${recette.nom}" importée ✓`, 'ok');
-    setTimeout(() => kcCloseMealieImport(), 1200);
-  } catch(e) {
-    btn.textContent = '✕'; btn.style.background = 'var(--red)';
-    btn.disabled = false;
-    showToast('Erreur import : ' + e.message, 'warn');
-    setTimeout(() => { btn.textContent = 'Importer'; btn.style.background='var(--orange)'; }, 2000);
-  }
-};
-
-// ════════════════════════════════════════════════════════════════════════════
-// INGRÉDIENTS — branchement page Ingrédients sur /api/ingredients
-// ════════════════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
-  // On patch _ingLoadData pour qu'il essaie l'API en premier
-  const _origIngLoad = window._ingLoadData;
-  // La fonction est dans l'IIFE de la page ingrédients — on écoute le boot
-  const _origIngBoot = window.__ingBoot;
-  window.__ingBoot = function() {
-    if (_origIngBoot) _origIngBoot();
-    // Après le boot local, on tente un refresh depuis l'API
-    if (_apiAvailable) {
-      _apiFetch('/api/ingredients').then(aliments => {
-        if (!aliments.length) return;
-        // Convertir le format API → format ingrédients UI
-        const fromApi = aliments.map(a => ({
-          id:       'api_' + a.id,
-          nom:      a.nom,
-          emoji:    a.icone   || '🥫',
-          rayon:    (a.categorie || 'autre').toLowerCase().replace(/[^a-z]/g, '') || 'autre',
-          recettes: [],
-          qty:      a.stock_total || 0,
-          unite:    '',
-        }));
-        // Fusionner : on conserve les ingrédients locaux non présents dans l'API
-        const apiNoms = new Set(fromApi.map(a => a.nom.toLowerCase()));
-        const localOnly = (window._ingAll || []).filter(i => !apiNoms.has(i.nom.toLowerCase()));
-        window._ingAll = [...fromApi, ...localOnly];
-        if (typeof window.__ingRender === 'function') window.__ingRender();
-        _kcIngredients = fromApi.map(a => ({ nom: a.nom, icone: a.emoji }));
-      }).catch(() => {});
-    }
-  };
-});
-
-// ── Démarrage ─────────────────────────────────────────────────────────────────
-// Lance le probe après le chargement du DOM
-document.addEventListener('DOMContentLoaded', _probe);
-
-})(); // fin KC-API
 
 </script>
 </body>
