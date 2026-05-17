@@ -2717,7 +2717,7 @@ function clItemHTML(item) {
   const unit   = item.unit || '';
   const isDel  = qty <= 1;
   const qLabel = qty + (unit ? ' '+unit : '');
-  const recipe = item.recipeId ? _clRecipes.find(r=>r.id===item.recipeId) : null;
+  const recipe = item.recipeId ? _clRecipes.find(r=>String(r.id)===String(item.recipeId)) : null;
   const badge  = recipe
     ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${recipe.e}</div>`
     : '';
@@ -2781,10 +2781,10 @@ function clRenderMarchand(m, items, byRayon) {
 // ── Recettes liées ─────────────────────────────────────────────────────────────
 function clRecipesSectionHTML() {
   if(!_clRecipes||!_clRecipes.length) return '';
-  const active = _clRecipes.filter(rec=>_cl.some(i=>i.recipeId===rec.id));
+  const active = _clRecipes.filter(rec=>_cl.some(i=>String(i.recipeId)===String(rec.id)));
   if(!active.length) return '';
   const cards = active.map(rec=>{
-    const items = _cl.filter(i=>i.recipeId===rec.id);
+    const items = _cl.filter(i=>String(i.recipeId)===String(rec.id));
     const done  = items.filter(i=>i.done).length;
     const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.e} ${i.n}</span>`).join('');
     return `<div class="cl-rl-card">
@@ -3074,20 +3074,21 @@ async function deleteRecette(id) {
   } catch(e) { showToast('Erreur suppression','error'); }
 }
 async function addToCourses(id) {
-  const r = _rv.find(x=>x.id===id); if(!r) return;
+  const sid = String(id);
+  const r = _rv.find(x=>String(x.id)===sid); if(!r) return;
   try {
-    const res  = await fetch('/api/recettes/'+id+'/courses');
+    const res  = await fetch('/api/recettes/'+sid+'/courses');
     const data = await res.json();
     if(!data.ingredients || data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
-    if(!_clRecipes.find(cr=>cr.id===id)) {
-      _clRecipes.push({id:id, nom:r.nom, e:r.emoji||'🍽️', portions:data.portions});
+    if(!_clRecipes.find(cr=>String(cr.id)===sid)) {
+      _clRecipes.push({id:sid, nom:r.nom, e:r.emoji||'🍽️', portions:data.portions});
       clSaveRecipes();
     }
     data.ingredients.forEach(ing=>{
       if(!ing.nom) return;
       _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
                  qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
-                 done:false, origin:'recette', recipeId:id });
+                 done:false, origin:'recette', recipeId:sid });
     });
     clSave(); clRender();
     showToast('✓ '+data.ingredients.length+' ingrédient'+(data.ingredients.length>1?'s':'')+' ajouté'+(data.ingredients.length>1?'s':'')+' aux courses','ok');
@@ -3643,14 +3644,15 @@ async function mSelAddToCourses(){
       const data = await res.json();
       if(!data.ingredients || data.ingredients.length===0){ nbNonTrouvees++; continue; }
 
-      if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>cr.id===r.id)){
-        _clRecipes.push({id:r.id, nom:r.nom, e:r.emoji||'🍽️', portions:portMenu});
+      const sid = String(r.id);
+      if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
+        _clRecipes.push({id:sid, nom:r.nom, e:r.emoji||'🍽️', portions:portMenu});
       }
       data.ingredients.forEach(ing=>{
         if(!ing.nom) return;
         _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
                    qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
-                   done:false, origin:'recette', recipeId:r.id });
+                   done:false, origin:'recette', recipeId:sid });
         nbIngredients++;
       });
     } catch(e){ nbNonTrouvees++; }
