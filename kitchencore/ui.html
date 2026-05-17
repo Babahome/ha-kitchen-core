@@ -3886,6 +3886,7 @@ function _ingToast(msg) {
 
 // ─── Data layer ───
 async function _ingLoadData() {
+  console.log('[ING] _ingLoadData() appelé');
   function _mapCategorie(cat) {
     if (!cat) return 'autre';
     const norm = cat.toLowerCase().trim()
@@ -3899,8 +3900,10 @@ async function _ingLoadData() {
   }
   try {
     const res = await fetch('/api/ingredients');
+    console.log('[ING] fetch status:', res.status);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    console.log('[ING] items reçus:', data.length, data[0] || '(vide)');
     if (!Array.isArray(data)) throw new Error('Réponse API invalide (non-tableau)');
     _ingAll = data.map(a => ({
       id:             String(a.id),
@@ -3912,8 +3915,9 @@ async function _ingLoadData() {
       usedIn:         [],
       _dbId:          a.id,
     }));
+    console.log('[ING] _ingAll peuplé:', _ingAll.length, 'items');
   } catch(e) {
-    console.error('Erreur chargement ingrédients', e);
+    console.error('[ING] Erreur chargement ingrédients', e);
     _ingToast('Erreur chargement ingrédients');
     return;
   }
@@ -4025,10 +4029,12 @@ function _ingSeedFromRecipes() {
 // ─── Render ───
 function _ingRender() {
   if (!document.getElementById('ing-ingredientsGrid')) return;
+  console.log('[ING] _ingRender() — _ingAll:', _ingAll.length, '| tab:', _ingTab, '| filter:', _ingFilter);
   _ingUpdateStats();
   _ingRenderFilters();
   const grid = document.getElementById('ing-ingredientsGrid');
   const items = _ingGetFilteredItems();
+  console.log('[ING] items filtrés:', items.length);
 
   if (_ingTab === 'doublons') {
     _ingRenderDoublons();
