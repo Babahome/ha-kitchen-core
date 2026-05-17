@@ -2457,6 +2457,8 @@ function switchPage(tab, page, title) {
   if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
   // Build menu timeline
   if (page === 'menu' && typeof mBuild === 'function') mBuild();
+  // Charger les recettes depuis l'API
+  if (page === 'recettes' && typeof loadRecettes === 'function') loadRecettes();
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
   if (page === 'ingredients' && typeof window.__ingRender === 'function') window.__ingRender();
@@ -2971,7 +2973,7 @@ if(localStorage.getItem('kc_rv_v') !== '2') {
   localStorage.removeItem('kc_recettes');
   localStorage.setItem('kc_rv_v','2');
 }
-let _rv = JSON.parse(localStorage.getItem('kc_recettes') || '[]');
+let _rv = [];
 let _currentId = null;
 let _ctxId     = null;
 let _editId    = null;
@@ -2983,84 +2985,18 @@ let _searchOpen= false;
 const TAGS  = ['soupe','tarte','onepot','diner','dessert','rapide','veggie','déjeuner','petit-déj'];
 const UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
 
-function save() { localStorage.setItem('kc_recettes', JSON.stringify(_rv)); }
+async function loadRecettes() {
+  try {
+    const res  = await fetch('/api/recettes');
+    const data = await res.json();
+    _rv = data.map(r => ({ ...r, desc: r.description || '' }));
+    renderList();
+  } catch(e) { showToast && showToast('Erreur chargement recettes', 'error'); }
+}
+function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
 function fmt(s) { return s<60?s+'s':s<3600?Math.round(s/60)+'min':Math.floor(s/3600)+'h'+(s%3600?Math.round((s%3600)/60)+'min':''); }
 
-// ── Seed ──────────────────────────────────────────────────────────────────────
-(function(){
-  if(_rv.length) return;
-  _rv = [
-    { id:uid(), nom:'Poulet basquaise', emoji:'🫕', photo:'',
-      desc:'Mijoté poivrons-tomates, un classique du Sud-Ouest.',
-      portions:4, temps_prep:20, temps_cuisson:45,
-      tags:['onepot','diner'], favori:true, note:5,
-      ingredients:[
-        {nom:'Poulet fermier',qty:'1',unite:'kg'},
-        {nom:'Poivrons rouges',qty:'2',unite:'pièce'},
-        {nom:'Tomates pelées',qty:'400',unite:'g'},
-        {nom:'Huile olive',qty:'2',unite:'c.à.s'},
-        {nom:'Ail',qty:'3',unite:'pièce'},
-      ],
-      etapes:[
-        {titre:'Préparer',texte:'Couper le poulet, saler et poivrer.',timer:0},
-        {titre:'Dorer',texte:'Faire dorer dans l\'huile 5 min de chaque côté.',timer:600},
-        {titre:'Légumes',texte:'Ajouter poivrons et ail, cuire 5 min.',timer:300},
-        {titre:'Mijoter',texte:'Ajouter tomates, couvrir et mijoter 40 min.',timer:2400},
-      ]
-    },
-    { id:uid(), nom:'Mousse au chocolat', emoji:'🍰', photo:'',
-      desc:'3 ingrédients, légère et intense.',
-      portions:6, temps_prep:20, temps_cuisson:0,
-      tags:['dessert','rapide'], favori:false, note:4,
-      ingredients:[
-        {nom:'Chocolat noir 70%',qty:'200',unite:'g'},
-        {nom:'Oeufs',qty:'4',unite:'pièce'},
-        {nom:'Sucre',qty:'30',unite:'g'},
-      ],
-      etapes:[
-        {titre:'Fondre',texte:'Faire fondre le chocolat au bain-marie.',timer:300},
-        {titre:'Jaunes',texte:'Incorporer les jaunes au chocolat fondu.',timer:0},
-        {titre:'Blancs',texte:'Monter les blancs en neige ferme.',timer:0},
-        {titre:'Mélanger',texte:'Incorporer délicatement les blancs. Réfrigérer 2h.',timer:7200},
-      ]
-    },
-    { id:uid(), nom:'Soupe lentilles corail', emoji:'🍲', photo:'',
-      desc:'Réconfortante et épicée, prête en 25 min.',
-      portions:4, temps_prep:10, temps_cuisson:25,
-      tags:['soupe','rapide','veggie'], favori:false, note:4,
-      ingredients:[
-        {nom:'Lentilles corail',qty:'250',unite:'g'},
-        {nom:'Lait de coco',qty:'400',unite:'ml'},
-        {nom:'Curry',qty:'2',unite:'c.à.c'},
-        {nom:'Oignon',qty:'1',unite:'pièce'},
-      ],
-      etapes:[
-        {titre:'Revenir',texte:'Faire revenir l\'oignon 3 min.',timer:180},
-        {titre:'Épices',texte:'Ajouter curry, remuer 1 min.',timer:60},
-        {titre:'Cuire',texte:'Ajouter lentilles et lait de coco, cuire 20 min.',timer:1200},
-      ]
-    },
-    { id:uid(), nom:'Tagliatelles asperges', emoji:'🍝', photo:'',
-      desc:'Pâtes fraîches avec asperges vertes et parmesan.',
-      portions:4, temps_prep:15, temps_cuisson:20,
-      tags:['diner','veggie'], favori:true, note:4,
-      ingredients:[
-        {nom:'Tagliatelles',qty:'400',unite:'g'},
-        {nom:'Asperges vertes',qty:'500',unite:'g'},
-        {nom:'Parmesan',qty:'80',unite:'g'},
-        {nom:'Citron',qty:'1',unite:'pièce'},
-        {nom:'Huile olive',qty:'3',unite:'c.à.s'},
-      ],
-      etapes:[
-        {titre:'Asperges',texte:'Cuire les asperges à la poêle dans l\'huile 8 min.',timer:480},
-        {titre:'Pâtes',texte:'Cuire les tagliatelles al dente.',timer:600},
-        {titre:'Mélanger',texte:'Mélanger pâtes, asperges, parmesan et zeste de citron.',timer:0},
-      ]
-    },
-  ];
-  save();
-})();
 
 // ── LISTE ─────────────────────────────────────────────────────────────────────
 function renderList() {
@@ -3128,11 +3064,14 @@ function openCtx(e, id) {
 }
 function closeCtx() { document.getElementById('ctx-menu')?.classList.remove('open'); }
 
-function deleteRecette(id) {
+async function deleteRecette(id) {
   if(!confirm('Supprimer cette recette ?')) return;
-  _rv = _rv.filter(r=>r.id!==id);
-  save(); renderList();
-  showToast('Recette supprimée','ok');
+  try {
+    const res = await fetch('/api/recettes/'+id, { method:'DELETE' });
+    if(res.status === 409) { const d=await res.json(); showToast(d.error||'Impossible de supprimer','warn'); return; }
+    await loadRecettes();
+    showToast('Recette supprimée','ok');
+  } catch(e) { showToast('Erreur suppression','error'); }
 }
 async function addToCourses(id) {
   const r = _rv.find(x=>x.id===id); if(!r) return;
@@ -3206,8 +3145,14 @@ function openDetail(id) {
   document.getElementById('panel-detail').classList.add('open');
 }
 function closeDetail() { document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
-function setNote(id,n)  { const r=_rv.find(x=>x.id===id); if(r){r.note=n;save();openDetail(id);} }
-function toggleFav(id)  { const r=_rv.find(x=>x.id===id); if(r){r.favori=!r.favori;save();openDetail(id);} }
+async function setNote(id,n) {
+  await fetch('/api/recettes/'+id+'/note', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:n}) });
+  await loadRecettes(); openDetail(id);
+}
+async function toggleFav(id) {
+  await fetch('/api/recettes/'+id+'/favori', { method:'POST' });
+  await loadRecettes(); openDetail(id);
+}
 
 // ── EDITION ───────────────────────────────────────────────────────────────────
 function openNew()    { openEdit(null); }
@@ -3318,30 +3263,36 @@ function uploadPhoto(input) {
   r.readAsDataURL(f);
 }
 
-function saveRecette() {
+async function saveRecette() {
   const nom = document.getElementById('e-nom')?.value.trim();
   if(!nom){ showToast('Le nom est obligatoire','warn'); return; }
   const tags = [...document.querySelectorAll('.etags .etag.on')].map(b=>b.dataset.tag);
-  const rec = {
-    id:           _editId||uid(),
+  const payload = {
     nom,
     emoji:        document.getElementById('e-emoji')?.value||'🍽️',
     photo:        document.getElementById('e-photo')?.value||'',
-    desc:         document.getElementById('e-desc')?.value.trim()||'',
+    description:  document.getElementById('e-desc')?.value.trim()||'',
     portions:     parseInt(document.getElementById('e-portions')?.value)||2,
     temps_prep:   parseInt(document.getElementById('e-prep')?.value)||0,
     temps_cuisson:parseInt(document.getElementById('e-cuisson')?.value)||0,
     tags,
-    favori: _rv.find(r=>r.id===_editId)?.favori||false,
-    note:   _rv.find(r=>r.id===_editId)?.note||0,
     ingredients: _eIngr.filter(i=>i.nom.trim()),
     etapes:      _eSteps.filter(s=>s.texte.trim()),
   };
-  if(_editId){ const x=_rv.findIndex(r=>r.id===_editId); if(x>=0)_rv[x]=rec; }
-  else _rv.unshift(rec);
-  save(); closeEdit(); renderList();
-  if(_editId) openDetail(rec.id);
-  showToast(_editId?'Recette mise à jour ✓':'Recette créée ✓','ok');
+  try {
+    let res, data;
+    if(_editId) {
+      res  = await fetch('/api/recettes/'+_editId, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    } else {
+      res  = await fetch('/api/recettes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    }
+    data = await res.json();
+    if(!res.ok){ showToast(data.error||'Erreur sauvegarde','error'); return; }
+    await loadRecettes();
+    closeEdit();
+    if(_editId) openDetail(data.id);
+    showToast(_editId?'Recette mise à jour ✓':'Recette créée ✓','ok');
+  } catch(e) { showToast('Erreur sauvegarde','error'); }
 }
 
 // ── Hooks recettes ───────────────────────────────────────────────────────────
@@ -3718,6 +3669,8 @@ async function mSelAddToCourses(){
 
 // Event delegation sur page-menu
 document.addEventListener('DOMContentLoaded', function(){
+  // Charger les recettes au démarrage si page recettes déjà active
+  if(document.getElementById('page-recettes')?.classList.contains('active')) loadRecettes();
   const pageMenu = document.getElementById('page-menu');
   if(!pageMenu) return;
 
