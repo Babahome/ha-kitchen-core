@@ -3886,26 +3886,25 @@ function _ingToast(msg) {
 
 // ─── Data layer ───
 async function _ingLoadData() {
+  function _mapCategorie(cat) {
+    if (!cat) return 'autre';
+    const norm = cat.toLowerCase().trim()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const byId = _ING_RAYONS.find(r => r.id === norm);
+    if (byId) return byId.id;
+    const byLabel = _ING_RAYONS.find(r =>
+      r.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') === norm
+    );
+    return byLabel ? byLabel.id : 'autre';
+  }
   try {
-    const res  = await fetch('/api/ingredients');
+    const res = await fetch('/api/ingredients');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    // Mapper BDD (nom, icone, categorie) → modèle UI (name, emoji, rayonCarrefour)
-    // categorie BDD est du texte libre → chercher l'id _ING_RAYONS correspondant
-    function _mapCategorie(cat) {
-      if (!cat) return 'autre';
-      const norm = cat.toLowerCase().trim()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      // Cherche d'abord par id exact, puis par label normalisé
-      const byId = _ING_RAYONS.find(r => r.id === norm);
-      if (byId) return byId.id;
-      const byLabel = _ING_RAYONS.find(r =>
-        r.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') === norm
-      );
-      return byLabel ? byLabel.id : 'autre';
-    }
+    if (!Array.isArray(data)) throw new Error('Réponse API invalide (non-tableau)');
     _ingAll = data.map(a => ({
       id:             String(a.id),
-      name:           a.nom,
+      name:           a.nom || '',
       emoji:          a.icone || '🥫',
       rayonCarrefour: _mapCategorie(a.categorie),
       rayonFourche:   '',
@@ -3913,11 +3912,13 @@ async function _ingLoadData() {
       usedIn:         [],
       _dbId:          a.id,
     }));
-    _ingRender();
   } catch(e) {
     console.error('Erreur chargement ingrédients', e);
     _ingToast('Erreur chargement ingrédients');
+    return;
   }
+  // Hors du try : les erreurs de rendu ne masquent plus un échec réseau
+  _ingRender();
 }
 
 function _ingSaveData() { /* données sauvegardées via API (PATCH par ingrédient) */ }
@@ -4144,7 +4145,7 @@ function _ingGetFilteredItems() {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
   }
-  return items.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  return items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr'));
 }
 
 // ─── Tabs & Filters ───
