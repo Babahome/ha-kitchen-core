@@ -975,6 +975,14 @@ textarea.einput{ resize:none;min-height:60px; }
 .add-row { display:flex;align-items:center;gap:6px;padding:8px 0;cursor:pointer;color:var(--orange);font-size:.85rem;font-weight:700; }
 .del-btn { width:28px;height:28px;border-radius:50%;background:var(--grey-l);border:none;display:grid;place-items:center;cursor:pointer;font-size:.8rem;color:var(--grey-d);flex-shrink:0; }
 .del-btn:active{ background:#fecaca;color:#f87171; }
+.ingr-type-btn { width:28px;height:28px;border-radius:50%;background:var(--orange-l);border:none;display:grid;place-items:center;cursor:pointer;font-size:.85rem;flex-shrink:0;transition:background .15s; }
+.ingr-type-btn.sub { background:#dbeafe; }
+.drag-handle { flex-shrink:0; width:24px; height:32px; display:grid; place-items:center; cursor:grab; color:var(--grey-d); font-size:14px; touch-action:none; user-select:none; }
+.drag-handle:active { cursor:grabbing; }
+.ingr-row.drag-over { border-top:2px solid var(--orange); }
+.step-box.drag-over { border-top:2px solid var(--orange); }
+.ingr-row.dragging  { opacity:.4; }
+.step-box.dragging  { opacity:.4; }
 
 /* ══ PAGE MENU ═════════════════════════════════════════════════════════════ */
 #page-menu { background: var(--grey-l); }
@@ -3228,18 +3236,130 @@ function buildForm(r) {
 }
 
 function renderIngrs() {
-  document.getElementById('e-ingrs').innerHTML = _eIngr.map((i,x)=>`
-    <div class="ingr-row">
-      <input class="einput qty-inp" placeholder="Qté" value="${i.qty||''}" oninput="_eIngr[${x}].qty=this.value">
-      <input class="einput unit-inp" placeholder="Unité" list="units-dl" value="${i.unite||''}" oninput="_eIngr[${x}].unite=this.value">
-      <input class="einput" placeholder="Ingrédient *" value="${i.nom||''}" oninput="_eIngr[${x}].nom=this.value">
-      <button class="del-btn" onclick="delIngr(${x})">✕</button>
-    </div>`).join('');
+  const container = document.getElementById('e-ingrs');
+  container.innerHTML = _eIngr.map((i,x)=>{
+    const isSub = i.type === 'sous_recette';
+    const handle = `<span class="drag-handle" title="Réordonner">⠿</span>`;
+    const toggleBtn = `<button class="ingr-type-btn${isSub?' sub':''}" title="${isSub?'Recette de base':'Ingrédient'}" onclick="toggleIngType(${x})">${isSub?'🍳':'🥕'}</button>`;
+    if (isSub) {
+      return `<div class="ingr-row" draggable="true" data-idx="${x}">
+        ${handle}${toggleBtn}
+        <input class="einput" placeholder="Nom de la recette de base *" value="${i.nom||''}" oninput="_eIngr[${x}].nom=this.value" list="rv-names-dl">
+        <button class="del-btn" onclick="delIngr(${x})">✕</button>
+      </div>`;
+    } else {
+      return `<div class="ingr-row" draggable="true" data-idx="${x}">
+        ${handle}${toggleBtn}
+        <input class="einput qty-inp" placeholder="Qté" value="${i.qty||''}" oninput="_eIngr[${x}].qty=this.value">
+        <input class="einput unit-inp" placeholder="Unité" list="units-dl" value="${i.unite||''}" oninput="_eIngr[${x}].unite=this.value">
+        <input class="einput" placeholder="Ingrédient *" value="${i.nom||''}" oninput="_eIngr[${x}].nom=this.value">
+        <button class="del-btn" onclick="delIngr(${x})">✕</button>
+      </div>`;
+    }
+  }).join('') + `<datalist id="rv-names-dl">${(_rv||[]).map(r=>`<option value="${r.nom}">`).join('')}</datalist>`;
+  _bindDrag(container, _eIngr, renderIngrs);
 }
+function toggleIngType(x) {
+  const cur = _eIngr[x].type || 'ingredient';
+  _eIngr[x].type = cur === 'sous_recette' ? 'ingredient' : 'sous_recette';
+  if (_eIngr[x].type === 'sous_recette') {
+    _eIngr[x].qty = ''; _eIngr[x].unite = ''; _eIngr[x].sous_recette_id = null;
+  }
+  renderIngrs();
+}
+
+let _dragSrcIdx = null;
+let _dragFromHandle = false;
+function _bindDrag(container, arr, renderFn) {
+  container.querySelectorAll('[draggable="true"]').forEach(row => {
+    row.addEventListener('mousedown', e => {
+      _dragFromHandle = !!e.target.closest('.drag-handle');
+      row.draggable = _dragFromHandle;
+    });
+    row.addEventListener('mouseup', () => { row.draggable = true; });
+    row.addEventListener('dragstart', e => {
+      if (!_dragFromHandle) { e.preventDefault(); return; }
+      _dragSrcIdx = +row.dataset.idx;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      const ghost = document.createElement('div');
+      ghost.style.cssText = 'position:absolute;top:-1000px;width:1px;height:1px;';
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 0, 0);
+      setTimeout(() => ghost.remove(), 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      row.draggable = true;
+      _dragFromHandle = false;
+      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      if (_dragSrcIdx === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const destIdx = +row.dataset.idx;
+      if (_dragSrcIdx === null || _dragSrcIdx === destIdx) return;
+      const moved = arr.splice(_dragSrcIdx, 1)[0];
+      arr.splice(destIdx, 0, moved);
+      _dragSrcIdx = null;
+      renderFn();
+    });
+  });
+  let _tSrc = null, _tSrcIdx = null, _tClone = null;
+  container.querySelectorAll('[draggable="true"]').forEach(row => {
+    row.addEventListener('touchstart', e => {
+      const handle = e.target.closest('.drag-handle');
+      if (!handle) return;
+      _tSrcIdx = +row.dataset.idx;
+      _tSrc = row;
+      const t = e.touches[0];
+      _tClone = row.cloneNode(true);
+      _tClone.style.cssText = `position:fixed;left:${t.clientX-20}px;top:${t.clientY-20}px;opacity:.8;pointer-events:none;z-index:9999;width:${row.offsetWidth}px;box-shadow:0 4px 16px rgba(0,0,0,.2);border-radius:10px;background:white;`;
+      document.body.appendChild(_tClone);
+      row.style.opacity = '.4';
+    }, {passive:true});
+    row.addEventListener('touchmove', e => {
+      if (_tClone === null) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      _tClone.style.left = (t.clientX - 20) + 'px';
+      _tClone.style.top  = (t.clientY - 20) + 'px';
+      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const target = el && el.closest('[draggable="true"]');
+      if (target && target !== _tSrc) target.classList.add('drag-over');
+    }, {passive:false});
+    row.addEventListener('touchend', e => {
+      if (_tClone === null) return;
+      _tClone.remove(); _tClone = null;
+      if (_tSrc) _tSrc.style.opacity = '';
+      const t = e.changedTouches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const target = el && el.closest('[draggable="true"]');
+      container.querySelectorAll('.drag-over').forEach(el2 => el2.classList.remove('drag-over'));
+      if (target && target !== _tSrc) {
+        const destIdx = +target.dataset.idx;
+        const moved = arr.splice(_tSrcIdx, 1)[0];
+        arr.splice(destIdx, 0, moved);
+        renderFn();
+      }
+      _tSrc = null; _tSrcIdx = null;
+    });
+  });
+}
+
 function renderSteps() {
-  document.getElementById('e-steps').innerHTML = _eSteps.map((s,x)=>`
-    <div class="step-box">
+  const container = document.getElementById('e-steps');
+  container.innerHTML = _eSteps.map((s,x)=>`
+    <div class="step-box" draggable="true" data-idx="${x}">
       <div class="step-hd">
+        <span class="drag-handle" title="Réordonner">⠿</span>
         <div class="step-n">${x+1}</div>
         <input class="einput" style="flex:1" placeholder="Titre" value="${s.titre||''}" oninput="_eSteps[${x}].titre=this.value">
         <button class="del-btn" onclick="delStep(${x})">✕</button>
@@ -3248,8 +3368,9 @@ function renderSteps() {
       <input class="einput" style="margin-top:6px" type="number" placeholder="Timer (secondes ex: 300)"
         value="${s.timer||''}" oninput="_eSteps[${x}].timer=+this.value||0">
     </div>`).join('');
+  _bindDrag(container, _eSteps, renderSteps);
 }
-function addIngr()   { _eIngr.push({nom:'',qty:'',unite:''}); renderIngrs(); }
+function addIngr()   { _eIngr.push({nom:'',qty:'',unite:'',type:'ingredient'}); renderIngrs(); }
 function delIngr(x)  { _eIngr.splice(x,1); renderIngrs(); }
 function addStep()   { _eSteps.push({titre:'',texte:'',timer:0}); renderSteps(); }
 function delStep(x)  { _eSteps.splice(x,1); renderSteps(); }
