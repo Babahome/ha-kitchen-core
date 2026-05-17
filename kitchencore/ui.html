@@ -2461,7 +2461,7 @@ function switchPage(tab, page, title) {
   if (page === 'recettes' && typeof loadRecettes === 'function') loadRecettes();
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
-  if (page === 'ingredients' && typeof window.__ingRender === 'function') window.__ingRender();
+  if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -3885,19 +3885,28 @@ function _ingToast(msg) {
 }
 
 // ─── Data layer ───
-function _ingLoadData() {
-  const stored = localStorage.getItem(_ING_KEY);
-  if (stored) {
-    try { _ingAll = JSON.parse(stored); }
-    catch(e) { _ingAll = []; _ingSeedFromRecipes(); }
-  } else {
-    _ingSeedFromRecipes();
+async function _ingLoadData() {
+  try {
+    const res  = await fetch('/api/ingredients');
+    const data = await res.json();
+    // Mapper BDD (nom, icone, categorie) → modèle UI (name, emoji, rayonCarrefour)
+    _ingAll = data.map(a => ({
+      id:             String(a.id),
+      name:           a.nom,
+      emoji:          a.icone || '🥫',
+      rayonCarrefour: a.categorie || 'Autre',
+      rayonFourche:   '',
+      imageUrl:       '',
+      usedIn:         [],
+      _dbId:          a.id,
+    }));
+    _ingRender();
+  } catch(e) {
+    _ingToast('Erreur chargement ingrédients');
   }
 }
 
-function _ingSaveData() {
-  localStorage.setItem(_ING_KEY, JSON.stringify(_ingAll));
-}
+function _ingSaveData() { /* données sauvegardées via API (PATCH par ingrédient) */ }
 
 function _ingGetRecipes() {
   const stored = localStorage.getItem(_ING_RECIPES_KEY);
@@ -4300,31 +4309,40 @@ function _ingGetSelectedEmoji() {
   return active ? active.textContent : '';
 }
 
-function _ingSaveIngredient() {
+async function _ingSaveIngredient() {
   const id = document.getElementById('ing-editIngId').value;
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
 
-  ing.name = document.getElementById('ing-editName').value.trim() || ing.name;
-  ing.imageUrl = document.getElementById('ing-editImageUrl').value.trim();
-  ing.emoji = _ingGetSelectedEmoji();
-  ing.rayonCarrefour = _ingGetSelectedRayon('ing-rayonCarrefour');
-  ing.rayonFourche = _ingGetSelectedRayon('ing-rayonFourche');
+  const newName  = document.getElementById('ing-editName').value.trim() || ing.name;
+  const newEmoji = _ingGetSelectedEmoji() || ing.emoji;
+  const newRayon = _ingGetSelectedRayon('ing-rayonCarrefour') || ing.rayonCarrefour;
 
-  _ingSaveData();
-  _ingCloseEditSheet();
-  _ingRender();
-  _ingToast('Ingrédient mis à jour');
+  try {
+    const res = await fetch('/api/ingredients/'+ing._dbId, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nom: newName, icone: newEmoji, categorie: newRayon })
+    });
+    if (!res.ok) { const d=await res.json(); _ingToast(d.error||'Erreur'); return; }
+    await _ingLoadData();
+    _ingCloseEditSheet();
+    _ingToast('Ingrédient mis à jour');
+  } catch(e) { _ingToast('Erreur sauvegarde'); }
 }
 
-function _ingDeleteIngredient() {
+async function _ingDeleteIngredient() {
   const id = document.getElementById('ing-editIngId').value;
-  if (!confirm('Supprimer cet ingrédient ? Il ne sera plus associé aux recettes.')) return;
-  _ingAll = _ingAll.filter(i => i.id !== id);
-  _ingSaveData();
-  _ingCloseEditSheet();
-  _ingRender();
-  _ingToast('Ingrédient supprimé');
+  const ing = _ingAll.find(i => i.id === id);
+  if (!ing) return;
+  if (!confirm('Supprimer cet ingrédient ?')) return;
+  try {
+    const res = await fetch('/api/ingredients/'+ing._dbId, { method:'DELETE' });
+    if (res.status === 409) { const d=await res.json(); _ingToast(d.error||'Impossible de supprimer'); return; }
+    await _ingLoadData();
+    _ingCloseEditSheet();
+    _ingToast('Ingrédient supprimé');
+  } catch(e) { _ingToast('Erreur suppression'); }
 }
 
 function _ingTriggerImageUpload() {
@@ -4391,7 +4409,7 @@ function _ingSelectMergeName(el) {
   document.getElementById('ing-mergeCustomName').value = '';
 }
 
-function _ingConfirmMerge() {
+async function _ingConfirmMerge() {
   const customName = document.getElementById('ing-mergeCustomName').value.trim();
   const activeOption = document.querySelector('#ing-mergeNameOptions .name-option.active');
   const canonicalName = customName || (activeOption ? activeOption.dataset.name : null);
@@ -4404,25 +4422,26 @@ function _ingConfirmMerge() {
 
   if (!canonical) return;
 
-  const allUsedIn = new Set(canonical.usedIn || []);
-  idsToMerge.forEach(id => {
-    if (id === canonical.id) return;
-    const other = _ingAll.find(i => i.id === id);
-    if (other) { (other.usedIn || []).forEach(rid => allUsedIn.add(rid)); }
-  });
-
-  canonical.name = canonicalName;
-  canonical.usedIn = [...allUsedIn];
-
-  _ingAll = _ingAll.filter(i => !idsToMerge.includes(i.id) || i.id === canonical.id);
-
-  _ingSaveData();
-  _ingSelectedIds.clear();
-  _ingSelectMode = false;
-  _ingUpdateSelectModeUI();
-  _ingCloseMergeSheet();
-  _ingRender();
-  _ingToast(`Fusionné en "${canonicalName}"`);
+  try {
+    // 1. Renommer le canonical via API
+    await fetch('/api/ingredients/'+canonical._dbId, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ nom: canonicalName })
+    });
+    // 2. Supprimer les doublons via API
+    for (const id of idsToMerge) {
+      if (id === canonical.id) continue;
+      const other = _ingAll.find(i => i.id === id);
+      if (other) await fetch('/api/ingredients/'+other._dbId, { method:'DELETE' });
+    }
+    await _ingLoadData();
+    _ingSelectedIds.clear();
+    _ingSelectMode = false;
+    _ingUpdateSelectModeUI();
+    _ingCloseMergeSheet();
+    _ingToast(`Fusionné en "${canonicalName}"`);
+  } catch(e) { _ingToast('Erreur lors de la fusion'); }
 }
 
 function _ingCloseMergeSheet() { _ingHideSheet('ing-mergeSheet'); }
@@ -4501,11 +4520,10 @@ function _ingApplyPageVisibility(page) {
 }
 
 // ─── Boot + intégration switchPage ───────────────────────────────────────
-function _ingBoot() {
+async function _ingBoot() {
   if (_ingBooted) return;
   _ingBooted = true;
-  _ingLoadData();
-  _ingRender();
+  await _ingLoadData();
 }
 
 // Exposer les handlers utilisés par les onclick HTML
@@ -4539,6 +4557,7 @@ window.ingCloseAllSheets   = _ingCloseAllSheets;
 // Exposer pour le hook switchPage (lecture seule)
 window.__ingBoot           = _ingBoot;
 window.__ingRender         = _ingRender;
+window.__ingLoadData       = _ingLoadData;
 window.__ingApplyPageVisibility = _ingApplyPageVisibility;
 
 // Init au chargement (event listener — pas de redéfinition de switchPage)
