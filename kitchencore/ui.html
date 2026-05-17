@@ -3890,11 +3890,24 @@ async function _ingLoadData() {
     const res  = await fetch('/api/ingredients');
     const data = await res.json();
     // Mapper BDD (nom, icone, categorie) → modèle UI (name, emoji, rayonCarrefour)
+    // categorie BDD est du texte libre → chercher l'id _ING_RAYONS correspondant
+    function _mapCategorie(cat) {
+      if (!cat) return 'autre';
+      const norm = cat.toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      // Cherche d'abord par id exact, puis par label normalisé
+      const byId = _ING_RAYONS.find(r => r.id === norm);
+      if (byId) return byId.id;
+      const byLabel = _ING_RAYONS.find(r =>
+        r.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') === norm
+      );
+      return byLabel ? byLabel.id : 'autre';
+    }
     _ingAll = data.map(a => ({
       id:             String(a.id),
       name:           a.nom,
       emoji:          a.icone || '🥫',
-      rayonCarrefour: a.categorie || 'Autre',
+      rayonCarrefour: _mapCategorie(a.categorie),
       rayonFourche:   '',
       imageUrl:       '',
       usedIn:         [],
@@ -3902,6 +3915,7 @@ async function _ingLoadData() {
     }));
     _ingRender();
   } catch(e) {
+    console.error('Erreur chargement ingrédients', e);
     _ingToast('Erreur chargement ingrédients');
   }
 }
@@ -4319,10 +4333,12 @@ async function _ingSaveIngredient() {
   const newRayon = _ingGetSelectedRayon('ing-rayonCarrefour') || ing.rayonCarrefour;
 
   try {
+    // Convertir l'id rayon UI ('epicerie') en label BDD ('Épicerie')
+    const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nom: newName, icone: newEmoji, categorie: newRayon })
+      body: JSON.stringify({ nom: newName, icone: newEmoji, categorie: rayonLabel })
     });
     if (!res.ok) { const d=await res.json(); _ingToast(d.error||'Erreur'); return; }
     await _ingLoadData();
