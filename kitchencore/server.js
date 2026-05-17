@@ -1,5 +1,5 @@
 /**
- * KitchenCore v0.5 – Interface mobile avancée
+ * KitchenCore v0.9 – Interface mobile avancée
  * Recettes, ingrédients, stocks, produits, IoT
  */
 'use strict';
@@ -32,14 +32,14 @@ db.exec(`
     created_at   TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS produits (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    ingredient_id  INTEGER NOT NULL REFERENCES ingredients(id),
-    nom         TEXT NOT NULL,
-    marque      TEXT,
-    code_barres TEXT UNIQUE,
-    contenance  REAL DEFAULT 1,
-    unite       TEXT DEFAULT 'unité',
-    created_at  TEXT DEFAULT (datetime('now'))
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
+    nom           TEXT NOT NULL,
+    marque        TEXT,
+    code_barres   TEXT UNIQUE,
+    contenance    REAL DEFAULT 1,
+    unite         TEXT DEFAULT 'unité',
+    created_at    TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS stocks (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,7 +117,7 @@ app.options('*', (_req, res) => res.sendStatus(204));
 // ── UI ────────────────────────────────────────────────────────────────────────
 const HTML = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
 app.get('/',       (_req, res) => res.send(HTML));
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.5.0' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.9.0' }));
 
 // ══════════════════════════════════════════════════════════════════════════════
 // INGRÉDIENTS
@@ -132,6 +132,7 @@ app.get('/api/ingredients', (_req, res) => {
     GROUP BY a.id ORDER BY a.categorie,a.nom
   `).all());
 });
+
 app.post('/api/ingredients', (req, res) => {
   const { nom, categorie='Autre', seuil_alerte=1, icone='🥫' } = req.body;
   if (!nom) return res.status(400).json({ error: 'nom requis' });
@@ -139,9 +140,10 @@ app.post('/api/ingredients', (req, res) => {
     const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), categorie, seuil_alerte, icone);
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
-    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Aliment déjà existant.' : e.message });
+    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Ingrédient déjà existant.' : e.message });
   }
 });
+
 app.patch('/api/ingredients/:id', (req, res) => {
   const f=[], v=[];
   ['nom','categorie','seuil_alerte','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
@@ -150,6 +152,7 @@ app.patch('/api/ingredients/:id', (req, res) => {
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
   res.json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(req.params.id));
 });
+
 app.delete('/api/ingredients/:id', (req, res) => {
   const n = db.prepare('SELECT COUNT(*) as n FROM produits WHERE ingredient_id=?').get(req.params.id).n;
   if (n > 0) return res.status(409).json({ error: `${n} produit(s) lié(s)` });
@@ -157,6 +160,14 @@ app.delete('/api/ingredients/:id', (req, res) => {
   res.status(204).end();
 });
 
+// FIX #5 — Route search ajoutée (manquait, utilisée par l'autocomplétion recettes)
+app.get('/api/ingredients/search', (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json([]);
+  res.json(db.prepare(
+    'SELECT id, nom, categorie, icone FROM ingredients WHERE nom LIKE ? ORDER BY nom LIMIT 10'
+  ).all(`%${q}%`));
+});
 
 // Auto-ajout transparent d'un ingrédient (appelé depuis saveIngredients)
 app.post('/api/ingredients/auto-add', (req, res) => {
@@ -176,27 +187,31 @@ app.post('/api/ingredients/auto-add', (req, res) => {
 // PRODUITS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/produits', (_req, res) => {
+  // FIX #1 — aliments → ingredients, aliment_id → ingredient_id
   res.json(db.prepare(`
     SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte,
            s.packs_pleins, s.unites_ouvert, s.zone,
            ((COALESCE(s.packs_pleins,0)*p.contenance)+COALESCE(s.unites_ouvert,0)) AS total_unites
-    FROM produits p JOIN aliments a ON a.id=p.aliment_id
+    FROM produits p JOIN ingredients a ON a.id=p.ingredient_id
     LEFT JOIN stocks s ON s.produit_id=p.id
     ORDER BY s.zone,a.nom,p.nom
   `).all());
 });
+
 app.get('/api/produits/barcode/:code', (req, res) => {
+  // FIX #2 — aliments → ingredients, aliment_id → ingredient_id
   const row = db.prepare(`
     SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
-    FROM produits p JOIN aliments a ON a.id=p.aliment_id LEFT JOIN stocks s ON s.produit_id=p.id
+    FROM produits p JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
     WHERE p.code_barres=?
   `).get(req.params.code);
   if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
   res.json(row);
 });
+
 app.post('/api/produits', (req, res) => {
   const { ingredient_id, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo' } = req.body;
-  if (!ingredient_id || !nom) return res.status(400).json({ error: 'aliment_id et nom requis' });
+  if (!ingredient_id || !nom) return res.status(400).json({ error: 'ingredient_id et nom requis' });
   try {
     const i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
     db.prepare('INSERT INTO stocks(produit_id,zone) VALUES(?,?)').run(i.lastInsertRowid, zone);
@@ -205,6 +220,7 @@ app.post('/api/produits', (req, res) => {
     res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Code-barres déjà utilisé' : e.message });
   }
 });
+
 app.patch('/api/produits/:id', (req, res) => {
   const f=[], v=[];
   ['nom','marque','code_barres','contenance','unite'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
@@ -220,14 +236,16 @@ app.patch('/api/produits/:id', (req, res) => {
 // STOCKS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
+  // FIX #3 — aliments → ingredients, aliment_id → ingredient_id
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
            a.nom AS ingredient_nom, a.icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
-    FROM stocks s JOIN produits p ON p.id=s.produit_id JOIN aliments a ON a.id=p.aliment_id
+    FROM stocks s JOIN produits p ON p.id=s.produit_id JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY s.zone,a.nom
   `).all());
 });
+
 app.post('/api/stocks/:id/ajouter', (req, res) => {
   const { packs=0, unites=0, zone } = req.body; const { id } = req.params;
   const s=['packs_pleins=MAX(0,packs_pleins+?)','unites_ouvert=MAX(0,unites_ouvert+?)',"updated_at=datetime('now')"], v=[+packs,+unites];
@@ -237,6 +255,7 @@ app.post('/api/stocks/:id/ajouter', (req, res) => {
   if (d !== 0) db.prepare("INSERT INTO mouvements(produit_id,type,delta,source) VALUES(?,'ajout',?,'web')").run(id, d);
   res.json(db.prepare('SELECT * FROM stocks WHERE produit_id=?').get(id));
 });
+
 app.post('/api/stocks/:id/consommer', (req, res) => {
   const { id } = req.params; const src = req.body.source || 'web';
   const p = db.prepare('SELECT p.contenance,s.packs_pleins,s.unites_ouvert FROM produits p JOIN stocks s ON s.produit_id=p.id WHERE p.id=?').get(id);
@@ -251,6 +270,7 @@ app.post('/api/stocks/:id/consommer', (req, res) => {
   db.prepare("INSERT INTO mouvements(produit_id,type,delta,source) VALUES(?,'consommation',-1,?)").run(id, src);
   res.json({ stock: db.prepare('SELECT * FROM stocks WHERE produit_id=?').get(id), pack_deballe: pd });
 });
+
 app.post('/api/stocks/:id/corriger', (req, res) => {
   const { packs_pleins=0, unites_ouvert=0, zone } = req.body; const { id } = req.params;
   const s=['packs_pleins=?','unites_ouvert=?',"updated_at=datetime('now')"], v=[+packs_pleins,+unites_ouvert];
@@ -283,9 +303,10 @@ app.post('/api/iot/scan', (req, res) => {
 // MOUVEMENTS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/mouvements', (_req, res) => {
+  // FIX #4 — aliments → ingredients, aliment_id → ingredient_id
   res.json(db.prepare(`
     SELECT m.*, p.nom AS produit_nom, a.icone
-    FROM mouvements m JOIN produits p ON p.id=m.produit_id JOIN aliments a ON a.id=p.aliment_id
+    FROM mouvements m JOIN produits p ON p.id=m.produit_id JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY m.created_at DESC LIMIT 100
   `).all());
 });
@@ -347,7 +368,7 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
 
 function saveIngredients(recetteId, ingredients) {
   db.prepare('DELETE FROM recette_ingredients WHERE recette_id=?').run(recetteId);
-  const ins = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id) VALUES(?,?,?,?,?,?,?)');
+  const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id) VALUES(?,?,?,?,?,?,?)');
   const autoAdd = db.prepare('INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)');
   (ingredients || []).forEach((ing, i) => {
     // Auto-ajout transparent dans la table ingredients (sauf sous-recettes)
@@ -370,7 +391,7 @@ function saveEtapes(recetteId, etapes) {
 // RECETTES — routes
 // ══════════════════════════════════════════════════════════════════════════════
 
-// IMPORTANT : la route /import/mealie/search doit être AVANT /api/recettes/:id
+// IMPORTANT : les routes /import/mealie/* doivent être AVANT /api/recettes/:id
 app.get('/api/recettes/import/mealie/search', async (req, res) => {
   const { url: mealie_url, q='', token } = req.query;
   if (!mealie_url) return res.status(400).json({ error: 'url requis' });
