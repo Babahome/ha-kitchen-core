@@ -98,6 +98,23 @@ db.exec(`
   );
 `);
 
+// Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
+[
+  ['stocks',      'packs_pleins',  'INTEGER DEFAULT 0'],
+  ['stocks',      'unites_ouvert', 'INTEGER DEFAULT 0'],
+  ['stocks',      'zone',          "TEXT DEFAULT 'Frigo'"],
+  ['stocks',      'updated_at',    "TEXT DEFAULT (datetime('now'))"],
+  ['produits',    'contenance',    'REAL DEFAULT 1'],
+  ['produits',    'unite',         "TEXT DEFAULT 'unité'"],
+  ['ingredients', 'seuil_alerte',  'REAL DEFAULT 1'],
+  ['ingredients', 'icone',         "TEXT DEFAULT '🥫'"],
+  ['ingredients', 'created_at',    "TEXT DEFAULT (datetime('now'))"],
+  ['recettes',    'source',        "TEXT DEFAULT ''"],
+  ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
+].forEach(([table, col, def]) => {
+  try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
+});
+
 // Seed unités de base si vide
 if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO unites(label) VALUES(?)');
@@ -123,14 +140,24 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.9.0' }));
 // INGRÉDIENTS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/ingredients', (_req, res) => {
-  res.json(db.prepare(`
-    SELECT a.*, COUNT(DISTINCT p.id) AS nb_produits,
-      COALESCE(SUM((s.packs_pleins*p.contenance)+s.unites_ouvert),0) AS stock_total
-    FROM ingredients a
-    LEFT JOIN produits p ON p.ingredient_id=a.id
-    LEFT JOIN stocks   s ON s.produit_id=p.id
-    GROUP BY a.id ORDER BY a.categorie,a.nom
-  `).all());
+  try {
+    res.json(db.prepare(`
+      SELECT a.*, COUNT(DISTINCT p.id) AS nb_produits,
+        COALESCE(SUM((s.packs_pleins*p.contenance)+s.unites_ouvert),0) AS stock_total
+      FROM ingredients a
+      LEFT JOIN produits p ON p.ingredient_id=a.id
+      LEFT JOIN stocks   s ON s.produit_id=p.id
+      GROUP BY a.id ORDER BY a.categorie,a.nom
+    `).all());
+  } catch(e) {
+    console.error('[API] GET /api/ingredients error:', e.message);
+    // Fallback : retourner les ingrédients sans les stats stock (schéma DB potentiellement ancien)
+    try {
+      res.json(db.prepare('SELECT * FROM ingredients ORDER BY categorie,nom').all());
+    } catch(e2) {
+      res.status(500).json({ error: e.message });
+    }
+  }
 });
 
 app.post('/api/ingredients', (req, res) => {
