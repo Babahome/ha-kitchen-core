@@ -3134,7 +3134,26 @@ function deleteRecette(id) {
   save(); renderList();
   showToast('Recette supprimée','ok');
 }
-function addToCourses(id) { const r=_rv.find(x=>x.id===id); if(r) showToast('🛒 "'+r.nom+'" → courses','ok'); }
+async function addToCourses(id) {
+  const r = _rv.find(x=>x.id===id); if(!r) return;
+  try {
+    const res  = await fetch('/api/recettes/'+id+'/courses');
+    const data = await res.json();
+    if(!data.ingredients || data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
+    if(!_clRecipes.find(cr=>cr.id===id)) {
+      _clRecipes.push({id:id, nom:r.nom, e:r.emoji||'🍽️', portions:data.portions});
+      clSaveRecipes();
+    }
+    data.ingredients.forEach(ing=>{
+      if(!ing.nom) return;
+      _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
+                 qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
+                 done:false, origin:'recette', recipeId:id });
+    });
+    clSave(); clRender();
+    showToast('✓ '+data.ingredients.length+' ingrédient'+(data.ingredients.length>1?'s':'')+' ajouté'+(data.ingredients.length>1?'s':'')+' aux courses','ok');
+  } catch(e) { showToast('Erreur lors de la récupération des ingrédients','error'); }
+}
 function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) showToast('📅 "'+r.nom+'" → menu','ok'); }
 
 // ── DETAIL ────────────────────────────────────────────────────────────────────
@@ -3656,61 +3675,43 @@ function mOpenDetailFromCard(k,x){
 })();
 
 // Ajouter à la liste de courses les ingrédients des recettes sélectionnées
-function mSelAddToCourses(){
+async function mSelAddToCourses(){
   if(_mSelSet.size===0) return;
   const rvList = (typeof _rv!=='undefined') ? _rv : [];
-  let nbRecettes = 0, nbIngredients = 0, nbNonTrouvees = 0;
-  const recipesToAdd = []; // pour _clRecipes
+  let nbIngredients = 0, nbNonTrouvees = 0;
 
-  _mSelSet.forEach(key=>{
+  for(const key of _mSelSet){
     const [k,xs] = key.split('|'); const x = parseInt(xs);
-    const item=(_md[k]||[])[x]; if(!item) return;
+    const item=(_md[k]||[])[x]; if(!item) continue;
     const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===item.n.toLowerCase());
-    if(!r || !r.ingredients || r.ingredients.length===0){ nbNonTrouvees++; return; }
-    nbRecettes++;
-    // Ratio portions menu / portions recette
+    if(!r){ nbNonTrouvees++; continue; }
+
     const portMenu = item.portions || 2;
-    const portRec  = r.portions || 2;
-    const ratio    = portMenu / portRec;
-    // Enregistrer la recette dans _clRecipes si pas déjà présente
-    if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>cr.id===r.id)){
-      recipesToAdd.push({id:r.id,nom:r.nom,e:r.emoji||'🍽️',portions:portMenu});
-    }
-    // Ajouter chaque ingrédient (qty multipliée par ratio)
-    (r.ingredients||[]).forEach(ing=>{
-      if(!ing.nom) return;
-      const baseQty = parseFloat(ing.qty)||1;
-      const scaledQty = Math.round(baseQty * ratio * 100) / 100;
-      const newItem = {
-        id: (typeof clId==='function') ? clId() : (Date.now()+Math.random().toString(36).slice(2)),
-        n: ing.nom,
-        e: '🍽️',
-        m: 'drive',
-        r: 'Épicerie',
-        qty: scaledQty,
-        unit: ing.unite||'',
-        done: false,
-        origin: 'recette',
-        recipeId: r.id
-      };
-      if(typeof _cl!=='undefined') _cl.push(newItem);
-      nbIngredients++;
-    });
-  });
+    try {
+      const res  = await fetch('/api/recettes/'+r.id+'/courses?portions='+portMenu);
+      const data = await res.json();
+      if(!data.ingredients || data.ingredients.length===0){ nbNonTrouvees++; continue; }
 
-  // Ajouter recipesToAdd à _clRecipes
-  if(typeof _clRecipes!=='undefined' && recipesToAdd.length>0){
-    recipesToAdd.forEach(rr=>_clRecipes.push(rr));
-    if(typeof clSaveRecipes==='function') clSaveRecipes();
+      if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>cr.id===r.id)){
+        _clRecipes.push({id:r.id, nom:r.nom, e:r.emoji||'🍽️', portions:portMenu});
+      }
+      data.ingredients.forEach(ing=>{
+        if(!ing.nom) return;
+        _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
+                   qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
+                   done:false, origin:'recette', recipeId:r.id });
+        nbIngredients++;
+      });
+    } catch(e){ nbNonTrouvees++; }
   }
-  if(typeof clSave==='function') clSave();
-  if(typeof clRender==='function') clRender();
 
-  // Toast récap
-  let msg='';
-  if(nbIngredients>0) msg='✓ '+nbIngredients+' ingrédient'+(nbIngredients>1?'s':'')+' ajouté'+(nbIngredients>1?'s':'')+' aux courses';
-  else msg='Aucun ingrédient à ajouter';
-  if(nbNonTrouvees>0) msg+=' ('+nbNonTrouvees+' recette'+(nbNonTrouvees>1?'s':'')+' sans données)';
+  if(typeof _clRecipes!=='undefined') clSaveRecipes();
+  clSave(); clRender();
+
+  let msg = nbIngredients>0
+    ? '✓ '+nbIngredients+' ingrédient'+(nbIngredients>1?'s':'')+' ajouté'+(nbIngredients>1?'s':'')+' aux courses'
+    : 'Aucun ingrédient à ajouter';
+  if(nbNonTrouvees>0) msg+=' ('+nbNonTrouvees+' recette'+(nbNonTrouvees>1?'s':'')+' introuvable'+(nbNonTrouvees>1?'s':'')+')';
   showToast(msg, nbIngredients>0?'ok':'warn');
   mSelExit();
 }
