@@ -3105,9 +3105,13 @@ async function addToCourses(id) {
 function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) showToast('📅 "'+r.nom+'" → menu','ok'); }
 
 // ── DETAIL ────────────────────────────────────────────────────────────────────
-function openDetail(id) {
-  const r = _rv.find(x=>x.id===id); if(!r) return;
+async function openDetail(id) {
+  let r = _rv.find(x=>String(x.id)===String(id)); if(!r) return;
   _currentId = id;
+  try {
+    const full = await fetch('/api/recettes/'+id).then(res=>res.json());
+    r = { ...r, ...full };
+  } catch(e) {}
   document.getElementById('detail-title').textContent = r.nom;
 
   const stars = [1,2,3,4,5].map(i=>`<span class="d-star${i<=(r.note||0)?' on':''}" onclick="setNote('${id}',${i})">★</span>`).join('');
@@ -3165,11 +3169,19 @@ async function toggleFav(id) {
 
 // ── EDITION ───────────────────────────────────────────────────────────────────
 function openNew()    { openEdit(null); }
-function openEdit(id) {
-  const r = id ? _rv.find(x=>x.id===id) : null;
+async function openEdit(id) {
+  let r = id ? _rv.find(x=>String(x.id)===String(id)) : null;
   _editId = id||null;
+  if (id && r) {
+    try {
+      const full = await fetch('/api/recettes/'+id).then(res=>res.json());
+      r = { ...r, ...full };
+    } catch(e) {}
+  }
   _eIngr  = r ? JSON.parse(JSON.stringify(r.ingredients||[])) : [{nom:'',qty:'',unite:''}];
   _eSteps = r ? JSON.parse(JSON.stringify(r.etapes||[]))      : [{titre:'',texte:'',timer:0}];
+  if(!_eIngr.length)  _eIngr  = [{nom:'',qty:'',unite:''}];
+  if(!_eSteps.length) _eSteps = [{titre:'',texte:'',timer:0}];
   document.getElementById('edit-title').textContent = r ? 'Modifier' : 'Nouvelle recette';
   buildForm(r);
   document.getElementById('panel-edit').classList.add('open');
