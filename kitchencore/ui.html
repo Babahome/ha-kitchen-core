@@ -2075,6 +2075,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
                   value="http://192.168.1.166:30111">
                 <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
               </div>
+              <div class="rv-mealie-url-row" style="margin-bottom:14px">
+                <input class="rv-mealie-url-inp" id="rv-mealie-token"
+                  placeholder="API Token (laisser vide si non requis)" type="password">
+              </div>
               <div id="rv-mealie-results" class="rv-mealie-results">
                 <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
               </div>
@@ -3557,7 +3561,8 @@ function rvImportFeedback(msg, type) {
 
 // ── Mealie ───────────────────────────────────────────────────────────────────
 async function rvMealieLoad() {
-  const url = document.getElementById('rv-mealie-url').value.trim();
+  const url   = document.getElementById('rv-mealie-url').value.trim();
+  const token = document.getElementById('rv-mealie-token').value.trim();
   if (!url) { rvImportFeedback('URL Mealie vide.', 'err'); return; }
   const btn = document.getElementById('rv-btn-load');
   const res = document.getElementById('rv-mealie-results');
@@ -3565,14 +3570,16 @@ async function rvMealieLoad() {
   res.innerHTML = '<div class="rv-spinner">Chargement…</div>';
   rvImportFeedback('', '');
   try {
-    const r = await fetch(`/api/recettes/import/mealie/search?url=${encodeURIComponent(url)}`);
+    const params = `/api/recettes/import/mealie/search?url=${encodeURIComponent(url)}${token ? '&token=' + encodeURIComponent(token) : ''}`;
+    const r = await fetch(params);
     if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Erreur serveur'); }
     const data = await r.json();
     if (!data.items || data.items.length === 0) {
       res.innerHTML = '<div class="rv-mealie-empty">Aucune recette trouvée sur ce Mealie.</div>';
       return;
     }
-    const safeUrl = url.replace(/'/g, "\\'");
+    const safeUrl   = url.replace(/'/g, "\\'");
+    const safeToken = token.replace(/'/g, "\\'");
     res.innerHTML = data.items.map(item => `
       <div class="rv-mealie-card" id="rv-mc-${item.slug}">
         <div class="rv-mealie-card-img">
@@ -3585,7 +3592,7 @@ async function rvMealieLoad() {
           ${item.description ? `<div class="rv-mealie-card-desc">${item.description.replace(/</g,'&lt;').slice(0,80)}</div>` : ''}
         </div>
         <button class="rv-mealie-card-action" id="rv-mc-btn-${item.slug}"
-          onclick="rvMealieImport('${item.slug.replace(/'/g,"\\'")}','${safeUrl}')">⬇ Importer</button>
+          onclick="rvMealieImport('${item.slug.replace(/'/g,"\\'")}','${safeUrl}','${safeToken}')">⬇ Importer</button>
       </div>
     `).join('');
   } catch(e) {
@@ -3596,7 +3603,7 @@ async function rvMealieLoad() {
   }
 }
 
-async function rvMealieImport(slug, url) {
+async function rvMealieImport(slug, url, token) {
   const card = document.getElementById('rv-mc-' + slug);
   const btn  = document.getElementById('rv-mc-btn-' + slug);
   if (!card || !btn) return;
@@ -3607,7 +3614,7 @@ async function rvMealieImport(slug, url) {
     const r = await fetch('/api/recettes/import/mealie', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mealie_url: url, recipe_slug: slug })
+      body: JSON.stringify({ mealie_url: url, recipe_slug: slug, api_token: token || '' })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Erreur import');
