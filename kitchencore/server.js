@@ -12,8 +12,10 @@ const fs       = require('fs');
 const app  = express();
 const PORT = 8080;
 
-const DATA_DIR = process.env.DATA_PATH || '/data';
+const DATA_DIR   = process.env.DATA_PATH || '/data';
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
+if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'kitchencore.db'));
 db.pragma('journal_mode = WAL');
@@ -123,6 +125,7 @@ if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
 }
 
 app.use(express.json());
+app.use('/photos', express.static(PHOTOS_DIR));
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -497,6 +500,23 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     );
     saveIngredients(info.lastInsertRowid, ingredients);
     saveEtapes(info.lastInsertRowid, etapes);
+
+    // Télécharger la photo depuis Mealie
+    if (m.image) {
+      try {
+        const imgUrl = m.image.startsWith('http') ? m.image : `${base}${m.image}`;
+        const imgRes = await fetch(imgUrl, { headers });
+        if (imgRes.ok) {
+          const ext      = (m.image.split('.').pop().split('?')[0] || 'webp').toLowerCase().replace(/[^a-z0-9]/g,'') || 'webp';
+          const filename = `r${info.lastInsertRowid}.${ext}`;
+          fs.writeFileSync(path.join(PHOTOS_DIR, filename), Buffer.from(await imgRes.arrayBuffer()));
+          db.prepare('UPDATE recettes SET photo=? WHERE id=?').run(`/photos/${filename}`, info.lastInsertRowid);
+        }
+      } catch(imgErr) {
+        console.error('[import/mealie] photo:', imgErr.message);
+      }
+    }
+
     res.status(201).json({ message: `"${m.name}" importée`, recette: getRecette(info.lastInsertRowid) });
   } catch(e) {
     console.error('[import/mealie]', e);
