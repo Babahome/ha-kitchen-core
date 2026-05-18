@@ -1552,6 +1552,58 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .ing-header-btn:hover { background: rgba(255,255,255,0.35); }
 /* ══ /PAGE INGRÉDIENTS ═════════════════════════════════════════════════════ */
 
+/* ══ MODAL IMPORT RECETTE ══════════════════════════════════════════════════ */
+.rv-import-overlay {
+  position:absolute; inset:0; background:rgba(0,0,0,.5);
+  z-index:200; display:none; flex-direction:column; justify-content:flex-end;
+}
+.rv-import-overlay.open { display:flex; }
+.rv-import-sheet {
+  background:#fff; border-radius:20px 20px 0 0;
+  max-height:88%; display:flex; flex-direction:column;
+  box-shadow:0 -4px 32px rgba(0,0,0,.15);
+  animation:rvSlideUp .25s ease;
+}
+@keyframes rvSlideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.rv-import-handle { width:38px; height:4px; background:var(--grey); border-radius:99px; margin:10px auto 0; flex-shrink:0; }
+.rv-import-head { padding:12px 16px 0; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.rv-import-title { font-size:1.05rem; font-weight:800; color:var(--text); flex:1; }
+.rv-import-close { background:var(--grey-l); border:none; border-radius:50%; width:32px; height:32px; font-size:.95rem; cursor:pointer; color:var(--grey-d); display:flex; align-items:center; justify-content:center; }
+.rv-import-tabs { display:flex; gap:8px; padding:12px 16px 0; flex-shrink:0; }
+.rv-import-tab { flex:1; padding:8px 0; border:1.5px solid transparent; border-radius:10px; background:var(--grey-l); color:var(--grey-d); font-family:'Nunito',sans-serif; font-size:.83rem; font-weight:700; cursor:pointer; }
+.rv-import-tab.on { background:var(--orange-l); color:var(--orange); border-color:var(--orange); }
+.rv-import-body { flex:1; overflow-y:auto; padding:14px 16px 24px; }
+.rv-import-feedback { font-size:.82rem; font-weight:700; text-align:center; padding:8px 12px; border-radius:10px; margin-bottom:10px; display:none; }
+.rv-import-feedback.ok  { display:block; background:#E6F9EE; color:#1a7a3a; }
+.rv-import-feedback.err { display:block; background:#FDE8E8; color:#a31a1a; }
+.rv-mealie-url-row { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+.rv-mealie-url-inp { flex:1; padding:9px 12px; border:1.5px solid var(--grey); border-radius:10px; font-family:'Nunito',sans-serif; font-size:.83rem; background:#fff; color:var(--text); }
+.rv-mealie-url-inp:focus { outline:none; border-color:var(--orange); }
+.btn-rv-load { background:var(--orange); color:#fff; border:none; border-radius:10px; padding:9px 14px; font-family:'Nunito',sans-serif; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+.btn-rv-load:disabled { opacity:.5; cursor:default; }
+.rv-mealie-results { display:flex; flex-direction:column; gap:8px; }
+.rv-mealie-empty { text-align:center; padding:2.5rem 1rem; color:var(--grey-d); font-size:.88rem; }
+.rv-spinner { text-align:center; padding:2rem; color:var(--grey-d); font-size:.88rem; }
+.rv-mealie-card { background:var(--grey-l); border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; border:1.5px solid transparent; }
+.rv-mealie-card.importing { border-color:var(--orange); background:var(--orange-l); }
+.rv-mealie-card-img { width:44px; height:44px; border-radius:8px; background:var(--grey); flex-shrink:0; font-size:1.5rem; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.rv-mealie-card-img img { width:100%; height:100%; object-fit:cover; }
+.rv-mealie-card-info { flex:1; min-width:0; }
+.rv-mealie-card-nom { font-weight:700; font-size:.88rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rv-mealie-card-desc { font-size:.75rem; color:var(--grey-d); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rv-mealie-card-action { font-size:.78rem; font-weight:700; color:var(--orange); flex-shrink:0; background:var(--orange-l); border-radius:8px; padding:4px 10px; border:none; cursor:pointer; font-family:'Nunito',sans-serif; }
+.rv-mealie-card-action:disabled { opacity:.5; cursor:default; }
+.rv-json-label { font-size:.82rem; font-weight:700; color:var(--grey-d); margin-bottom:6px; display:block; }
+.rv-json-textarea { width:100%; height:200px; padding:10px 12px; border:1.5px solid var(--grey); border-radius:10px; font-family:'Courier New',monospace; font-size:.76rem; background:#fafafa; color:var(--text); resize:none; line-height:1.5; }
+.rv-json-textarea:focus { outline:none; border-color:var(--orange); }
+.rv-json-actions { display:flex; gap:8px; margin-top:10px; }
+.btn-json-clear { flex:none; padding:10px 14px; border-radius:10px; background:var(--grey-l); border:1.5px solid var(--grey); color:var(--grey-d); font-family:'Nunito',sans-serif; font-size:.82rem; font-weight:700; cursor:pointer; }
+.btn-json-import { flex:1; padding:10px; border-radius:10px; background:var(--orange); border:none; color:#fff; font-family:'Nunito',sans-serif; font-size:.88rem; font-weight:700; cursor:pointer; }
+.btn-json-import:disabled { opacity:.5; cursor:default; }
+.rv-json-hint { margin-top:10px; padding:10px 12px; background:var(--orange-l); border-radius:10px; border-left:3px solid var(--orange); font-size:.75rem; color:#7a3a0a; line-height:1.6; }
+.rv-json-hint code { background:rgba(0,0,0,.07); border-radius:4px; padding:1px 4px; font-size:.72rem; }
+/* ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════════════ */
+
 
 </style>
 </head>
@@ -2000,6 +2052,56 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
 
       <div style="height:90px"></div>
+
+      <!-- ══ MODAL IMPORT RECETTE ══════════════════════════════════════════ -->
+      <div class="rv-import-overlay" id="rv-import-overlay" onclick="if(event.target===this)rvImportClose()">
+        <div class="rv-import-sheet" onclick="event.stopPropagation()">
+          <div class="rv-import-handle"></div>
+          <div class="rv-import-head">
+            <div class="rv-import-title">⬇ Importer une recette</div>
+            <button class="rv-import-close" onclick="rvImportClose()">✕</button>
+          </div>
+          <div class="rv-import-tabs">
+            <button class="rv-import-tab on" id="rv-tab-mealie" onclick="rvImportTab('mealie')">🥗 Depuis Mealie</button>
+            <button class="rv-import-tab"    id="rv-tab-json"   onclick="rvImportTab('json')">📋 Coller un JSON</button>
+          </div>
+          <div class="rv-import-body">
+            <div class="rv-import-feedback" id="rv-import-feedback"></div>
+            <!-- Panneau Mealie -->
+            <div id="rv-pane-mealie">
+              <div class="rv-mealie-url-row">
+                <input class="rv-mealie-url-inp" id="rv-mealie-url"
+                  placeholder="http://192.168.1.123:30111"
+                  value="http://192.168.1.123:30111">
+                <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
+              </div>
+              <div id="rv-mealie-results" class="rv-mealie-results">
+                <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
+              </div>
+            </div>
+            <!-- Panneau JSON -->
+            <div id="rv-pane-json" style="display:none">
+              <label class="rv-json-label">Colle le JSON de ta recette ici :</label>
+              <textarea class="rv-json-textarea" id="rv-json-ta"
+                placeholder='{"nom":"Ma recette","emoji":"🍽️","portions":4,...}'></textarea>
+              <div class="rv-json-hint">
+                <strong>Format attendu :</strong>
+                <code>nom</code> (obligatoire), <code>emoji</code>, <code>description</code>,
+                <code>portions</code>, <code>temps_prep</code>, <code>temps_cuisson</code>,
+                <code>tags</code> (tableau), <code>ingredients</code> (tableau d'objets
+                <code>{nom, qty, unite}</code>), <code>etapes</code> (tableau d'objets
+                <code>{titre, texte, timer}</code>)
+              </div>
+              <div class="rv-json-actions">
+                <button class="btn-json-clear" onclick="rvJsonClear()">Effacer</button>
+                <button class="btn-json-import" id="rv-btn-json-import" onclick="rvJsonImport()">⬇ Importer cette recette</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════ -->
+
     </div>
 
         <!-- ══ PAGE MENU ═══════════════════════════════════════════════════════ -->
@@ -3429,6 +3531,185 @@ async function saveRecette() {
   } catch(e) { showToast('Erreur sauvegarde','error'); }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// IMPORT RECETTE — Mealie + JSON
+// ════════════════════════════════════════════════════════════════════════════
+
+function rvImportOpen() {
+  document.getElementById('rv-import-overlay').classList.add('open');
+  rvImportFeedback('', '');
+}
+function rvImportClose() {
+  document.getElementById('rv-import-overlay').classList.remove('open');
+}
+function rvImportTab(tab) {
+  document.getElementById('rv-tab-mealie').classList.toggle('on', tab === 'mealie');
+  document.getElementById('rv-tab-json').classList.toggle('on',   tab === 'json');
+  document.getElementById('rv-pane-mealie').style.display = tab === 'mealie' ? '' : 'none';
+  document.getElementById('rv-pane-json').style.display   = tab === 'json'   ? '' : 'none';
+  rvImportFeedback('', '');
+}
+function rvImportFeedback(msg, type) {
+  const el = document.getElementById('rv-import-feedback');
+  el.textContent = msg;
+  el.className = 'rv-import-feedback' + (type ? ' ' + type : '');
+}
+
+// ── Mealie ───────────────────────────────────────────────────────────────────
+async function rvMealieLoad() {
+  const url = document.getElementById('rv-mealie-url').value.trim();
+  if (!url) { rvImportFeedback('URL Mealie vide.', 'err'); return; }
+  const btn = document.getElementById('rv-btn-load');
+  const res = document.getElementById('rv-mealie-results');
+  btn.disabled = true; btn.textContent = '…';
+  res.innerHTML = '<div class="rv-spinner">Chargement…</div>';
+  rvImportFeedback('', '');
+  try {
+    const r = await fetch(`/api/recettes/import/mealie/search?url=${encodeURIComponent(url)}`);
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Erreur serveur'); }
+    const data = await r.json();
+    if (!data.items || data.items.length === 0) {
+      res.innerHTML = '<div class="rv-mealie-empty">Aucune recette trouvée sur ce Mealie.</div>';
+      return;
+    }
+    const safeUrl = url.replace(/'/g, "\\'");
+    res.innerHTML = data.items.map(item => `
+      <div class="rv-mealie-card" id="rv-mc-${item.slug}">
+        <div class="rv-mealie-card-img">
+          ${item.photo
+            ? `<img src="${item.photo}" onerror="this.style.display='none'">`
+            : `<span>🍽️</span>`}
+        </div>
+        <div class="rv-mealie-card-info">
+          <div class="rv-mealie-card-nom">${item.nom.replace(/</g,'&lt;')}</div>
+          ${item.description ? `<div class="rv-mealie-card-desc">${item.description.replace(/</g,'&lt;').slice(0,80)}</div>` : ''}
+        </div>
+        <button class="rv-mealie-card-action" id="rv-mc-btn-${item.slug}"
+          onclick="rvMealieImport('${item.slug.replace(/'/g,"\\'")}','${safeUrl}')">⬇ Importer</button>
+      </div>
+    `).join('');
+  } catch(e) {
+    rvImportFeedback('Impossible de contacter Mealie : ' + e.message, 'err');
+    res.innerHTML = '<div class="rv-mealie-empty">Erreur de connexion.</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Charger';
+  }
+}
+
+async function rvMealieImport(slug, url) {
+  const card = document.getElementById('rv-mc-' + slug);
+  const btn  = document.getElementById('rv-mc-btn-' + slug);
+  if (!card || !btn) return;
+  btn.disabled = true; btn.textContent = '…';
+  card.classList.add('importing');
+  rvImportFeedback('', '');
+  try {
+    const r = await fetch('/api/recettes/import/mealie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mealie_url: url, recipe_slug: slug })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Erreur import');
+    _rv.unshift({
+      id:           'd_' + d.recette.id,
+      nom:          d.recette.nom,
+      emoji:        d.recette.emoji || '🍽️',
+      photo:        d.recette.photo || '',
+      desc:         d.recette.description || '',
+      portions:     d.recette.portions || 2,
+      temps_prep:   d.recette.temps_prep || 0,
+      temps_cuisson:d.recette.temps_cuisson || 0,
+      tags:         d.recette.tags || [],
+      favori:       false, note: d.recette.note || 0,
+      ingredients:  (d.recette.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite })),
+      etapes:       (d.recette.etapes || []).map(e => ({ titre: e.titre, texte: e.texte, timer: e.timer })),
+    });
+    save(); renderList();
+    btn.textContent = '✓';
+    card.style.opacity = '.5';
+    rvImportFeedback('"' + d.recette.nom + '" importée !', 'ok');
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '⬇ Importer';
+    card.classList.remove('importing');
+    rvImportFeedback(e.message, 'err');
+  }
+}
+
+// ── JSON ─────────────────────────────────────────────────────────────────────
+function rvJsonClear() {
+  document.getElementById('rv-json-ta').value = '';
+  rvImportFeedback('', '');
+}
+
+async function rvJsonImport() {
+  const raw = document.getElementById('rv-json-ta').value.trim();
+  if (!raw) { rvImportFeedback('Le champ est vide.', 'err'); return; }
+  let data;
+  try { data = JSON.parse(raw); }
+  catch(e) { rvImportFeedback('JSON invalide — vérifie la syntaxe (guillemets, virgules…)', 'err'); return; }
+  if (!data.nom?.trim()) { rvImportFeedback('Le champ "nom" est obligatoire dans le JSON.', 'err'); return; }
+
+  const recette = {
+    nom:           data.nom.trim(),
+    emoji:         data.emoji         || '🍽️',
+    photo:         data.photo         || '',
+    description:   data.description   || data.desc || '',
+    portions:      parseInt(data.portions)      || 2,
+    temps_prep:    parseInt(data.temps_prep)    || 0,
+    temps_cuisson: parseInt(data.temps_cuisson) || 0,
+    tags:          Array.isArray(data.tags) ? data.tags : [],
+    note:          parseInt(data.note) || 0,
+    source:        data.source || '',
+    ingredients: (data.ingredients || []).map(i => ({
+      nom:   String(i.nom || i.name || ''),
+      qty:   String(i.qty || i.quantite || ''),
+      unite: String(i.unite || i.unit || ''),
+    })).filter(i => i.nom.trim()),
+    etapes: (data.etapes || data.steps || []).map(e => ({
+      titre: String(e.titre || e.title || ''),
+      texte: String(e.texte || e.text  || ''),
+      timer: parseInt(e.timer) || 0,
+    })).filter(e => e.texte.trim()),
+  };
+
+  const btn = document.getElementById('rv-btn-json-import');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await fetch('/api/recettes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(recette)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Erreur import');
+    _rv.unshift({
+      id:           'd_' + d.id,
+      nom:          d.nom,
+      emoji:        d.emoji || '🍽️',
+      photo:        d.photo || '',
+      desc:         d.description || '',
+      portions:     d.portions || 2,
+      temps_prep:   d.temps_prep || 0,
+      temps_cuisson:d.temps_cuisson || 0,
+      tags:         d.tags || [],
+      favori: false, note: d.note || 0,
+      ingredients: (d.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite })),
+      etapes:      (d.etapes || []).map(e => ({ titre: e.titre, texte: e.texte, timer: e.timer })),
+    });
+    save(); renderList();
+    rvImportFeedback('"' + d.nom + '" importée !', 'ok');
+    document.getElementById('rv-json-ta').value = '';
+  } catch(e) {
+    rvImportFeedback(e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ Importer cette recette';
+  }
+}
+// ════════════════════════════════════════════════════════════════════════════
+// /IMPORT RECETTE
+// ════════════════════════════════════════════════════════════════════════════
+
 // ── Hooks recettes ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.nav-tab').forEach(function(t) {
@@ -3707,7 +3988,13 @@ function _mSelUpdateHeader(){
   }
 }
 function mHeaderDotsClick(){
-  // En mode sélection menu → afficher le menu d'actions, sinon comportement neutre
+  const page = document.querySelector('.page.active')?.id.replace('page-','');
+  // Page Recettes → ouvrir le modal d'import
+  if(page === 'recettes'){
+    rvImportOpen();
+    return;
+  }
+  // Page Menu en mode sélection → afficher le menu d'actions
   if(_mSelMode){
     const m = document.getElementById('m-hdmenu');
     if(m) m.classList.toggle('on');
