@@ -439,7 +439,10 @@ app.get('/api/recettes/import/mealie/search', async (req, res) => {
         photo:       r.image ? `${base}${r.image}` : '',
       }))
     });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    const detail = e.cause?.code || e.cause?.message || e.message;
+    res.status(500).json({ error: `Impossible de joindre Mealie (${detail})` });
+  }
 });
 
 app.post('/api/recettes/import/mealie', async (req, res) => {
@@ -497,7 +500,8 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     res.status(201).json({ message: `"${m.name}" importée`, recette: getRecette(info.lastInsertRowid) });
   } catch(e) {
     console.error('[import/mealie]', e);
-    res.status(500).json({ error: e.message });
+    const detail = e.cause?.code || e.cause?.message || e.message;
+    res.status(500).json({ error: `Erreur import Mealie (${detail})` });
   }
 });
 
