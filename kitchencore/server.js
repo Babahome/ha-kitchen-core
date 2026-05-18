@@ -502,19 +502,27 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     saveEtapes(info.lastInsertRowid, etapes);
 
     // Télécharger la photo depuis Mealie
+    console.log('[import/mealie] m.image =', m.image);
     if (m.image) {
       try {
         const imgUrl = m.image.startsWith('http') ? m.image : `${base}${m.image}`;
+        console.log('[import/mealie] téléchargement photo :', imgUrl);
         const imgRes = await fetch(imgUrl, { headers });
+        console.log('[import/mealie] photo status :', imgRes.status);
         if (imgRes.ok) {
           const ext      = (m.image.split('.').pop().split('?')[0] || 'webp').toLowerCase().replace(/[^a-z0-9]/g,'') || 'webp';
           const filename = `r${info.lastInsertRowid}.${ext}`;
           fs.writeFileSync(path.join(PHOTOS_DIR, filename), Buffer.from(await imgRes.arrayBuffer()));
           db.prepare('UPDATE recettes SET photo=? WHERE id=?').run(`/photos/${filename}`, info.lastInsertRowid);
+          console.log('[import/mealie] photo sauvegardée :', filename);
+        } else {
+          console.error('[import/mealie] photo refusée :', imgRes.status, await imgRes.text().catch(()=>''));
         }
       } catch(imgErr) {
-        console.error('[import/mealie] photo:', imgErr.message);
+        console.error('[import/mealie] photo erreur :', imgErr.message, imgErr.cause?.code || '');
       }
+    } else {
+      console.log('[import/mealie] pas de photo (m.image vide)');
     }
 
     res.status(201).json({ message: `"${m.name}" importée`, recette: getRecette(info.lastInsertRowid) });

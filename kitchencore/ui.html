@@ -3215,7 +3215,8 @@ async function openDetail(id) {
   let r = _rv.find(x=>String(x.id)===String(id)); if(!r) return;
   _currentId = id;
   try {
-    const full = await fetch('/api/recettes/'+id).then(res=>res.json());
+    const numId = String(id).replace(/^d_/, '');
+    const full = await fetch('/api/recettes/'+numId).then(res=>res.json());
     r = { ...r, ...full };
   } catch(e) {}
   document.getElementById('detail-title').textContent = r.nom;
