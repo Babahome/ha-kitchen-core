@@ -1,8 +1,8 @@
 Projet : Add-on Home Assistant, Node.js + SQLite + ui.html single-file. GitHub public kitchencore-hassio/. Je suis autodidacte, pas développeur — toujours expliquer en termes simples.
 Stack : Express port 8080, better-sqlite3, BarcodeDetector API
 Règles absolues (navigation cassée si non respectées)
-Jamais redéfinir switchPage ni fabAction — le fichier doit toujours en avoir exactement 2 de chaque
-Pour ajouter des comportements → modifier en place ou utiliser DOMContentLoaded + event listeners
+switchPage et fabAction : exactement 1 définition chacune dans ui.html — ne jamais dupliquer, ne jamais redéfinir via override/alias. Pour ajouter un comportement : modifier la fonction existante directement en place.
+Pour tout autre comportement à ajouter → modifier en place ou utiliser DOMContentLoaded + event listeners
 Après chaque modification, vérifier : node check_ui.js
 Approche standalone : toujours valider une nouvelle page dans un fichier HTML isolé avant de l'intégrer dans ui.html
 Tout le code Node.js directement dans server.js — jamais de sous-dossiers (Docker échoue à les résoudre)
@@ -17,4 +17,4 @@ Pages — état v0.9
 BDD SQLite — tables : ingredients, produits, stocks, mouvements, unites, recettes, recette_ingredients, recette_etapes. Relation : produits.ingredient_id → ingredients (pas aliment_id).
 Migrations schéma : le serveur lance des ALTER TABLE ADD COLUMN idempotents au démarrage (dans server.js après db.exec) pour gérer les DB existantes avec ancien schéma. Ne jamais supposer que les colonnes existent — utiliser CREATE TABLE IF NOT EXISTS + migrations.
 Erreurs silencieuses : dans ui.html, toujours mettre _ingRender() HORS du try/catch de _ingLoadData() pour ne pas masquer les erreurs réseau derrière des erreurs de rendu.
-Prochaines étapes : Supprimer les console.log [ING] de debug (ajoutés en v0.9.15, plus nécessaires). Brancher Stock sur API, formulaire création produit, brancher Menu et Courses sur API, refactoriser la navigation (système 2 switchPage est fragile).
+Prochaines étapes : Supprimer les console.log [ING] de debug (ajoutés en v0.9.15, plus nécessaires). Brancher Stock sur API, formulaire création produit, brancher Menu et Courses sur API. Refonte UI panels Détail et Édition recette (standalone validé dans recette-detail-v2.html et recette-edit-v3.html, pas encore intégré dans ui.html).
