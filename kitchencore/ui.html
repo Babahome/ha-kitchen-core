@@ -1655,19 +1655,23 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-card { animation: ingSlideUp 0.2s ease both; }
 
-  /* ── MERGE BAR (FAB orange bas droite, page ingrédients) ── */
+  /* ── ACTION BAR (multi-sélection, bas droite, page ingrédients) ── */
   .ing-merge-bar {
     position: fixed; bottom: calc(var(--bottom-h) + 12px); right: 16px; z-index: 90;
-    background: var(--orange); color: white;
-    border: none; border-radius: 28px;
-    box-shadow: 0 4px 20px rgba(232,103,26,0.4);
-    padding: 12px 20px; font-family: 'Nunito', sans-serif;
-    font-size: 15px; font-weight: 800; cursor: pointer;
     display: none; align-items: center; gap: 8px;
     transform: translateY(80px); opacity: 0;
     transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .ing-merge-bar.visible { display: flex; transform: translateY(0); opacity: 1; }
+  .ing-action-btn {
+    background: var(--orange); color: white; border: none; border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(232,103,26,0.35);
+    padding: 10px 16px; font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 800; cursor: pointer;
+    white-space: nowrap;
+  }
+  .ing-action-btn.ing-action-danger { background: #c0392b; box-shadow: 0 4px 16px rgba(192,57,43,0.35); }
+  .ing-action-btn.ing-action-merge { background: #5c3d99; box-shadow: 0 4px 16px rgba(92,61,153,0.35); }
 
   /* ── HEADER ACTIONS page ingrédients (boutons "Sélectionner" / reset) ── */
   .ing-header-actions {
@@ -2386,6 +2390,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </button>
         <button class="tab-btn" data-ing-tab="sans-rayon" onclick="ingSwitchTab('sans-rayon', this)">⚠️ Sans rayon</button>
         <button class="tab-btn" data-ing-tab="sans-image" onclick="ingSwitchTab('sans-image', this)">🖼 Sans image</button>
+        <button class="tab-btn" data-ing-tab="sans-recette" onclick="ingSwitchTab('sans-recette', this)">📋 Sans recette</button>
         <button class="tab-btn" data-ing-tab="doublons" onclick="ingSwitchTab('doublons', this)">🔀 Doublons potentiels</button>
       </div>
 
@@ -2531,14 +2536,16 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="ing-fab-search" id="ing-fabSearch" onclick="ingOpenSearch()">
     <span class="icon">🔍</span>
     <span class="fab-label">Rechercher</span>
-    <input class="ing-fab-search-input" id="ing-searchInput" placeholder="Chercher un ingrédient..." oninput="ingOnSearchInput(this.value)">
+    <input class="ing-fab-search-input" id="ing-searchInput" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
-  <!-- MERGE FAB -->
-  <button class="ing-merge-bar" id="ing-mergeBar" onclick="ingOpenMergeSheet()">
-    🔀 Fusionner <span class="merge-count" id="ing-mergeCount">0</span>
-  </button>
+  <!-- ACTION BAR (sélection multiple) -->
+  <div class="ing-merge-bar" id="ing-mergeBar">
+    <button class="ing-action-btn ing-action-danger" id="ing-deleteBtn" onclick="ingDeleteSelected()">🗑 Suppr.</button>
+    <button class="ing-action-btn" id="ing-rayonBtn" onclick="ingOpenRayonSheet()">🛒 Rayon</button>
+    <button class="ing-action-btn ing-action-merge" id="ing-mergeBtn" onclick="ingOpenMergeSheet()">🔀 Fusionner (<span id="ing-mergeCount">0</span>)</button>
+  </div>
 
   <!-- BACKDROP (absolute dans frame) -->
   <div class="ing-sheet-backdrop" id="ing-sheetBackdrop" onclick="ingCloseAllSheets()"></div>
@@ -2641,6 +2648,20 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
 
       <button class="btn-primary" onclick="ingConfirmMerge()">🔀 Confirmer la fusion</button>
+    </div>
+  </div>
+  <!-- RAYON SHEET (multi-sélection) -->
+  <div class="ing-bottom-sheet" id="ing-rayonSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">🛒 Changer le rayon</span>
+      <button class="sheet-close" onclick="ingCloseRayonSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Choisir le rayon Carrefour pour les <strong id="ing-rayonSelCount">0</strong> ingrédients sélectionnés</p>
+      <div class="rayon-grid" id="ing-rayonSheetGrid"></div>
+      <div style="height:12px"></div>
+      <button class="btn-primary" onclick="ingApplyRayonSelected()">✓ Appliquer</button>
     </div>
   </div>
   <!-- ══ /OVERLAYS PAGE INGRÉDIENTS ══════════════════════════════════════════ -->
@@ -4561,13 +4582,21 @@ async function _ingLoadData() {
     _ingAll = data.map(a => ({
       id:             String(a.id),
       name:           a.nom || '',
-      emoji:          a.icone || '🥫',
+      emoji:          a.icone || '',
       rayonCarrefour: _mapCategorie(a.categorie),
       rayonFourche:   '',
       imageUrl:       '',
       usedIn:         [],
       _dbId:          a.id,
     }));
+    // Peupler usedIn depuis les recettes en localStorage
+    const _localRecipes = _ingGetRecipes();
+    _ingAll.forEach(ing => {
+      const normName = _ingNormalize(ing.name);
+      ing.usedIn = _localRecipes
+        .filter(r => (r.ingredients || []).some(i => _ingNormalize(i.name) === normName))
+        .map(r => r.id);
+    });
     console.log('[ING] _ingAll peuplé:', _ingAll.length, 'items');
   } catch(e) {
     console.error('[ING] Erreur chargement ingrédients', e);
@@ -4701,6 +4730,16 @@ function _ingRender() {
     grid.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Tout est nickel !</p><span>Aucun ingrédient dans cette catégorie.</span></div>`;
     return;
   }
+  if (items.length === 0 && _ingSearchQuery) {
+    const q = _ingSearchQuery.trim();
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="emoji">🔍</div>
+      <p>Aucun ingrédient trouvé</p>
+      <span>« ${q} » n'existe pas encore</span>
+      <button class="btn-primary" style="margin-top:16px" onclick="ingCreateFromSearch()">+ Créer « ${q} »</button>
+    </div>`;
+    return;
+  }
   grid.innerHTML = items.map((ing, i) => _ingRenderCard(ing, i)).join('');
 }
 
@@ -4779,7 +4818,7 @@ function _ingUpdateStats() {
   const elTC = document.getElementById('ing-tabCountTous');
   if (elT) elT.textContent = _ingAll.length;
   if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayonCarrefour).length;
-  if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && !i.emoji).length;
+  if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
   if (elTC) elTC.textContent = `(${_ingAll.length})`;
 }
 
@@ -4798,7 +4837,8 @@ function _ingRenderFilters() {
 function _ingGetFilteredItems() {
   let items = [..._ingAll];
   if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayonCarrefour);
-  if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && !i.emoji);
+  if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
+  if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
   if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayonCarrefour === _ingFilter);
   if (_ingSearchQuery) {
     const q = _ingNormalize(_ingSearchQuery);
@@ -4854,11 +4894,15 @@ function _ingUpdateSelectModeUI() {
       btn.style.background = '';
     }
   }
-  // FAB Fusionner
-  if (_ingSelectedIds.size >= 2) {
+  const n = _ingSelectedIds.size;
+  // Barre d'actions : visible dès 1 item sélectionné
+  if (n >= 1) {
     bar.classList.add('visible');
-    const el = document.getElementById('ing-mergeCount');
-    if (el) el.textContent = _ingSelectedIds.size;
+    const countEl = document.getElementById('ing-mergeCount');
+    if (countEl) countEl.textContent = n;
+    // Fusionner seulement si >= 2
+    const mergeBtn = document.getElementById('ing-mergeBtn');
+    if (mergeBtn) mergeBtn.style.display = n >= 2 ? '' : 'none';
   } else {
     bar.classList.remove('visible');
   }
@@ -5121,6 +5165,87 @@ async function _ingConfirmMerge() {
 }
 
 function _ingCloseMergeSheet() { _ingHideSheet('ing-mergeSheet'); }
+
+// ─── Suppression multi-sélection ───
+async function _ingDeleteSelected() {
+  const ids = [..._ingSelectedIds];
+  if (!ids.length) return;
+  const names = ids.map(id => (_ingAll.find(i => i.id === id) || {}).name).filter(Boolean).join(', ');
+  if (!confirm(`Supprimer ${ids.length} ingrédient(s) ?\n${names}`)) return;
+  let ok = 0, blocked = 0;
+  for (const id of ids) {
+    const ing = _ingAll.find(i => i.id === id);
+    if (!ing) continue;
+    try {
+      const res = await fetch('/api/ingredients/' + ing._dbId, { method: 'DELETE' });
+      if (res.status === 409) blocked++;
+      else ok++;
+    } catch(e) { blocked++; }
+  }
+  await _ingLoadData();
+  _ingSelectedIds.clear();
+  _ingSelectMode = false;
+  _ingUpdateSelectModeUI();
+  if (blocked > 0) _ingToast(`${ok} supprimé(s), ${blocked} lié(s) à des produits — ignoré(s)`);
+  else _ingToast(`${ok} ingrédient(s) supprimé(s)`);
+}
+
+// ─── Changer rayon multi-sélection ───
+function _ingOpenRayonSheet() {
+  const n = _ingSelectedIds.size;
+  if (!n) return;
+  const el = document.getElementById('ing-rayonSelCount');
+  if (el) el.textContent = n;
+  _ingRenderRayonGrid('ing-rayonSheetGrid', '');
+  _ingShowSheet('ing-rayonSheet');
+}
+
+function _ingCloseRayonSheet() { _ingHideSheet('ing-rayonSheet'); }
+
+async function _ingApplyRayonSelected() {
+  const newRayon = _ingGetSelectedRayon('ing-rayonSheetGrid');
+  if (!newRayon) { _ingToast('Choisir un rayon'); return; }
+  const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
+  const ids = [..._ingSelectedIds];
+  let ok = 0;
+  for (const id of ids) {
+    const ing = _ingAll.find(i => i.id === id);
+    if (!ing) continue;
+    try {
+      await fetch('/api/ingredients/' + ing._dbId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categorie: rayonLabel })
+      });
+      ok++;
+    } catch(e) {}
+  }
+  await _ingLoadData();
+  _ingCloseRayonSheet();
+  _ingToast(`Rayon mis à jour pour ${ok} ingrédient(s)`);
+}
+
+// ─── Créer ingrédient depuis la recherche ───
+async function _ingCreateFromSearch() {
+  const nom = _ingSearchQuery.trim();
+  if (!nom) return;
+  try {
+    const res = await fetch('/api/ingredients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, categorie: 'Autre', icone: '' })
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      _ingToast(d.error || 'Erreur création');
+      return;
+    }
+    _ingCloseSearch(null);
+    await _ingLoadData();
+    _ingToast(`✓ « ${nom} » créé`);
+  } catch(e) { _ingToast('Erreur création'); }
+}
+
 function _ingIgnoreDupGroup(btn) {
   const g = btn.closest('.dup-group');
   g.style.opacity = '0.4';
@@ -5160,7 +5285,7 @@ function _ingHideSheet(id) {
 }
 
 function _ingCloseAllSheets() {
-  ['ing-editSheet','ing-mergeSheet'].forEach(id => {
+  ['ing-editSheet','ing-mergeSheet','ing-rayonSheet'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
   });
@@ -5229,6 +5354,11 @@ window.ingOpenSearch       = _ingOpenSearch;
 window.ingCloseSearch      = _ingCloseSearch;
 window.ingOnSearchInput    = _ingOnSearchInput;
 window.ingCloseAllSheets   = _ingCloseAllSheets;
+window.ingDeleteSelected   = _ingDeleteSelected;
+window.ingOpenRayonSheet   = _ingOpenRayonSheet;
+window.ingCloseRayonSheet  = _ingCloseRayonSheet;
+window.ingApplyRayonSelected = _ingApplyRayonSelected;
+window.ingCreateFromSearch = _ingCreateFromSearch;
 
 // Exposer pour le hook switchPage (lecture seule)
 window.__ingBoot           = _ingBoot;
