@@ -984,6 +984,139 @@ textarea.einput{ resize:none;min-height:60px; }
 .ingr-row.dragging  { opacity:.4; }
 .step-box.dragging  { opacity:.4; }
 
+/* ══ PANEL EDIT v3 ══════════════════════════════════════════════════════════ */
+/* Le scroll du form */
+#panel-edit .ev3-form { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch; }
+#panel-edit .ev3-form::-webkit-scrollbar { display:none; }
+
+/* FAB Enregistrer flottant */
+.ev3-save-fab {
+  position:absolute; bottom:24px; right:20px; z-index:60;
+  width:56px; height:56px; border-radius:50%;
+  background:var(--orange); color:white; border:none;
+  font-size:1.4rem; cursor:pointer;
+  display:grid; place-items:center;
+  box-shadow:0 4px 20px rgba(232,103,26,.5);
+  font-family:var(--font); transition:transform .15s, box-shadow .15s;
+}
+.ev3-save-fab:active { transform:scale(.92); box-shadow:0 2px 10px rgba(232,103,26,.4); }
+.ev3-save-fab::after {
+  content:'Enregistrer';
+  position:absolute; right:calc(100% + 10px);
+  background:rgba(30,30,30,.82); color:white;
+  font-size:.72rem; font-weight:700; white-space:nowrap;
+  padding:4px 10px; border-radius:99px;
+  pointer-events:none; opacity:0; transition:opacity .15s;
+}
+.ev3-save-fab:hover::after, .ev3-save-fab:focus::after { opacity:1; }
+
+/* Barre étoiles + fav */
+.ev3-stars-bar { background:white; padding:10px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--grey); flex-shrink:0; }
+.ev3-stars-lbl { font-size:.72rem; font-weight:700; color:var(--grey-d); text-transform:uppercase; letter-spacing:.05em; }
+.ev3-stars     { display:flex; gap:4px; }
+.ev3-star      { font-size:1.2rem; color:var(--grey); cursor:pointer; transition:color .1s; user-select:none; }
+.ev3-star.on   { color:var(--orange); }
+.ev3-fav-btn   { margin-left:auto; width:34px; height:34px; border-radius:50%; border:none; background:var(--grey-l); display:grid; place-items:center; font-size:1.1rem; cursor:pointer; transition:all .15s; color:var(--grey-d); }
+.ev3-fav-btn.on { background:var(--orange-l); color:var(--orange); }
+
+/* Hero */
+.ev3-hero { width:100%; aspect-ratio:16/9; background:var(--orange-l); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; cursor:pointer; flex-shrink:0; }
+.ev3-hero img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+.ev3-hero-emoji-bg { font-size:5rem; position:relative; z-index:1; line-height:1; }
+.ev3-hero-emoji-badge { position:absolute; top:10px; left:10px; background:rgba(0,0,0,.45); backdrop-filter:blur(4px); border-radius:99px; padding:4px 10px; font-size:1.5rem; line-height:1; z-index:3; display:none; }
+.ev3-hero-overlay { position:absolute; inset:0; background:rgba(0,0,0,.22); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
+.ev3-hero-overlay span { color:white; font-size:.85rem; font-weight:700; }
+.ev3-hero-overlay-icon { font-size:1.8rem; }
+.ev3-hero:hover .ev3-hero-overlay, .ev3-hero.touching .ev3-hero-overlay { opacity:1; }
+.ev3-hero-fabs { position:absolute; bottom:10px; right:10px; display:flex; gap:8px; z-index:5; }
+.ev3-hero-fab  { height:32px; border-radius:99px; border:none; background:rgba(255,255,255,.88); backdrop-filter:blur(4px); color:var(--text); font-size:.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; padding:0 10px; font-family:var(--font); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.ev3-hero-fab:active { opacity:.75; }
+
+/* Picker emoji */
+.ev3-emoji-panel { background:white; border-bottom:1px solid var(--grey); padding:10px 14px; display:none; flex-wrap:wrap; gap:6px; flex-shrink:0; }
+.ev3-emoji-opt { width:36px; height:36px; border-radius:8px; border:1.5px solid var(--grey); background:white; font-size:1.2rem; cursor:pointer; display:grid; place-items:center; transition:all .15s; }
+.ev3-emoji-opt.sel { border-color:var(--orange); background:var(--orange-l); }
+
+/* Méta */
+.ev3-meta { padding:14px 16px 0; background:white; }
+.ev3-nom-input { font-size:1.4rem; font-weight:900; line-height:1.2; border:none; border-bottom:2px solid transparent; width:100%; background:transparent; font-family:var(--font); color:var(--text); outline:none; padding:0 0 4px; transition:border-color .15s; }
+.ev3-nom-input:focus { border-bottom-color:var(--orange); }
+.ev3-nom-input::placeholder { color:var(--grey-d); font-weight:700; }
+.ev3-tags-row { display:flex; gap:6px; flex-wrap:wrap; padding:10px 0 12px; }
+.ev3-tag { background:var(--orange-l); color:var(--orange); border:1px solid rgba(232,103,26,.2); border-radius:99px; padding:3px 10px; font-size:.72rem; font-weight:700; cursor:pointer; font-family:var(--font); transition:all .15s; }
+.ev3-tag.off { background:white; color:var(--text2); border-color:var(--grey); }
+.ev3-infos { display:flex; border-top:1px solid var(--grey-l); border-bottom:1px solid var(--grey-l); }
+.ev3-info-block { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 4px; border-right:1px solid var(--grey-l); }
+.ev3-info-block:last-child { border-right:none; }
+.ev3-info-icon  { font-size:.9rem; color:var(--grey-d); }
+.ev3-info-input { font-size:1rem; font-weight:800; text-align:center; border:none; background:transparent; font-family:var(--font); width:52px; outline:none; color:var(--text); border-bottom:1.5px solid transparent; transition:border-color .15s; }
+.ev3-info-input:focus { border-bottom-color:var(--orange); }
+.ev3-info-lbl   { font-size:.62rem; color:var(--grey-d); font-weight:600; text-align:center; }
+
+/* Description */
+.ev3-desc-wrap  { padding:10px 16px 0; background:white; }
+.ev3-desc-input { width:100%; border:none; background:transparent; font-family:var(--font); font-size:.83rem; color:var(--text2); line-height:1.5; resize:none; outline:none; min-height:40px; border-bottom:1.5px solid transparent; transition:border-color .15s; }
+.ev3-desc-input:focus { border-bottom-color:var(--orange); }
+.ev3-desc-input::placeholder { color:var(--grey-d); }
+
+/* Titres de section */
+.ev3-sec-ttl { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--grey-d); padding:14px 16px 10px; display:flex; align-items:center; gap:6px; }
+.ev3-sec-ttl::after { content:''; flex:1; height:1px; background:var(--grey); }
+
+/* Ingrédients */
+.ev3-ingr-area { padding:0 16px; }
+.ev3-ingr-row  { display:flex; align-items:center; gap:7px; padding:8px 0; border-bottom:1px solid var(--grey-l); }
+.ev3-ingr-row:last-of-type { border-bottom:none; }
+.ev3-ingr-row.dragging { opacity:.4; }
+.ev3-ingr-row.drag-over { border-top:2px solid var(--orange); }
+.ev3-drag-handle { flex-shrink:0; width:18px; height:32px; display:grid; place-items:center; cursor:grab; color:var(--grey-d); font-size:12px; touch-action:none; user-select:none; }
+.ev3-type-btn  { width:24px; height:24px; border-radius:50%; background:var(--orange-l); border:none; display:grid; place-items:center; cursor:pointer; font-size:.8rem; flex-shrink:0; }
+.ev3-type-btn.sub { background:#dbeafe; }
+.ev3-qty-input { font-size:.85rem; font-weight:800; color:var(--orange); width:48px; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); text-align:center; outline:none; transition:border-color .15s; flex-shrink:0; }
+.ev3-qty-input:focus { border-bottom-color:var(--orange); }
+.ev3-qty-input::placeholder { color:rgba(232,103,26,.35); font-weight:700; }
+.ev3-unit-input { font-size:.78rem; color:var(--text2); font-weight:600; width:58px; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); outline:none; transition:border-color .15s; flex-shrink:0; }
+.ev3-unit-input:focus { border-bottom-color:var(--orange); }
+.ev3-unit-input::placeholder { color:var(--grey-d); }
+.ev3-ingr-name { flex:1; font-size:.88rem; font-weight:600; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); outline:none; transition:border-color .15s; color:var(--text); min-width:0; }
+.ev3-ingr-name:focus { border-bottom-color:var(--orange); }
+.ev3-ingr-name::placeholder { color:var(--grey-d); }
+.ev3-row-del   { width:22px; height:22px; border-radius:50%; border:none; background:transparent; cursor:pointer; font-size:.8rem; color:var(--grey-d); flex-shrink:0; display:grid; place-items:center; transition:all .15s; }
+.ev3-row-del:active { background:#fecaca; color:#f87171; }
+.ev3-add-row   { display:flex; align-items:center; gap:6px; padding:10px 16px; cursor:pointer; color:var(--orange); font-size:.85rem; font-weight:700; }
+.ev3-add-row:active { opacity:.7; }
+
+/* Étapes */
+.ev3-steps-area { padding:0 16px; }
+.ev3-step-row   { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--grey-l); }
+.ev3-step-row:last-of-type { border-bottom:none; }
+.ev3-step-row.dragging { opacity:.4; }
+.ev3-step-row.drag-over { border-top:2px solid var(--orange); }
+.ev3-step-left  { display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+.ev3-step-num   { width:28px; height:28px; border-radius:50%; background:var(--orange); color:white; display:grid; place-items:center; font-size:.8rem; font-weight:800; flex-shrink:0; }
+.ev3-step-drag  { width:18px; height:24px; display:grid; place-items:center; cursor:grab; color:var(--grey-d); font-size:12px; touch-action:none; user-select:none; }
+.ev3-step-body  { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.ev3-step-title-inp { font-size:.88rem; font-weight:800; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); outline:none; transition:border-color .15s; color:var(--text); width:100%; }
+.ev3-step-title-inp:focus { border-bottom-color:var(--orange); }
+.ev3-step-title-inp::placeholder { color:var(--grey-d); font-weight:700; }
+.ev3-step-text-inp { font-size:.83rem; color:var(--text2); line-height:1.5; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); outline:none; transition:border-color .15s; width:100%; resize:none; min-height:48px; }
+.ev3-step-text-inp:focus { border-bottom-color:var(--orange); }
+.ev3-step-text-inp::placeholder { color:var(--grey-d); }
+.ev3-step-timer-row { display:inline-flex; align-items:center; gap:4px; background:var(--orange-l); border:1px solid rgba(232,103,26,.2); border-radius:99px; padding:3px 10px; width:fit-content; }
+.ev3-step-timer-row span { font-size:.72rem; color:var(--orange); font-weight:700; }
+.ev3-step-timer-inp { border:none; background:transparent; font-family:var(--font); font-size:.72rem; color:var(--orange); font-weight:700; width:90px; outline:none; }
+.ev3-step-timer-inp::placeholder { color:rgba(232,103,26,.5); }
+
+/* Source */
+.ev3-source-section { padding:0 16px 4px; }
+.ev3-source-row  { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--grey-l); }
+.ev3-source-icon { font-size:.9rem; color:var(--grey-d); flex-shrink:0; }
+.ev3-source-input { flex:1; border:none; background:transparent; font-family:var(--font); font-size:.83rem; color:var(--text2); outline:none; border-bottom:1.5px solid transparent; transition:border-color .15s; }
+.ev3-source-input:focus { border-bottom-color:var(--orange); color:var(--orange); }
+.ev3-source-input::placeholder { color:var(--grey-d); }
+
+.ev3-bottom-spacer { height:100px; }
+
 /* ══ PAGE MENU ═════════════════════════════════════════════════════════════ */
 #page-menu { background: var(--grey-l); }
 .m-tl      { padding: 4px 14px 100px; }
@@ -2046,9 +2179,94 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="panel-head">
           <button class="p-back" onclick="closeEdit()">←</button>
           <div class="p-title" id="edit-title">Nouvelle recette</div>
-          <button class="p-btn pri" onclick="saveRecette()">Enregistrer</button>
         </div>
-        <div class="e-form" id="edit-form"></div>
+
+        <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
+        <button class="ev3-save-fab" onclick="saveRecette()">✓</button>
+
+        <div class="ev3-form" id="edit-form">
+
+          <!-- Étoiles + fav -->
+          <div class="ev3-stars-bar">
+            <span class="ev3-stars-lbl">Note</span>
+            <div class="ev3-stars" id="ev3-stars"></div>
+            <button class="ev3-fav-btn" id="ev3-fav-btn" onclick="ev3ToggleFav()">♡</button>
+          </div>
+
+          <!-- Hero photo / emoji -->
+          <div class="ev3-hero" id="ev3-hero"
+               onclick="ev3TriggerPhoto()"
+               ontouchstart="this.classList.add('touching')"
+               ontouchend="this.classList.remove('touching')">
+            <img id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
+            <span id="ev3-hero-emoji-bg" class="ev3-hero-emoji-bg">🍽️</span>
+            <span class="ev3-hero-emoji-badge" id="ev3-hero-emoji-badge">🍽️</span>
+            <div class="ev3-hero-overlay">
+              <span class="ev3-hero-overlay-icon">📷</span>
+              <span>Changer la photo</span>
+            </div>
+            <div class="ev3-hero-fabs" onclick="event.stopPropagation()">
+              <button class="ev3-hero-fab" onclick="ev3ToggleEmojiPanel()">😀 Emoji</button>
+              <button class="ev3-hero-fab" id="ev3-clear-photo-btn" style="display:none" onclick="ev3ClearPhoto()">✕ Photo</button>
+            </div>
+          </div>
+          <input type="file" id="ev3-file-input" accept="image/*" style="display:none" onchange="ev3HandlePhotoFile(this)">
+          <input type="hidden" id="ev3-photo-hidden">
+
+          <!-- Picker emoji -->
+          <div class="ev3-emoji-panel" id="ev3-emoji-panel"></div>
+
+          <!-- Méta -->
+          <div class="ev3-meta">
+            <input class="ev3-nom-input" id="e-nom" placeholder="Nom de la recette…">
+            <div class="ev3-tags-row" id="ev3-tags-row"></div>
+            <div class="ev3-infos">
+              <div class="ev3-info-block">
+                <span class="ev3-info-icon">🍽️</span>
+                <input class="ev3-info-input" id="e-portions" type="number" min="1" value="2">
+                <span class="ev3-info-lbl">portions</span>
+              </div>
+              <div class="ev3-info-block">
+                <span class="ev3-info-icon">🥄</span>
+                <input class="ev3-info-input" id="e-prep" type="number" min="0" value="0">
+                <span class="ev3-info-lbl">prépa (min)</span>
+              </div>
+              <div class="ev3-info-block">
+                <span class="ev3-info-icon">🔥</span>
+                <input class="ev3-info-input" id="e-cuisson" type="number" min="0" value="0">
+                <span class="ev3-info-lbl">cuisson (min)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="ev3-desc-wrap">
+            <textarea class="ev3-desc-input" id="e-desc" placeholder="Description (optionnelle)…"
+              onfocus="this.style.borderBottomColor='var(--orange)'"
+              onblur="this.style.borderBottomColor='transparent'"></textarea>
+          </div>
+
+          <!-- Ingrédients -->
+          <div class="ev3-sec-ttl">Ingrédients</div>
+          <div class="ev3-ingr-area" id="e-ingrs"></div>
+          <div class="ev3-add-row" onclick="addIngr()">＋ Ajouter un ingrédient</div>
+
+          <!-- Étapes -->
+          <div class="ev3-sec-ttl" style="margin-top:8px">Préparation</div>
+          <div class="ev3-steps-area" id="e-steps"></div>
+          <div class="ev3-add-row" onclick="addStep()">＋ Ajouter une étape</div>
+
+          <!-- Source -->
+          <div class="ev3-sec-ttl" style="margin-top:8px">Source</div>
+          <div class="ev3-source-section">
+            <div class="ev3-source-row">
+              <span class="ev3-source-icon">📖</span>
+              <input class="ev3-source-input" id="e-source" placeholder="Blog, livre, URL…">
+            </div>
+          </div>
+
+          <div class="ev3-bottom-spacer"></div>
+        </div>
       </div>
 
       <div style="height:90px"></div>
@@ -2430,16 +2648,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 </div><!-- /frame -->
 
 <script>
-// ── Navigation ───────────────────────────────────────────────────────────────
-function switchPage(tab, page, title) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  tab.classList.add('active');
-  document.getElementById('header-title').textContent = title;
-  document.getElementById('content').scrollTop = 0;
-}
-
 // ── Drawer ───────────────────────────────────────────────────────────────────
 function toggleDrawer() {
   document.getElementById('drawer').classList.toggle('open');
@@ -2515,8 +2723,7 @@ const PAGE_CONFIG = {
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
 };
 
-// Override switchPage pour gérer FAB/search/header couleur
-const _origSwitch = switchPage;
+// ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
 function switchPage(tab, page, title) {
   // pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2736,14 +2943,6 @@ async function toggleTorch() {
   document.getElementById('torch-btn').classList.toggle('on', _torchOn);
 }
 
-// Override fabAction pour ouvrir le scanner sur la page stock
-const _origFabAction = fabAction;
-function fabAction() {
-  const active = document.querySelector('.page.active');
-  const page = active?.id.replace('page-', '');
-  if (page === 'stock') { openScanner(); return; }
-  _origFabAction();
-}
 
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3098,6 +3297,12 @@ let _searchOpen= false;
 
 const TAGS  = ['soupe','tarte','onepot','diner','dessert','rapide','veggie','déjeuner','petit-déj'];
 const UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
+const EMOJIS= ['🍽️','🫕','🍲','🥘','🍝','🥗','🍜','🍛','🍱','🥙','🌮','🥪','🍳','🧁','🍰','🥧','🍮','🍩','🎂','🫔','🥞','🧆','🫙'];
+
+let _eNote   = 0;
+let _eFavori = false;
+let _eEmoji  = '🍽️';
+let _eSelTags = [];
 
 async function loadRecettes() {
   try {
@@ -3285,240 +3490,260 @@ async function openEdit(id) {
       r = { ...r, ...full };
     } catch(e) {}
   }
-  _eIngr  = r ? JSON.parse(JSON.stringify(r.ingredients||[])) : [{nom:'',qty:'',unite:''}];
-  _eSteps = r ? JSON.parse(JSON.stringify(r.etapes||[]))      : [{titre:'',texte:'',timer:0}];
-  if(!_eIngr.length)  _eIngr  = [{nom:'',qty:'',unite:''}];
+  _eIngr    = r ? JSON.parse(JSON.stringify(r.ingredients||[])) : [{nom:'',qty:'',unite:'',type:'ingredient'}];
+  _eSteps   = r ? JSON.parse(JSON.stringify(r.etapes||[]))      : [{titre:'',texte:'',timer:0}];
+  _eNote    = r?.note||0;
+  _eFavori  = r?.favori||false;
+  _eEmoji   = r?.emoji||'🍽️';
+  _eSelTags = r ? [...(r.tags||[])] : [];
+  if(!_eIngr.length)  _eIngr  = [{nom:'',qty:'',unite:'',type:'ingredient'}];
   if(!_eSteps.length) _eSteps = [{titre:'',texte:'',timer:0}];
   document.getElementById('edit-title').textContent = r ? 'Modifier' : 'Nouvelle recette';
-  buildForm(r);
+  buildFormV3(r);
   document.getElementById('panel-edit').classList.add('open');
 }
 function closeEdit() { document.getElementById('panel-edit').classList.remove('open'); }
 
-function buildForm(r) {
-  const tagHtml = TAGS.map(t=>`<button class="etag${(r?.tags||[]).includes(t)?' on':''}" data-tag="${t}" onclick="this.classList.toggle('on')">${t}</button>`).join('');
-  document.getElementById('edit-form').innerHTML = `
-    <datalist id="units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>
+function buildFormV3(r) {
+  // Réinitialiser le scroll
+  const form = document.getElementById('edit-form');
+  form.scrollTop = 0;
 
-    <div class="e-card">
-      <div class="e-card-t">Identité</div>
-      <div class="efg"><div class="elbl">Nom *</div>
-        <input class="einput" id="e-nom" placeholder="Nom de la recette" value="${r?.nom||''}"></div>
-      <div class="efg"><div class="elbl">Description</div>
-        <textarea class="einput" id="e-desc" rows="2">${r?.desc||''}</textarea></div>
-      <div class="erow2">
-        <div class="efg"><div class="elbl">Emoji</div>
-          <input class="einput" id="e-emoji" placeholder="🍽️" maxlength="4"
-            style="font-size:1.5rem;text-align:center" value="${r?.emoji||''}"></div>
-        <div class="efg"><div class="elbl">Photo URL</div>
-          <input class="einput" id="e-photo" placeholder="https://…" value="${r?.photo||''}"
-            oninput="previewPhoto(this.value)"></div>
-      </div>
-      <div id="e-preview" style="${r?.photo?'':'display:none'}margin-top:6px">
-        <img id="e-preview-img" src="${r?.photo||''}"
-          style="width:100%;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--grey)"
-          onerror="document.getElementById('e-preview').style.display='none'">
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px">
-        <input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
-        <span style="padding:7px 14px;border-radius:8px;background:var(--grey-l);border:1.5px solid var(--grey);font-size:.8rem;font-weight:700">📷 Choisir une photo</span>
-      </label>
-    </div>
+  // Nom / desc / temps / source
+  document.getElementById('e-nom').value      = r?.nom||'';
+  document.getElementById('e-desc').value     = r?.desc||r?.description||'';
+  document.getElementById('e-portions').value = r?.portions||2;
+  document.getElementById('e-prep').value     = r?.temps_prep||0;
+  document.getElementById('e-cuisson').value  = r?.temps_cuisson||0;
+  document.getElementById('e-source').value   = r?.source||'';
 
-    <div class="e-card">
-      <div class="e-card-t">Infos pratiques</div>
-      <div class="erow3">
-        <div class="efg"><div class="elbl">Portions</div>
-          <input class="einput" id="e-portions" type="number" min="1" value="${r?.portions||2}"></div>
-        <div class="efg"><div class="elbl">Prépa (min)</div>
-          <input class="einput" id="e-prep" type="number" min="0" value="${r?.temps_prep||0}"></div>
-        <div class="efg"><div class="elbl">Cuisson (min)</div>
-          <input class="einput" id="e-cuisson" type="number" min="0" value="${r?.temps_cuisson||0}"></div>
-      </div>
-      <div class="elbl" style="margin-bottom:6px">Catégories</div>
-      <div class="etags">${tagHtml}</div>
-    </div>
+  // Emoji
+  _eEmoji = r?.emoji||'🍽️';
+  document.getElementById('ev3-hero-emoji-bg').textContent    = _eEmoji;
+  document.getElementById('ev3-hero-emoji-badge').textContent = _eEmoji;
 
-    <div class="e-card">
-      <div class="e-card-t">Ingrédients</div>
-      <div id="e-ingrs"></div>
-      <div class="add-row" onclick="addIngr()">＋ Ajouter un ingrédient</div>
-    </div>
+  // Photo
+  const heroImg  = document.getElementById('ev3-hero-img');
+  const clearBtn = document.getElementById('ev3-clear-photo-btn');
+  if(r?.photo){
+    heroImg.src = r.photo; heroImg.style.display = 'block';
+    document.getElementById('ev3-hero-emoji-bg').style.display    = 'none';
+    document.getElementById('ev3-hero-emoji-badge').style.display = 'block';
+    clearBtn.style.display = 'flex';
+  } else {
+    heroImg.src = ''; heroImg.style.display = 'none';
+    document.getElementById('ev3-hero-emoji-bg').style.display    = '';
+    document.getElementById('ev3-hero-emoji-badge').style.display = 'none';
+    clearBtn.style.display = 'none';
+  }
+  document.getElementById('ev3-photo-hidden').value = r?.photo||'';
+  document.getElementById('ev3-file-input').value   = '';
 
-    <div class="e-card">
-      <div class="e-card-t">Étapes de préparation</div>
-      <div id="e-steps"></div>
-      <div class="add-row" onclick="addStep()">＋ Ajouter une étape</div>
-    </div>
-  `;
+  // Note
+  _eNote = r?.note||0;
+  ev3RenderStars();
+
+  // Favori
+  _eFavori = r?.favori||false;
+  const favBtn = document.getElementById('ev3-fav-btn');
+  favBtn.textContent = _eFavori ? '♥' : '♡';
+  favBtn.classList.toggle('on', _eFavori);
+
+  // Tags
+  _eSelTags = r ? [...(r.tags||[])] : [];
+  ev3RenderTags();
+
+  // Fermer le picker emoji si ouvert
+  document.getElementById('ev3-emoji-panel').style.display = 'none';
+
   renderIngrs(); renderSteps();
 }
 
-function renderIngrs() {
-  const container = document.getElementById('e-ingrs');
-  container.innerHTML = _eIngr.map((i,x)=>{
-    const isSub = i.type === 'sous_recette';
-    const handle = `<span class="drag-handle" title="Réordonner">⠿</span>`;
-    const toggleBtn = `<button class="ingr-type-btn${isSub?' sub':''}" title="${isSub?'Recette de base':'Ingrédient'}" onclick="toggleIngType(${x})">${isSub?'🍳':'🥕'}</button>`;
-    if (isSub) {
-      return `<div class="ingr-row" draggable="true" data-idx="${x}">
-        ${handle}${toggleBtn}
-        <input class="einput" placeholder="Nom de la recette de base *" value="${i.nom||''}" oninput="_eIngr[${x}].nom=this.value" list="rv-names-dl">
-        <button class="del-btn" onclick="delIngr(${x})">✕</button>
-      </div>`;
-    } else {
-      return `<div class="ingr-row" draggable="true" data-idx="${x}">
-        ${handle}${toggleBtn}
-        <input class="einput qty-inp" placeholder="Qté" value="${i.qty||''}" oninput="_eIngr[${x}].qty=this.value">
-        <input class="einput unit-inp" placeholder="Unité" list="units-dl" value="${i.unite||''}" oninput="_eIngr[${x}].unite=this.value">
-        <input class="einput" placeholder="Ingrédient *" value="${i.nom||''}" oninput="_eIngr[${x}].nom=this.value">
-        <button class="del-btn" onclick="delIngr(${x})">✕</button>
-      </div>`;
-    }
-  }).join('') + `<datalist id="rv-names-dl">${(_rv||[]).map(r=>`<option value="${r.nom}">`).join('')}</datalist>`;
-  _bindDrag(container, _eIngr, renderIngrs);
+// ── Stars v3 ─────────────────────────────────────────────────────────────────
+function ev3RenderStars() {
+  const stars = document.getElementById('ev3-stars');
+  stars.innerHTML = [1,2,3,4,5].map(i=>
+    `<span class="ev3-star${i<=_eNote?' on':''}" data-v="${i}" onclick="_eNote=${i};ev3RenderStars()">★</span>`
+  ).join('');
 }
-function toggleIngType(x) {
-  const cur = _eIngr[x].type || 'ingredient';
-  _eIngr[x].type = cur === 'sous_recette' ? 'ingredient' : 'sous_recette';
-  if (_eIngr[x].type === 'sous_recette') {
-    _eIngr[x].qty = ''; _eIngr[x].unite = ''; _eIngr[x].sous_recette_id = null;
-  }
+function ev3ToggleFav() {
+  _eFavori = !_eFavori;
+  const btn = document.getElementById('ev3-fav-btn');
+  btn.textContent = _eFavori ? '♥' : '♡';
+  btn.classList.toggle('on', _eFavori);
+}
+
+// ── Emoji v3 ─────────────────────────────────────────────────────────────────
+function ev3ToggleEmojiPanel() {
+  const p = document.getElementById('ev3-emoji-panel');
+  const show = p.style.display !== 'flex';
+  if(show){
+    p.innerHTML = EMOJIS.map(e=>`<div class="ev3-emoji-opt${e===_eEmoji?' sel':''}" onclick="ev3PickEmoji('${e}')">${e}</div>`).join('');
+    p.style.display = 'flex';
+  } else p.style.display = 'none';
+}
+function ev3PickEmoji(e) {
+  _eEmoji = e;
+  document.getElementById('ev3-hero-emoji-bg').textContent    = e;
+  document.getElementById('ev3-hero-emoji-badge').textContent = e;
+  document.getElementById('ev3-emoji-panel').style.display = 'none';
+}
+
+// ── Photo v3 ─────────────────────────────────────────────────────────────────
+function ev3TriggerPhoto() { document.getElementById('ev3-file-input').click(); }
+function ev3HandlePhotoFile(input) {
+  const f = input.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ev => ev3SetPhoto(ev.target.result);
+  rd.readAsDataURL(f);
+}
+function ev3SetPhoto(url) {
+  const img = document.getElementById('ev3-hero-img');
+  img.src = url; img.style.display = 'block';
+  document.getElementById('ev3-hero-emoji-bg').style.display    = 'none';
+  document.getElementById('ev3-hero-emoji-badge').style.display = 'block';
+  document.getElementById('ev3-clear-photo-btn').style.display  = 'flex';
+  document.getElementById('ev3-photo-hidden').value = url;
+}
+function ev3ClearPhoto() {
+  const img = document.getElementById('ev3-hero-img');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('ev3-hero-emoji-bg').style.display    = '';
+  document.getElementById('ev3-hero-emoji-badge').style.display = 'none';
+  document.getElementById('ev3-clear-photo-btn').style.display  = 'none';
+  document.getElementById('ev3-photo-hidden').value = '';
+  document.getElementById('ev3-file-input').value   = '';
+}
+
+// ── Tags v3 ──────────────────────────────────────────────────────────────────
+function ev3RenderTags() {
+  document.getElementById('ev3-tags-row').innerHTML = TAGS.map(t=>
+    `<button class="ev3-tag${_eSelTags.includes(t)?'':' off'}" onclick="ev3ToggleTag(this,'${t}')">${t}</button>`
+  ).join('');
+}
+function ev3ToggleTag(btn, t) {
+  _eSelTags = _eSelTags.includes(t) ? _eSelTags.filter(x=>x!==t) : [..._eSelTags, t];
+  btn.classList.toggle('off', !_eSelTags.includes(t));
+}
+
+// ── Drag & drop générique ev3 ────────────────────────────────────────────────
+function ev3BindDrag(cid, arr, renderFn, handleSel) {
+  const c = document.getElementById(cid); if(!c) return;
+  let src = null;
+  c.querySelectorAll('[data-idx]').forEach(row => {
+    row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest(handleSel); });
+    row.addEventListener('dragstart', e => {
+      if(!row.draggable){ e.preventDefault(); return; }
+      src = +row.dataset.idx; row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      const g = document.createElement('div'); g.style.cssText='position:absolute;top:-9999px;width:1px;height:1px';
+      document.body.appendChild(g); e.dataTransfer.setDragImage(g,0,0); setTimeout(()=>g.remove(),0);
+    });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); row.draggable=true; src=null; c.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over')); });
+    row.addEventListener('dragover', e => { if(src===null) return; e.preventDefault(); c.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over')); row.classList.add('drag-over'); });
+    row.addEventListener('drop', e => { e.preventDefault(); const dest=+row.dataset.idx; if(src===null||src===dest)return; arr.splice(dest,0,arr.splice(src,1)[0]); src=null; renderFn(); });
+  });
+  let ts=null, ti=null, tc=null;
+  c.querySelectorAll('[data-idx]').forEach(row => {
+    row.addEventListener('touchstart', e => {
+      if(!e.target.closest(handleSel)) return;
+      ti=+row.dataset.idx; ts=row;
+      const t=e.touches[0]; tc=row.cloneNode(true);
+      tc.style.cssText=`position:fixed;left:${t.clientX-20}px;top:${t.clientY-20}px;opacity:.82;pointer-events:none;z-index:9999;width:${row.offsetWidth}px;box-shadow:0 4px 20px rgba(0,0,0,.18);border-radius:10px;background:white;`;
+      document.body.appendChild(tc); row.style.opacity='.3';
+    },{passive:true});
+    row.addEventListener('touchmove', e => {
+      if(!tc) return; e.preventDefault();
+      const t=e.touches[0]; tc.style.left=(t.clientX-20)+'px'; tc.style.top=(t.clientY-20)+'px';
+      c.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const target=el&&el.closest('[data-idx]'); if(target&&target!==ts) target.classList.add('drag-over');
+    },{passive:false});
+    row.addEventListener('touchend', e => {
+      if(!tc) return; tc.remove(); tc=null;
+      if(ts) ts.style.opacity='';
+      const t=e.changedTouches[0];
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const target=el&&el.closest('[data-idx]');
+      c.querySelectorAll('.drag-over').forEach(el2=>el2.classList.remove('drag-over'));
+      if(target&&target!==ts){ arr.splice(+target.dataset.idx,0,arr.splice(ti,1)[0]); renderFn(); }
+      ts=null; ti=null;
+    });
+  });
+}
+
+function ev3Esc(v){ return (v||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Ingrédients v3 ───────────────────────────────────────────────────────────
+function renderIngrs() {
+  document.getElementById('e-ingrs').innerHTML =
+    _eIngr.map((i,x) => {
+      const sub = i.type==='sous_recette';
+      return `<div class="ev3-ingr-row" data-idx="${x}">
+        <span class="ev3-drag-handle">⠿</span>
+        <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?'🍳':'🥕'}</button>
+        ${sub
+          ? `<input class="ev3-ingr-name" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" style="font-style:italic">`
+          : `<input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
+             <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+             <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">`
+        }
+        <button class="ev3-row-del" onclick="delIngr(${x})">✕</button>
+      </div>`;
+    }).join('') +
+    `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>`;
+  ev3BindDrag('e-ingrs', _eIngr, renderIngrs, '.ev3-drag-handle');
+}
+function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',type:'ingredient'}); renderIngrs(); }
+function delIngr(x) { _eIngr.splice(x,1); renderIngrs(); }
+function ev3ToggleIngType(x) {
+  const cur = _eIngr[x].type||'ingredient';
+  _eIngr[x].type = cur==='sous_recette' ? 'ingredient' : 'sous_recette';
+  if(_eIngr[x].type==='sous_recette'){ _eIngr[x].qty=''; _eIngr[x].unite=''; }
   renderIngrs();
 }
 
-let _dragSrcIdx = null;
-let _dragFromHandle = false;
-function _bindDrag(container, arr, renderFn) {
-  container.querySelectorAll('[draggable="true"]').forEach(row => {
-    row.addEventListener('mousedown', e => {
-      _dragFromHandle = !!e.target.closest('.drag-handle');
-      row.draggable = _dragFromHandle;
-    });
-    row.addEventListener('mouseup', () => { row.draggable = true; });
-    row.addEventListener('dragstart', e => {
-      if (!_dragFromHandle) { e.preventDefault(); return; }
-      _dragSrcIdx = +row.dataset.idx;
-      row.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      const ghost = document.createElement('div');
-      ghost.style.cssText = 'position:absolute;top:-1000px;width:1px;height:1px;';
-      document.body.appendChild(ghost);
-      e.dataTransfer.setDragImage(ghost, 0, 0);
-      setTimeout(() => ghost.remove(), 0);
-    });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      row.draggable = true;
-      _dragFromHandle = false;
-      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    });
-    row.addEventListener('dragover', e => {
-      if (_dragSrcIdx === null) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-      row.classList.add('drag-over');
-    });
-    row.addEventListener('drop', e => {
-      e.preventDefault();
-      const destIdx = +row.dataset.idx;
-      if (_dragSrcIdx === null || _dragSrcIdx === destIdx) return;
-      const moved = arr.splice(_dragSrcIdx, 1)[0];
-      arr.splice(destIdx, 0, moved);
-      _dragSrcIdx = null;
-      renderFn();
-    });
-  });
-  let _tSrc = null, _tSrcIdx = null, _tClone = null;
-  container.querySelectorAll('[draggable="true"]').forEach(row => {
-    row.addEventListener('touchstart', e => {
-      const handle = e.target.closest('.drag-handle');
-      if (!handle) return;
-      _tSrcIdx = +row.dataset.idx;
-      _tSrc = row;
-      const t = e.touches[0];
-      _tClone = row.cloneNode(true);
-      _tClone.style.cssText = `position:fixed;left:${t.clientX-20}px;top:${t.clientY-20}px;opacity:.8;pointer-events:none;z-index:9999;width:${row.offsetWidth}px;box-shadow:0 4px 16px rgba(0,0,0,.2);border-radius:10px;background:white;`;
-      document.body.appendChild(_tClone);
-      row.style.opacity = '.4';
-    }, {passive:true});
-    row.addEventListener('touchmove', e => {
-      if (_tClone === null) return;
-      e.preventDefault();
-      const t = e.touches[0];
-      _tClone.style.left = (t.clientX - 20) + 'px';
-      _tClone.style.top  = (t.clientY - 20) + 'px';
-      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const target = el && el.closest('[draggable="true"]');
-      if (target && target !== _tSrc) target.classList.add('drag-over');
-    }, {passive:false});
-    row.addEventListener('touchend', e => {
-      if (_tClone === null) return;
-      _tClone.remove(); _tClone = null;
-      if (_tSrc) _tSrc.style.opacity = '';
-      const t = e.changedTouches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const target = el && el.closest('[draggable="true"]');
-      container.querySelectorAll('.drag-over').forEach(el2 => el2.classList.remove('drag-over'));
-      if (target && target !== _tSrc) {
-        const destIdx = +target.dataset.idx;
-        const moved = arr.splice(_tSrcIdx, 1)[0];
-        arr.splice(destIdx, 0, moved);
-        renderFn();
-      }
-      _tSrc = null; _tSrcIdx = null;
-    });
-  });
-}
-
+// ── Étapes v3 ────────────────────────────────────────────────────────────────
 function renderSteps() {
-  const container = document.getElementById('e-steps');
-  container.innerHTML = _eSteps.map((s,x)=>`
-    <div class="step-box" draggable="true" data-idx="${x}">
-      <div class="step-hd">
-        <span class="drag-handle" title="Réordonner">⠿</span>
-        <div class="step-n">${x+1}</div>
-        <input class="einput" style="flex:1" placeholder="Titre" value="${s.titre||''}" oninput="_eSteps[${x}].titre=this.value">
-        <button class="del-btn" onclick="delStep(${x})">✕</button>
+  document.getElementById('e-steps').innerHTML = _eSteps.map((s,x)=>`
+    <div class="ev3-step-row" data-idx="${x}">
+      <div class="ev3-step-left">
+        <div class="ev3-step-num">${x+1}</div>
+        <span class="ev3-step-drag">⠿</span>
       </div>
-      <textarea class="einput" rows="3" placeholder="Description…" oninput="_eSteps[${x}].texte=this.value">${s.texte||''}</textarea>
-      <input class="einput" style="margin-top:6px" type="number" placeholder="Timer (secondes ex: 300)"
-        value="${s.timer||''}" oninput="_eSteps[${x}].timer=+this.value||0">
-    </div>`).join('');
-  _bindDrag(container, _eSteps, renderSteps);
+      <div class="ev3-step-body">
+        <input class="ev3-step-title-inp" placeholder="Titre de l'étape (optionnel)" value="${ev3Esc(s.titre)}" oninput="_eSteps[${x}].titre=this.value">
+        <textarea class="ev3-step-text-inp" rows="2" placeholder="Instructions…" oninput="_eSteps[${x}].texte=this.value">${ev3Esc(s.texte)}</textarea>
+        <div class="ev3-step-timer-row">
+          <span>⏱</span>
+          <input class="ev3-step-timer-inp" type="number" min="0" placeholder="Timer (secondes)" value="${s.timer||''}" oninput="_eSteps[${x}].timer=+this.value||0">
+        </div>
+      </div>
+      <button class="ev3-row-del" onclick="delStep(${x})">✕</button>
+    </div>
+  `).join('');
+  ev3BindDrag('e-steps', _eSteps, renderSteps, '.ev3-step-drag');
 }
-function addIngr()   { _eIngr.push({nom:'',qty:'',unite:'',type:'ingredient'}); renderIngrs(); }
-function delIngr(x)  { _eIngr.splice(x,1); renderIngrs(); }
-function addStep()   { _eSteps.push({titre:'',texte:'',timer:0}); renderSteps(); }
-function delStep(x)  { _eSteps.splice(x,1); renderSteps(); }
-function previewPhoto(url) {
-  const p=document.getElementById('e-preview'), i=document.getElementById('e-preview-img');
-  if(url){ i.src=url; p.style.display='block'; } else p.style.display='none';
-}
-function uploadPhoto(input) {
-  const f=input.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=e=>{ document.getElementById('e-photo').value=e.target.result; previewPhoto(e.target.result); };
-  r.readAsDataURL(f);
-}
+function addStep()  { _eSteps.push({titre:'',texte:'',timer:0}); renderSteps(); }
+function delStep(x) { _eSteps.splice(x,1); renderSteps(); }
 
 async function saveRecette() {
   const nom = document.getElementById('e-nom')?.value.trim();
   if(!nom){ showToast('Le nom est obligatoire','warn'); return; }
-  const tags = [...document.querySelectorAll('.etags .etag.on')].map(b=>b.dataset.tag);
   const payload = {
     nom,
-    emoji:        document.getElementById('e-emoji')?.value||'🍽️',
-    photo:        document.getElementById('e-photo')?.value||'',
+    emoji:        _eEmoji||'🍽️',
+    photo:        document.getElementById('ev3-photo-hidden')?.value||'',
     description:  document.getElementById('e-desc')?.value.trim()||'',
     portions:     parseInt(document.getElementById('e-portions')?.value)||2,
     temps_prep:   parseInt(document.getElementById('e-prep')?.value)||0,
     temps_cuisson:parseInt(document.getElementById('e-cuisson')?.value)||0,
-    tags,
-    ingredients: _eIngr.filter(i=>i.nom.trim()),
-    etapes:      _eSteps.filter(s=>s.texte.trim()),
+    source:       document.getElementById('e-source')?.value.trim()||'',
+    tags:         _eSelTags,
+    note:         _eNote,
+    favori:       _eFavori,
+    ingredients:  _eIngr.filter(i=>i.nom.trim()),
+    etapes:       _eSteps.filter(s=>s.texte.trim()),
   };
   try {
     let res, data;
