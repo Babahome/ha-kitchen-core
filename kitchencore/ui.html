@@ -1655,23 +1655,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-card { animation: ingSlideUp 0.2s ease both; }
 
-  /* ── ACTION BAR (multi-sélection, bas droite, page ingrédients) ── */
-  .ing-merge-bar {
-    position: fixed; bottom: calc(var(--bottom-h) + 12px); right: 16px; z-index: 90;
-    display: none; align-items: center; gap: 8px;
-    transform: translateY(80px); opacity: 0;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .ing-merge-bar.visible { display: flex; transform: translateY(0); opacity: 1; }
-  .ing-action-btn {
-    background: var(--orange); color: white; border: none; border-radius: 24px;
-    box-shadow: 0 4px 20px rgba(232,103,26,0.35);
-    padding: 10px 16px; font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 800; cursor: pointer;
-    white-space: nowrap;
-  }
-  .ing-action-btn.ing-action-danger { background: #c0392b; box-shadow: 0 4px 16px rgba(192,57,43,0.35); }
-  .ing-action-btn.ing-action-merge { background: #5c3d99; box-shadow: 0 4px 16px rgba(92,61,153,0.35); }
 
   /* ── HEADER ACTIONS page ingrédients (boutons "Sélectionner" / reset) ── */
   .ing-header-actions {
@@ -2540,11 +2523,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
-  <!-- ACTION BAR (sélection multiple) -->
-  <div class="ing-merge-bar" id="ing-mergeBar">
-    <button class="ing-action-btn ing-action-danger" id="ing-deleteBtn" onclick="ingDeleteSelected()">🗑 Suppr.</button>
-    <button class="ing-action-btn" id="ing-rayonBtn" onclick="ingOpenRayonSheet()">🛒 Rayon</button>
-    <button class="ing-action-btn ing-action-merge" id="ing-mergeBtn" onclick="ingOpenMergeSheet()">🔀 Fusionner (<span id="ing-mergeCount">0</span>)</button>
+  <!-- MENU ⋮ INGRÉDIENTS (sélection multiple) -->
+  <div class="m-hdmenu" id="ing-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" id="ing-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item danger" id="ing-hd-delete" onclick="ingDeleteSelected();ingHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
+    <div class="m-hdmenu-item" id="ing-hd-rayon" onclick="ingOpenRayonSheet();ingHideHdmenu()"><span>🛒</span><span>Changer le rayon</span></div>
+    <div class="m-hdmenu-item" id="ing-hd-merge" onclick="ingOpenMergeSheet();ingHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
   </div>
 
   <!-- BACKDROP (absolute dans frame) -->
@@ -4243,12 +4227,15 @@ function _mSelUpdateHeader(){
 }
 function mHeaderDotsClick(){
   const page = document.querySelector('.page.active')?.id.replace('page-','');
-  // Page Recettes → ouvrir le modal d'import
   if(page === 'recettes'){
     rvImportOpen();
     return;
   }
-  // Page Menu en mode sélection → afficher le menu d'actions
+  if(page === 'ingredients'){
+    const m = document.getElementById('ing-hdmenu');
+    if(m) m.classList.toggle('on');
+    return;
+  }
   if(_mSelMode){
     const m = document.getElementById('m-hdmenu');
     if(m) m.classList.toggle('on');
@@ -4419,8 +4406,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
+    document.getElementById('ing-hdmenu')?.classList.remove('on');
   });
 });
 
@@ -4879,33 +4867,23 @@ function _ingToggleSelectMode() {
 }
 
 function _ingUpdateSelectModeUI() {
-  const bar = document.getElementById('ing-mergeBar');
   const btn = document.getElementById('ing-selectBtn');
-  if (!bar) return;
-  // Bouton Sélectionner : état actif/inactif
+  const n = _ingSelectedIds.size;
+  // Bouton Sélectionner dans le header
   if (btn) {
     if (_ingSelectMode) {
-      btn.textContent = _ingSelectedIds.size > 0
-        ? `✕ Annuler (${_ingSelectedIds.size})`
-        : '✕ Annuler';
+      btn.textContent = n > 0 ? `✕ Annuler (${n})` : '✕ Annuler';
       btn.style.background = 'rgba(255,255,255,0.35)';
     } else {
       btn.textContent = 'Sélectionner';
       btn.style.background = '';
     }
   }
-  const n = _ingSelectedIds.size;
-  // Barre d'actions : visible dès 1 item sélectionné
-  if (n >= 1) {
-    bar.classList.add('visible');
-    const countEl = document.getElementById('ing-mergeCount');
-    if (countEl) countEl.textContent = n;
-    // Fusionner seulement si >= 2
-    const mergeBtn = document.getElementById('ing-mergeBtn');
-    if (mergeBtn) mergeBtn.style.display = n >= 2 ? '' : 'none';
-  } else {
-    bar.classList.remove('visible');
-  }
+  // Mettre à jour le menu ⋮
+  const label = document.getElementById('ing-hd-sel-label');
+  if (label) label.textContent = `${n} sélectionné(s)`;
+  const mergeItem = document.getElementById('ing-hd-merge');
+  if (mergeItem) mergeItem.style.display = n >= 2 ? '' : 'none';
 }
 
 function _ingOnCardClick(id, e) {
@@ -5252,6 +5230,11 @@ function _ingIgnoreDupGroup(btn) {
   g.style.pointerEvents = 'none';
 }
 
+// ─── Menu ⋮ header ───
+function _ingHideHdmenu() {
+  document.getElementById('ing-hdmenu')?.classList.remove('on');
+}
+
 // ─── Search ───
 function _ingOpenSearch() {
   const fab = document.getElementById('ing-fabSearch');
@@ -5295,7 +5278,6 @@ function _ingCloseAllSheets() {
 // ─── Affichage FAB search / merge bar selon la page active ─────────────────
 function _ingApplyPageVisibility(page) {
   const fabS = document.getElementById('ing-fabSearch');
-  const mb = document.getElementById('ing-mergeBar');
   const ha = document.getElementById('ing-headerActions');
   if (page === 'ingredients') {
     if (fabS) fabS.classList.add('visible');
@@ -5307,13 +5289,11 @@ function _ingApplyPageVisibility(page) {
       if (inp) inp.value = '';
       _ingSearchQuery = '';
     }
-    if (mb) mb.classList.remove('visible');
     if (ha) ha.classList.remove('visible');
-    // Réinitialiser le mode sélection
+    _ingHideHdmenu();
     _ingSelectMode = false;
     _ingSelectedIds.clear();
     _ingUpdateSelectModeUI();
-    // fermer tout overlay encore ouvert
     _ingCloseAllSheets();
     const dp = document.getElementById('ing-detailPanel');
     if (dp) dp.classList.remove('open');
@@ -5359,6 +5339,7 @@ window.ingOpenRayonSheet   = _ingOpenRayonSheet;
 window.ingCloseRayonSheet  = _ingCloseRayonSheet;
 window.ingApplyRayonSelected = _ingApplyRayonSelected;
 window.ingCreateFromSearch = _ingCreateFromSearch;
+window.ingHideHdmenu       = _ingHideHdmenu;
 
 // Exposer pour le hook switchPage (lecture seule)
 window.__ingBoot           = _ingBoot;
