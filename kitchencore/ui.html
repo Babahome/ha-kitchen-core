@@ -1368,6 +1368,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-fab-search-input::placeholder { color: var(--grey-d); }
   .ing-fab-search.open .ing-fab-search-input { display: block; }
+  .ing-fab-search-add {
+    display: none; background: var(--orange); border: none; border-radius: 50%;
+    width: 28px; height: 28px; font-size: 20px; line-height: 1;
+    cursor: pointer; color: white; flex-shrink: 0;
+    align-items: center; justify-content: center;
+    font-family: 'Nunito', sans-serif; font-weight: 700;
+  }
+  .ing-fab-search.open .ing-fab-search-add { display: flex; }
   .ing-fab-search-close {
     display: none; background: var(--grey-l); border: none; border-radius: 50%;
     width: 28px; height: 28px; font-size: 14px;
@@ -2520,6 +2528,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <span class="icon">🔍</span>
     <span class="fab-label">Rechercher</span>
     <input class="ing-fab-search-input" id="ing-searchInput" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
+    <button class="ing-fab-search-add" onclick="ingCreateFromSearch()" title="Créer cet ingrédient">+</button>
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
@@ -4723,8 +4732,7 @@ function _ingRender() {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <div class="emoji">🔍</div>
       <p>Aucun ingrédient trouvé</p>
-      <span>« ${q} » n'existe pas encore</span>
-      <button class="btn-primary" style="margin-top:16px" onclick="ingCreateFromSearch()">+ Créer « ${q} »</button>
+      <span>Appuie sur <strong>+</strong> pour créer « ${q} »</span>
     </div>`;
     return;
   }
@@ -5206,7 +5214,7 @@ async function _ingApplyRayonSelected() {
 // ─── Créer ingrédient depuis la recherche ───
 async function _ingCreateFromSearch() {
   const nom = _ingSearchQuery.trim();
-  if (!nom) return;
+  if (!nom) { _ingToast('Saisis un nom dans la barre de recherche'); return; }
   try {
     const res = await fetch('/api/ingredients', {
       method: 'POST',
