@@ -2627,10 +2627,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
       </div>
       <div class="mch-form-group">
-        <label class="mch-form-label">Ou choisir un emoji</label>
-        <div class="mch-emoji-picker-row" id="mch-emoji-picker"></div>
-      </div>
-      <div class="mch-form-group">
         <label class="mch-form-label">Nom du marchand</label>
         <input class="mch-form-input" id="mch-nom-input" type="text" placeholder="Ex: Carrefour Magasin" maxlength="40">
       </div>
@@ -5946,7 +5942,8 @@ function _mchRenderRayon(mId, r) {
 
 function _mchLogoHTML(m) {
   if (m.image) return `<img src="${m.image}" alt="${_mchEscH(m.nom)}">`;
-  return m.emoji || '🏪';
+  const initials = m.nom.trim().slice(0,2).toUpperCase();
+  return `<span style="font-size:.9rem;font-weight:900;color:var(--orange)">${initials}</span>`;
 }
 
 function _mchEscH(s) {
@@ -5956,7 +5953,6 @@ function _mchEscH(s) {
 // ── Image upload ──────────────────────────────────────────────────────────────
 
 let _mchCurrentImage = null;
-let _mchSelEmoji = '🏪';
 let _mchEditId = null;
 
 function _mchHandleImageUpload(event) {
@@ -5967,9 +5963,7 @@ function _mchHandleImageUpload(event) {
   reader.onload = function(e) {
     _mchResizeImage(e.target.result, 200, 200, (resized) => {
       _mchCurrentImage = resized;
-      _mchSelEmoji = null;
       _mchUpdateImagePreview();
-      document.querySelectorAll('#mch-emoji-picker .mch-emoji-opt').forEach(o => o.classList.remove('active'));
     });
   };
   reader.readAsDataURL(file);
@@ -6005,7 +5999,7 @@ function _mchUpdateImagePreview() {
     preview.innerHTML = `<img src="${_mchCurrentImage}" alt="aperçu">`;
     removeBtn.style.display = 'block';
   } else {
-    preview.innerHTML = _mchSelEmoji || '🏪';
+    preview.innerHTML = '🏪';
     removeBtn.style.display = 'none';
   }
 }
@@ -6020,15 +6014,10 @@ function _mchOpenModalMarchand(id) {
     const m = _mchData.find(x => x.id === id);
     nomInp.value     = m.nom;
     _mchCurrentImage = m.image || null;
-    _mchSelEmoji     = m.image ? null : (m.emoji || '🏪');
   } else {
     nomInp.value     = '';
     _mchCurrentImage = null;
-    _mchSelEmoji     = '🏪';
   }
-  _mchRenderEmojiPicker('mch-emoji-picker', _MCH_EMOJIS, _mchSelEmoji, (e) => {
-    _mchSelEmoji = e; _mchCurrentImage = null; _mchUpdateImagePreview();
-  });
   _mchUpdateImagePreview();
   document.getElementById('mch-modal').classList.add('open');
   setTimeout(() => nomInp.focus(), 120);
@@ -6041,14 +6030,13 @@ function _mchCloseModalMarchand() {
 async function _mchSaveMarchand() {
   const nom = document.getElementById('mch-nom-input').value.trim();
   if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
-  const emoji = _mchCurrentImage ? '🏪' : (_mchSelEmoji || '🏪');
   const image = _mchCurrentImage || null;
   try {
     if (_mchEditId) {
-      await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji, image}) });
+      await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) });
       showToast('Marchand modifié ✓', 'ok');
     } else {
-      await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji, image}) });
+      await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) });
       showToast('Marchand ajouté ✓', 'ok');
     }
     _mchCloseModalMarchand();
