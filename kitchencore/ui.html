@@ -1288,7 +1288,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     border-radius: 10px;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
   }
-  .ing-avatar.no-img { background: var(--orange-l); }
+  .ing-avatar.no-img { background: #dde2e7; font-size: .85rem; font-weight: 900; color: #7a8694; letter-spacing: .02em; }
 
   .ing-info { flex: 1; min-width: 0; }
   .ing-name {
@@ -1384,28 +1384,22 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-fab-search.open .ing-fab-search-close { display: flex; }
 
-  /* ── BOTTOM SHEET (scopé page ingrédients — absolute dans .frame) ── */
-  #page-ingredients .sheet-backdrop,
+  /* ── BOTTOM SHEET (merge / rayon — absolute dans .frame) ── */
   .frame > .ing-sheet-backdrop {
     position: absolute; inset: 0; z-index: 300;
     background: rgba(0,0,0,0.45);
     opacity: 0; pointer-events: none;
-    display: none;
-    transition: opacity 0.25s;
+    display: none; transition: opacity 0.25s;
   }
-  #page-ingredients .sheet-backdrop.open,
   .frame > .ing-sheet-backdrop.open { display: block; opacity: 1; pointer-events: all; }
 
   .frame > .ing-bottom-sheet {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 301;
-    background: white;
-    border-radius: 20px 20px 0 0;
+    background: white; border-radius: 20px 20px 0 0;
     padding: 0 0 env(safe-area-inset-bottom, 0);
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
-    max-height: 90%;
-    overflow-y: auto;
-    display: none;
+    max-height: 90%; overflow-y: auto; display: none;
   }
   .frame > .ing-bottom-sheet.open { display: block; transform: translateY(0); }
   .frame > .ing-bottom-sheet .sheet-handle {
@@ -1419,158 +1413,119 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .frame > .ing-bottom-sheet .sheet-title { font-size: 17px; font-weight: 800; }
   .frame > .ing-bottom-sheet .sheet-close {
     background: var(--grey-l); border: none; border-radius: 50%;
-    width: 32px; height: 32px; font-size: 18px;
-    cursor: pointer; color: var(--text2);
+    width: 32px; height: 32px; font-size: 18px; cursor: pointer; color: var(--text2);
     display: flex; align-items: center; justify-content: center;
   }
   .frame > .ing-bottom-sheet .sheet-body { padding: 16px 20px 24px; }
 
-  /* ── DETAIL PANEL (absolute dans .frame) ── */
-  .frame > .ing-detail-panel {
+  /* ── DETAIL & EDIT PANELS (plein écran, absolute dans .frame) ── */
+  .frame > .ing-detail-panel,
+  .frame > .ing-edit-panel {
     position: absolute; inset: 0; z-index: 400;
     background: var(--grey-l);
+    display: none; flex-direction: column; overflow: hidden;
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    overflow-y: auto;
-    display: none;
   }
-  .frame > .ing-detail-panel.open { display: block; transform: translateX(0); }
+  .frame > .ing-detail-panel.open,
+  .frame > .ing-edit-panel.open { display: flex; transform: translateX(0); }
 
-  .frame > .ing-detail-panel .detail-hero {
-    background: var(--orange);
-    padding: 16px 16px 24px;
-    display: flex; flex-direction: column; gap: 12px;
-  }
-  .frame > .ing-detail-panel .detail-hero-top {
+  /* Header commun */
+  .ing-panel-head {
     display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; background: white;
+    border-bottom: 1px solid var(--grey); flex-shrink: 0;
   }
-  .frame > .ing-detail-panel .detail-back {
-    background: rgba(255,255,255,0.2); border: none; border-radius: 50%;
-    width: 36px; height: 36px; color: white; font-size: 18px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+  .ing-panel-back {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--grey-l); border: none; font-size: 1rem;
+    cursor: pointer; display: grid; place-items: center; flex-shrink: 0;
   }
-  .frame > .ing-detail-panel .detail-hero-name {
-    color: white; font-size: 20px; font-weight: 800; flex: 1;
+  .ing-panel-title {
+    font-size: 1rem; font-weight: 800; flex: 1;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   }
-  .frame > .ing-detail-panel .detail-edit-btn {
-    background: rgba(255,255,255,0.2); border: none; border-radius: 20px;
-    color: white; padding: 7px 14px;
-    font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; gap: 6px;
-    transition: background 0.15s;
+  .ing-panel-btn {
+    padding: 7px 14px; border-radius: 8px;
+    border: 1.5px solid var(--orange); background: white; color: var(--orange);
+    font-family: var(--font); font-size: .8rem; font-weight: 800;
+    cursor: pointer; flex-shrink: 0;
   }
-  .frame > .ing-detail-panel .detail-edit-btn:hover { background: rgba(255,255,255,0.35); }
+  .ing-panel-btn.save { background: var(--orange); color: white; border: none; }
 
-  .frame > .ing-detail-panel .detail-avatar-big {
-    width: 80px; height: 80px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.2);
+  /* Hero 16/9 */
+  .ing-panel-hero {
+    width: 100%; aspect-ratio: 16/9;
+    background: #dde2e7;
     display: flex; align-items: center; justify-content: center;
-    font-size: 44px; margin: 0 auto;
-    overflow: hidden;
-    border: 3px solid rgba(255,255,255,0.3);
+    flex-shrink: 0; overflow: hidden; position: relative;
   }
-  .frame > .ing-detail-panel .detail-avatar-big img { width: 100%; height: 100%; object-fit: cover; border-radius: 13px; }
+  .ing-panel-hero img { width: 100%; height: 100%; object-fit: cover; }
+  .ing-panel-initials {
+    font-size: 3.5rem; font-weight: 900; color: #9aa5b0; letter-spacing: .03em;
+    user-select: none;
+  }
+  .ing-panel-hero-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.32);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; color: white; font-size: .8rem; font-weight: 700; cursor: pointer;
+  }
+  .ing-panel-hero-overlay-icon { font-size: 1.6rem; }
 
-  /* ── EDIT FORM (scopé .ing-bottom-sheet et .ing-detail-panel) ── */
-  .frame > .ing-bottom-sheet .form-section,
-  .frame > .ing-detail-panel .form-section { margin-bottom: 20px; }
-  .frame > .ing-bottom-sheet .form-label,
-  .frame > .ing-detail-panel .form-label {
-    font-size: 12px; font-weight: 800; color: var(--grey-d);
-    text-transform: uppercase; letter-spacing: 0.5px;
+  /* Scroll */
+  .ing-panel-scroll {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 16px 16px 100px;
+  }
+  .ing-panel-scroll::-webkit-scrollbar { display: none; }
+
+  /* Sections partagées */
+  .ing-panel-section { margin-bottom: 18px; }
+  .ing-panel-label {
+    font-size: .68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--grey-d);
     margin-bottom: 8px; display: block;
   }
-  .frame > .ing-bottom-sheet .form-input,
-  .frame > .ing-detail-panel .form-input {
+  .ing-panel-value { font-size: .95rem; font-weight: 800; }
+  .ing-panel-input {
     width: 100%; padding: 11px 14px;
     border: 2px solid var(--grey); border-radius: 10px;
-    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+    font-family: var(--font); font-size: 15px; font-weight: 600;
     color: var(--text); outline: none; background: white;
-    transition: border-color 0.15s;
+    transition: border-color .15s;
   }
-  .frame > .ing-bottom-sheet .form-input:focus,
-  .frame > .ing-detail-panel .form-input:focus { border-color: var(--orange); }
+  .ing-panel-input:focus { border-color: var(--orange); }
 
-  .frame > .ing-bottom-sheet .emoji-grid {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    margin-bottom: 10px;
-  }
-  .frame > .ing-bottom-sheet .emoji-btn {
-    width: 40px; height: 40px;
-    border: 2px solid var(--grey); border-radius: 10px;
-    background: white; font-size: 20px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .frame > .ing-bottom-sheet .emoji-btn:hover { border-color: var(--orange); background: var(--orange-l); }
-  .frame > .ing-bottom-sheet .emoji-btn.active { border-color: var(--orange); background: var(--orange-l); }
-
-  .frame > .ing-bottom-sheet .rayon-grid,
-  .frame > .ing-detail-panel .rayon-grid {
-    display: flex; flex-wrap: wrap; gap: 8px;
-  }
-  .frame > .ing-bottom-sheet .rayon-chip,
-  .frame > .ing-detail-panel .rayon-chip {
+  /* Rayon chips (partagé panels + rayon sheet) */
+  .rayon-chip {
     padding: 8px 14px; border-radius: 20px;
-    border: 2px solid var(--grey);
-    background: white; cursor: pointer;
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700; color: var(--text2);
-    transition: all 0.15s;
-    display: flex; align-items: center; gap: 5px;
+    border: 2px solid var(--grey); background: white; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--text2);
+    transition: all .15s; display: inline-flex; align-items: center; gap: 5px;
   }
-  .frame > .ing-bottom-sheet .rayon-chip:hover,
-  .frame > .ing-detail-panel .rayon-chip:hover { border-color: var(--orange); color: var(--orange); }
-  .frame > .ing-bottom-sheet .rayon-chip.active,
-  .frame > .ing-detail-panel .rayon-chip.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+  .rayon-chip:hover { border-color: var(--orange); color: var(--orange); }
+  .rayon-chip.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+  .ing-panel-rayon-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  .frame > .ing-bottom-sheet .image-upload-area {
-    border: 2px dashed var(--grey); border-radius: 12px;
-    padding: 20px; text-align: center;
-    cursor: pointer; transition: all 0.15s;
-    background: white; position: relative;
-  }
-  .frame > .ing-bottom-sheet .image-upload-area:hover { border-color: var(--orange); background: var(--orange-l); }
-  .frame > .ing-bottom-sheet .image-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .frame > .ing-bottom-sheet .image-preview {
-    width: 72px; height: 72px; border-radius: 12px;
-    object-fit: cover; margin: 0 auto 8px; display: block;
-  }
-  .frame > .ing-bottom-sheet .upload-hint { font-size: 13px; font-weight: 600; color: var(--grey-d); }
-
-  .frame > .ing-bottom-sheet .recipes-list-mini,
-  .frame > .ing-detail-panel .recipes-list-mini { display: flex; flex-direction: column; gap: 6px; }
-  .frame > .ing-bottom-sheet .recipe-mini,
-  .frame > .ing-detail-panel .recipe-mini {
+  /* Recettes liées */
+  .ing-panel-recipes { display: flex; flex-direction: column; gap: 6px; }
+  .ing-panel-recipe {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; background: white; border-radius: 10px;
     font-size: 14px; font-weight: 600;
   }
-  .frame > .ing-bottom-sheet .recipe-mini-emoji,
-  .frame > .ing-detail-panel .recipe-mini-emoji { font-size: 18px; }
+  .ing-panel-recipe-emoji { font-size: 18px; }
 
-  .frame > .ing-bottom-sheet .btn-primary {
-    width: 100%; padding: 14px;
-    background: var(--orange); color: white;
-    border: none; border-radius: 12px;
-    font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800;
-    cursor: pointer; transition: background 0.15s, transform 0.1s;
-    margin-top: 8px;
-  }
-  .frame > .ing-bottom-sheet .btn-primary:active { transform: scale(0.98); }
-  .frame > .ing-bottom-sheet .btn-primary:hover { background: var(--orange-d); }
-  .frame > .ing-bottom-sheet .btn-danger {
-    width: 100%; padding: 12px;
-    background: white; color: #e74c3c;
+  /* Bouton supprimer */
+  .ing-panel-btn-del {
+    width: 100%; padding: 12px; background: white; color: #e74c3c;
     border: 2px solid #fce8e6; border-radius: 12px;
-    font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
-    cursor: pointer; transition: all 0.15s;
+    font-family: var(--font); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all .15s; margin-top: 8px;
   }
-  .frame > .ing-bottom-sheet .btn-danger:hover { background: #fce8e6; }
+  .ing-panel-btn-del:hover { background: #fce8e6; }
 
-  /* ── MERGE SHEET ── */
+  /* ── MERGE / RAYON SHEETS ── */
   .frame > .ing-bottom-sheet .merge-preview {
     background: var(--grey-l); border-radius: 12px;
     padding: 14px 16px; margin-bottom: 16px;
@@ -1584,18 +1539,17 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .frame > .ing-bottom-sheet .merge-arrow { text-align: center; font-size: 20px; color: var(--orange); margin: 4px 0; }
   .frame > .ing-bottom-sheet .merge-impact { font-size: 13px; font-weight: 600; color: var(--grey-d); }
   .frame > .ing-bottom-sheet .merge-impact strong { color: var(--text); }
-
   .frame > .ing-bottom-sheet .name-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
   .frame > .ing-bottom-sheet .name-option {
     padding: 12px 16px; border: 2px solid var(--grey);
     border-radius: 10px; background: white; cursor: pointer;
     font-size: 15px; font-weight: 700;
     display: flex; align-items: center; justify-content: space-between;
-    transition: all 0.15s;
+    transition: all .15s;
   }
   .frame > .ing-bottom-sheet .name-option:hover { border-color: var(--orange); }
   .frame > .ing-bottom-sheet .name-option.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
-  .frame > .ing-bottom-sheet .name-option .check { font-size: 16px; opacity: 0; transition: opacity 0.15s; }
+  .frame > .ing-bottom-sheet .name-option .check { font-size: 16px; opacity: 0; transition: opacity .15s; }
   .frame > .ing-bottom-sheet .name-option.active .check { opacity: 1; }
 
   /* ── FILTER SECTION ── */
@@ -2545,76 +2499,62 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
   <!-- DETAIL PANEL -->
   <div class="ing-detail-panel" id="ing-detailPanel">
-    <div class="detail-hero">
-      <div class="detail-hero-top">
-        <button class="detail-back" onclick="ingCloseDetailPanel()">←</button>
-        <span class="detail-hero-name" id="ing-detailName"></span>
-        <button class="detail-edit-btn" onclick="ingOpenEditFromDetail()">✏️ Modifier</button>
-      </div>
-      <div class="detail-avatar-big" id="ing-detailAvatar"></div>
+    <div class="ing-panel-head">
+      <button class="ing-panel-back" onclick="ingCloseDetailPanel()">←</button>
+      <span class="ing-panel-title" id="ing-detailName"></span>
+      <button class="ing-panel-btn" onclick="ingOpenEditFromDetail()">✏️ Modifier</button>
     </div>
-    <div style="padding:16px 16px 100px">
-      <div class="form-section">
-        <span class="form-label">Rayon(s)</span>
-        <div id="ing-detailRayons" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    <div class="ing-panel-hero" id="ing-detailHero"></div>
+    <div class="ing-panel-scroll">
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Nom</span>
+        <div class="ing-panel-value" id="ing-detailNameVal"></div>
       </div>
-      <div class="form-section">
-        <span class="form-label">Utilisé dans</span>
-        <div class="recipes-list-mini" id="ing-detailRecipes"></div>
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Rayon(s)</span>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="ing-detailRayons"></div>
+      </div>
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Utilisé dans</span>
+        <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
       </div>
     </div>
   </div>
 
-  <!-- EDIT SHEET -->
-  <div class="ing-bottom-sheet" id="ing-editSheet" style="max-height:92%">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <span class="sheet-title" id="ing-editSheetTitle">✏️ Modifier l'ingrédient</span>
-      <button class="sheet-close" onclick="ingCloseEditSheet()">✕</button>
+  <!-- EDIT PANEL -->
+  <div class="ing-edit-panel" id="ing-editPanel">
+    <div class="ing-panel-head">
+      <button class="ing-panel-back" onclick="ingCloseEditPanel()">←</button>
+      <span class="ing-panel-title" id="ing-editTitle"></span>
+      <button class="ing-panel-btn save" onclick="ingSaveIngredient()">✓ Enregistrer</button>
     </div>
-    <div class="sheet-body">
-      <input type="hidden" id="ing-editIngId">
-
-      <div class="form-section">
-        <label class="form-label">Nom</label>
-        <input class="form-input" id="ing-editName" placeholder="ex: Tomates cerises">
+    <div class="ing-panel-hero" id="ing-editHero" onclick="ingTriggerImageUpload()">
+      <div class="ing-panel-hero-overlay" id="ing-editHeroOverlay">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span id="ing-editHeroOverlayText">Ajouter une photo</span>
       </div>
-
-      <div class="form-section">
-        <label class="form-label">Image</label>
-        <div class="image-upload-area" id="ing-uploadArea" onclick="ingTriggerImageUpload()">
-          <input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none">
-          <div id="ing-uploadContent">
-            <div style="font-size:32px;margin-bottom:6px">📷</div>
-            <div class="upload-hint">Photo du téléphone ou URL</div>
-          </div>
-        </div>
-        <input class="form-input" id="ing-editImageUrl" placeholder="https://... ou laisser vide" style="margin-top:8px" oninput="ingPreviewImageUrl(this.value)">
+    </div>
+    <input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none">
+    <input type="hidden" id="ing-editIngId">
+    <input type="hidden" id="ing-editImageUrl">
+    <div class="ing-panel-scroll">
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Nom</label>
+        <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomates cerises">
       </div>
-
-      <div class="form-section">
-        <label class="form-label">Emoji (si pas de photo)</label>
-        <div class="emoji-grid" id="ing-emojiGrid"></div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Rayon — Carrefour / Carrefour Drive</label>
+        <div class="ing-panel-rayon-grid" id="ing-rayonCarrefour"></div>
       </div>
-
-      <div class="form-section">
-        <label class="form-label">Rayon — Carrefour / Carrefour Drive</label>
-        <div class="rayon-grid" id="ing-rayonCarrefour"></div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Rayon — La Fourche</label>
+        <div class="ing-panel-rayon-grid" id="ing-rayonFourche"></div>
       </div>
-
-      <div class="form-section">
-        <label class="form-label">Rayon — La Fourche</label>
-        <div class="rayon-grid" id="ing-rayonFourche"></div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Recettes liées</label>
+        <div class="ing-panel-recipes" id="ing-editRecipesList"></div>
       </div>
-
-      <div class="form-section">
-        <label class="form-label">Recettes liées</label>
-        <div class="recipes-list-mini" id="ing-editRecipesList"></div>
-      </div>
-
-      <button class="btn-primary" onclick="ingSaveIngredient()">💾 Enregistrer</button>
-      <div style="height:8px"></div>
-      <button class="btn-danger" onclick="ingDeleteIngredient()">🗑 Supprimer cet ingrédient</button>
+      <button class="ing-panel-btn-del" onclick="ingDeleteIngredient()">🗑 Supprimer cet ingrédient</button>
     </div>
   </div>
 
@@ -4446,8 +4386,6 @@ const _ING_RAYONS = [
   { id: 'autre',        label: 'Autre',            emoji: '📦' },
 ];
 
-const _ING_EMOJIS_FOOD = ['🧅','🧄','🥕','🥦','🍅','🥬','🥒','🌽','🫑','🍋','🍎','🍇','🥑',
-  '🧀','🥚','🥛','🍗','🥩','🐟','🍤','🫙','🧂','🫒','🥜','🌾','🫘','🍄','🧁','🍞','🫐'];
 
 const _ING_DEMO_RECIPES = [
   { id: 'r1', emoji: '🫕', name: 'Poulet basquaise', ingredients: [
@@ -4754,10 +4692,11 @@ function _ingRenderCard(ing, i) {
   const recipeCount = ing.usedIn ? ing.usedIn.length : 0;
   const rayon = _ING_RAYONS.find(r => r.id === ing.rayonCarrefour);
   const hasImage = !!ing.imageUrl;
-  const safeEmoji = (ing.emoji || '🍽').replace(/'/g, "\\'");
+  const initials = (ing.name || '?').slice(0, 2);
   const avatarContent = hasImage
-    ? `<img src="${ing.imageUrl}" onerror="this.parentElement.innerHTML='${safeEmoji}';">`
-    : (ing.emoji || '🍽');
+    ? `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      + `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#7a8694">${initials}</span>`
+    : initials;
 
   return `<div class="ing-card${selected?' selected':''}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
     onclick="ingOnCardClick('${ing.id}', event)">
@@ -4771,7 +4710,7 @@ function _ingRenderCard(ing, i) {
       </div>
     </div>
     <div class="ing-actions">
-      <button class="ing-btn" onclick="ingOpenEditSheet('${ing.id}', event)" title="Modifier">✏️</button>
+      <button class="ing-btn" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
     </div>
   </div>`;
 }
@@ -4943,19 +4882,23 @@ function _ingOpenDetailPanel(id) {
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
   _ingDetailId = id;
+  const initials = (ing.name || '?').slice(0, 2);
+
   document.getElementById('ing-detailName').textContent = ing.name;
-  const av = document.getElementById('ing-detailAvatar');
-  const safeEmoji = (ing.emoji || '🍽').replace(/'/g, "\\'");
-  av.innerHTML = ing.imageUrl
-    ? `<img src="${ing.imageUrl}" onerror="this.parentElement.textContent='${safeEmoji}';">`
-    : (ing.emoji || '🍽');
+  document.getElementById('ing-detailNameVal').textContent = ing.name;
+
+  const hero = document.getElementById('ing-detailHero');
+  hero.innerHTML = ing.imageUrl
+    ? `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <span class="ing-panel-initials" style="display:none">${initials}</span>`
+    : `<span class="ing-panel-initials">${initials}</span>`;
 
   const rayonsDiv = document.getElementById('ing-detailRayons');
   const rc = _ING_RAYONS.find(r => r.id === ing.rayonCarrefour);
   const rf = _ING_RAYONS.find(r => r.id === ing.rayonFourche);
   rayonsDiv.innerHTML = '';
-  if (rc) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🛒 Carrefour : ${rc.emoji} ${rc.label}</span>`;
-  if (rf && rf.id !== rc?.id) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🌿 La Fourche : ${rf.emoji} ${rf.label}</span>`;
+  if (rc) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🛒 ${rc.emoji} ${rc.label}</span>`;
+  if (rf && rf.id !== rc?.id) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🌿 ${rf.emoji} ${rf.label}</span>`;
   if (!rc && !rf) rayonsDiv.innerHTML = `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Non défini</span>`;
 
   const _rvSrc = (typeof _rv !== 'undefined' && Array.isArray(_rv)) ? _rv : [];
@@ -4964,7 +4907,7 @@ function _ingOpenDetailPanel(id) {
   ).filter(Boolean);
   const recDiv = document.getElementById('ing-detailRecipes');
   recDiv.innerHTML = linked.length
-    ? linked.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
+    ? linked.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Aucune recette liée</span>`;
 
   document.getElementById('ing-detailPanel').classList.add('open');
@@ -4974,37 +4917,47 @@ function _ingCloseDetailPanel() {
   document.getElementById('ing-detailPanel').classList.remove('open');
 }
 
-function _ingOpenEditFromDetail() {
-  _ingCloseDetailPanel();
-  setTimeout(() => _ingOpenEditSheet(_ingDetailId), 100);
+function _ingCloseEditPanel() {
+  document.getElementById('ing-editPanel').classList.remove('open');
+  _ingEditingId = null;
 }
 
-// ─── Edit Sheet ───
-function _ingOpenEditSheet(id, e) {
+function _ingOpenEditFromDetail() {
+  _ingCloseDetailPanel();
+  setTimeout(() => _ingOpenEditPanel(_ingDetailId), 100);
+}
+
+// ─── Edit Panel ───
+function _ingOpenEditPanel(id, e) {
   if (e) e.stopPropagation();
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
   _ingEditingId = id;
   _ingPendingPhotoFile = null;
 
+  const initials = (ing.name || '?').slice(0, 2);
   document.getElementById('ing-editIngId').value = id;
-  document.getElementById('ing-editSheetTitle').textContent = `✏️ ${ing.name}`;
+  document.getElementById('ing-editTitle').textContent = ing.name;
   document.getElementById('ing-editName').value = ing.name;
   document.getElementById('ing-editImageUrl').value = ing.imageUrl || '';
 
-  // Preview
-  const area = document.getElementById('ing-uploadArea');
+  // Hero
+  const hero = document.getElementById('ing-editHero');
+  const overlayText = document.getElementById('ing-editHeroOverlayText');
   if (ing.imageUrl) {
-    area.innerHTML = `<input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none"><img class="image-preview" src="${ing.imageUrl}" onerror="this.src=''"><div class="upload-hint">Tap pour changer</div>`;
+    hero.innerHTML = `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span class="ing-panel-initials" style="display:none">${initials}</span>
+      <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span>Changer la photo</span>
+      </div>`;
   } else {
-    area.innerHTML = `<input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none"><div id="ing-uploadContent"><div style="font-size:32px;margin-bottom:6px">📷</div><div class="upload-hint">Photo du téléphone ou URL</div></div>`;
+    hero.innerHTML = `<span class="ing-panel-initials">${initials}</span>
+      <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span>Ajouter une photo</span>
+      </div>`;
   }
-
-  // Emoji grid
-  const eg = document.getElementById('ing-emojiGrid');
-  eg.innerHTML = _ING_EMOJIS_FOOD.map(em =>
-    `<button class="emoji-btn${ing.emoji===em?' active':''}" onclick="ingSelectEmoji('${em}', this)">${em}</button>`
-  ).join('');
 
   // Rayon grids
   _ingRenderRayonGrid('ing-rayonCarrefour', ing.rayonCarrefour);
@@ -5016,10 +4969,10 @@ function _ingOpenEditSheet(id, e) {
     _rvSrc2.find(r => String(r.id).replace(/^d_/, '') === String(id))
   ).filter(Boolean);
   document.getElementById('ing-editRecipesList').innerHTML = linked2.length
-    ? linked2.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
+    ? linked2.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px">Aucune recette liée</span>`;
 
-  _ingShowSheet('ing-editSheet');
+  document.getElementById('ing-editPanel').classList.add('open');
 }
 
 function _ingRenderRayonGrid(containerId, selected) {
@@ -5036,19 +4989,9 @@ function _ingSelectRayon(containerId, id, btn) {
   btn.classList.add('active');
 }
 
-function _ingSelectEmoji(em, btn) {
-  document.querySelectorAll('#ing-emojiGrid .emoji-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
 function _ingGetSelectedRayon(containerId) {
   const active = document.querySelector(`#${containerId} .rayon-chip.active`);
   return active ? (active.dataset.rayonId || '') : '';
-}
-
-function _ingGetSelectedEmoji() {
-  const active = document.querySelector('#ing-emojiGrid .emoji-btn.active');
-  return active ? active.textContent : '';
 }
 
 async function _ingSaveIngredient() {
@@ -5057,7 +5000,6 @@ async function _ingSaveIngredient() {
   if (!ing) return;
 
   const newName  = document.getElementById('ing-editName').value.trim() || ing.name;
-  const newEmoji = _ingGetSelectedEmoji() || ing.emoji;
   const newRayon = _ingGetSelectedRayon('ing-rayonCarrefour') || ing.rayonCarrefour;
   let   imageUrl = document.getElementById('ing-editImageUrl').value.trim();
 
@@ -5083,15 +5025,16 @@ async function _ingSaveIngredient() {
 
     // Convertir l'id rayon UI ('epicerie') en label BDD ('Épicerie')
     const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
-    const icone = imageUrl || newEmoji;
+    const body = { nom: newName, categorie: rayonLabel };
+    if (imageUrl) body.icone = imageUrl;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nom: newName, icone, categorie: rayonLabel })
+      body: JSON.stringify(body)
     });
     if (!res.ok) { const d=await res.json(); _ingToast(d.error||'Erreur'); return; }
     await _ingLoadData();
-    _ingCloseEditSheet();
+    _ingCloseEditPanel();
     _ingToast('Ingrédient mis à jour');
   } catch(e) { _ingToast('Erreur sauvegarde'); }
 }
@@ -5107,7 +5050,7 @@ async function _ingDeleteIngredient() {
     const res = await fetch('/api/ingredients/'+ing._dbId, { method:'DELETE' });
     if (res.status === 409) { const d=await res.json(); _ingToast(d.error||'Impossible de supprimer'); return; }
     await _ingLoadData();
-    _ingCloseEditSheet();
+    _ingCloseEditPanel();
     _ingToast('Ingrédient supprimé');
   } catch(e) { _ingToast('Erreur suppression'); }
 }
@@ -5122,23 +5065,18 @@ function _ingHandleImageFile(input) {
   _ingPendingPhotoFile = file;
   const reader = new FileReader();
   reader.onload = e => {
-    _ingPreviewImageUrl(e.target.result);
-    // Vider l'URL texte — la vraie URL sera définie après upload au save
+    const ing = _ingAll.find(i => i.id === _ingEditingId);
+    const initials = ing ? (ing.name || '?').slice(0, 2) : '??';
+    const hero = document.getElementById('ing-editHero');
+    hero.innerHTML = `<img src="${e.target.result}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span class="ing-panel-initials" style="display:none">${initials}</span>
+      <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span>Changer la photo</span>
+      </div>`;
     document.getElementById('ing-editImageUrl').value = '';
   };
   reader.readAsDataURL(file);
-}
-
-function _ingPreviewImageUrl(url) {
-  const area = document.getElementById('ing-uploadArea');
-  if (url && area) {
-    area.innerHTML = `<input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none"><img class="image-preview" src="${url}" onerror="this.src=''"><div class="upload-hint">Tap pour changer</div>`;
-  }
-}
-
-function _ingCloseEditSheet() {
-  _ingHideSheet('ing-editSheet');
-  _ingEditingId = null;
 }
 
 // ─── Merge ───
@@ -5147,7 +5085,7 @@ function _ingOpenMergeSheet() {
   if (items.length < 2) return;
 
   document.getElementById('ing-mergeItems').innerHTML = items.map(i =>
-    `<div class="merge-item">${i.emoji||'🍽'} ${i.name}</div>`
+    `<div class="merge-item">${i.name}</div>`
   ).join('');
 
   const totalRecipes = new Set(items.flatMap(i => i.usedIn || [])).size;
@@ -5156,7 +5094,7 @@ function _ingOpenMergeSheet() {
 
   document.getElementById('ing-mergeNameOptions').innerHTML = items.map(i =>
     `<div class="name-option" onclick="ingSelectMergeName(this)" data-name="${i.name.replace(/"/g, '&quot;')}">
-      ${i.emoji||'🍽'} ${i.name}
+      ${i.name}
       <span class="check">✓</span>
     </div>`
   ).join('');
@@ -5342,7 +5280,7 @@ function _ingHideSheet(id) {
 }
 
 function _ingCloseAllSheets() {
-  ['ing-editSheet','ing-mergeSheet','ing-rayonSheet'].forEach(id => {
+  ['ing-mergeSheet','ing-rayonSheet'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
   });
@@ -5389,15 +5327,13 @@ window.ingOnCardClick      = _ingOnCardClick;
 window.ingOpenDetailPanel  = _ingOpenDetailPanel;
 window.ingCloseDetailPanel = _ingCloseDetailPanel;
 window.ingOpenEditFromDetail = _ingOpenEditFromDetail;
-window.ingOpenEditSheet    = _ingOpenEditSheet;
-window.ingCloseEditSheet   = _ingCloseEditSheet;
+window.ingOpenEditPanel    = _ingOpenEditPanel;
+window.ingCloseEditPanel   = _ingCloseEditPanel;
 window.ingSaveIngredient   = _ingSaveIngredient;
 window.ingDeleteIngredient = _ingDeleteIngredient;
-window.ingSelectEmoji      = _ingSelectEmoji;
 window.ingSelectRayon      = _ingSelectRayon;
 window.ingTriggerImageUpload = _ingTriggerImageUpload;
 window.ingHandleImageFile  = _ingHandleImageFile;
-window.ingPreviewImageUrl  = _ingPreviewImageUrl;
 window.ingOpenMergeSheet   = _ingOpenMergeSheet;
 window.ingCloseMergeSheet  = _ingCloseMergeSheet;
 window.ingSelectMergeName  = _ingSelectMergeName;
