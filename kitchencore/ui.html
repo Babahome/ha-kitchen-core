@@ -3430,6 +3430,28 @@ async function addToCourses(id) {
 }
 function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) showToast('📅 "'+r.nom+'" → menu','ok'); }
 
+// ── UNITÉS ABRÉGÉES ───────────────────────────────────────────────────────────
+const _UNIT_ABBR = {
+  'gramme':'g','grammes':'g','gram':'g','grams':'g',
+  'kilogramme':'kg','kilogrammes':'kg','kilogram':'kg','kilograms':'kg',
+  'litre':'L','litres':'L','liter':'L','liters':'L',
+  'millilitre':'ml','millilitres':'ml','milliliter':'ml','milliliters':'ml',
+  'centilitre':'cl','centilitres':'cl','centiliter':'cl','centiliters':'cl',
+  'cuillère à soupe':'c.à.s','cuillères à soupe':'c.à.s','cuillere a soupe':'c.à.s',
+  'tablespoon':'c.à.s','tablespoons':'c.à.s','tbsp':'c.à.s',
+  'cuillère à café':'c.à.c','cuillères à café':'c.à.c','cuillere a cafe':'c.à.c',
+  'teaspoon':'c.à.c','teaspoons':'c.à.c','tsp':'c.à.c',
+  'tasse':'tasse','cup':'tasse','cups':'tasse',
+  'pincée':'pincée','pincées':'pincée','pinch':'pincée','pinches':'pincée',
+  'morceau':'x','morceaux':'x','piece':'x','pieces':'x',
+  'whole':'','entier':'','entière':'',
+};
+function abbrevUnit(u) {
+  if (!u) return '';
+  const k = u.trim().toLowerCase();
+  return _UNIT_ABBR.hasOwnProperty(k) ? _UNIT_ABBR[k] : u;
+}
+
 // ── DETAIL ────────────────────────────────────────────────────────────────────
 async function openDetail(id) {
   let r = _rv.find(x=>String(x.id)===String(id)); if(!r) return;
@@ -3450,7 +3472,9 @@ async function openDetail(id) {
     const photoHtml = isUrl
       ? `<div class="d-ingr-photo"><img src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
       : `<div class="d-ingr-photo">${(i.nom||'?').slice(0,2).toUpperCase()}</div>`;
-    const qtyTxt = [i.qty, i.unite].filter(Boolean).join(' ');
+    const qtyNum = parseFloat(i.qty);
+    const qtyDisplay = (!isNaN(qtyNum) && qtyNum !== 0) ? String(i.qty) : '';
+    const qtyTxt = [qtyDisplay, abbrevUnit(i.unite)].filter(Boolean).join(' ');
     return `
     <div class="d-ingr-row">
       <span class="d-ingr-qty">${qtyTxt}</span>
