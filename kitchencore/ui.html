@@ -4450,8 +4450,8 @@ function mIngConfirm(){
 
 // Event delegation sur page-menu
 document.addEventListener('DOMContentLoaded', function(){
-  // Charger les recettes au démarrage si page recettes déjà active
-  if(document.getElementById('page-recettes')?.classList.contains('active')) loadRecettes();
+  // Charger les recettes au démarrage (nécessaire pour page menu et autres)
+  loadRecettes();
   const pageMenu = document.getElementById('page-menu');
   if(!pageMenu) return;
 
