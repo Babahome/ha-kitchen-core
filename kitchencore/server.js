@@ -109,6 +109,24 @@ db.exec(`
     note     TEXT DEFAULT '',
     photo    TEXT
   );
+  CREATE TABLE IF NOT EXISTS courses_items (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom       TEXT NOT NULL,
+    icone     TEXT,
+    marchand  TEXT NOT NULL DEFAULT 'drive',
+    rayon     TEXT DEFAULT 'Autre',
+    qty       REAL DEFAULT 1,
+    unite     TEXT DEFAULT '',
+    done      INTEGER DEFAULT 0,
+    origin    TEXT DEFAULT 'manuel',
+    recipe_id TEXT
+  );
+  CREATE TABLE IF NOT EXISTS courses_recipes (
+    recipe_id TEXT PRIMARY KEY,
+    nom       TEXT NOT NULL,
+    photo     TEXT,
+    portions  INTEGER DEFAULT 2
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -730,6 +748,74 @@ app.put('/api/menu/:id', (req, res) => {
 
 app.delete('/api/menu/:id', (req, res) => {
   db.prepare('DELETE FROM menu WHERE id=?').run(req.params.id);
+  res.status(204).end();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COURSES
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/courses', (_req, res) => {
+  const items = db.prepare('SELECT * FROM courses_items ORDER BY id DESC').all().map(r => ({
+    id: r.id, n: r.nom, icone: r.icone||null, m: r.marchand, r: r.rayon||'Autre',
+    qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel', recipeId: r.recipe_id||null
+  }));
+  const recipes = db.prepare('SELECT * FROM courses_recipes').all().map(r => ({
+    id: r.recipe_id, nom: r.nom, photo: r.photo||null, portions: r.portions
+  }));
+  res.json({ items, recipes });
+});
+
+app.post('/api/courses/items', (req, res) => {
+  const { n, icone=null, m='drive', r='Autre', qty=1, unit='', done=false, origin='manuel', recipeId=null } = req.body;
+  if (!n) return res.status(400).json({ error: 'nom requis' });
+  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id) VALUES (?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId);
+  res.json({ id: result.lastInsertRowid });
+});
+
+app.put('/api/courses/items/:id', (req, res) => {
+  const { n, icone, m, r, qty, unit, done, origin, recipeId } = req.body;
+  const fields = [], vals = [];
+  if (n        !== undefined) { fields.push('nom=?');      vals.push(n); }
+  if (icone    !== undefined) { fields.push('icone=?');    vals.push(icone); }
+  if (m        !== undefined) { fields.push('marchand=?'); vals.push(m); }
+  if (r        !== undefined) { fields.push('rayon=?');    vals.push(r); }
+  if (qty      !== undefined) { fields.push('qty=?');      vals.push(qty); }
+  if (unit     !== undefined) { fields.push('unite=?');    vals.push(unit); }
+  if (done     !== undefined) { fields.push('done=?');     vals.push(done?1:0); }
+  if (origin   !== undefined) { fields.push('origin=?');   vals.push(origin); }
+  if (recipeId !== undefined) { fields.push('recipe_id=?');vals.push(recipeId); }
+  if (!fields.length) return res.json({ ok: true });
+  vals.push(req.params.id);
+  db.prepare(`UPDATE courses_items SET ${fields.join(',')} WHERE id=?`).run(...vals);
+  res.json({ ok: true });
+});
+
+app.delete('/api/courses/items/:id', (req, res) => {
+  db.prepare('DELETE FROM courses_items WHERE id=?').run(req.params.id);
+  res.status(204).end();
+});
+
+app.post('/api/courses/recipes', (req, res) => {
+  const { id, nom, photo=null, portions=2 } = req.body;
+  if (!id || !nom) return res.status(400).json({ error: 'id et nom requis' });
+  db.prepare('INSERT OR REPLACE INTO courses_recipes (recipe_id,nom,photo,portions) VALUES (?,?,?,?)').run(id, nom, photo, portions);
+  res.json({ ok: true });
+});
+
+app.put('/api/courses/recipes/:id', (req, res) => {
+  const { portions, qty_ratio } = req.body;
+  db.transaction(() => {
+    if (qty_ratio)             db.prepare('UPDATE courses_items SET qty=ROUND(qty*?,1) WHERE recipe_id=?').run(qty_ratio, req.params.id);
+    if (portions !== undefined) db.prepare('UPDATE courses_recipes SET portions=? WHERE recipe_id=?').run(portions, req.params.id);
+  })();
+  res.json({ ok: true });
+});
+
+app.delete('/api/courses/recipes/:id', (req, res) => {
+  db.transaction(() => {
+    db.prepare('DELETE FROM courses_items WHERE recipe_id=?').run(req.params.id);
+    db.prepare('DELETE FROM courses_recipes WHERE recipe_id=?').run(req.params.id);
+  })();
   res.status(204).end();
 });
 

@@ -3003,17 +3003,35 @@ const CL_CATALOG = [
   {n:'Poivrons rouges',   e:'🫑',m:'magasin',r:'Fruits & Légumes'},
 ];
 
-// Reset localStorage si ancienne version
-if(localStorage.getItem('kc_seed_v') !== '4') {
-  localStorage.removeItem('kc_courses');
-  localStorage.removeItem('kc_cl_recipes');
-  localStorage.setItem('kc_seed_v','4');
+let _cl = [];
+let _clRecipes = [];
+
+async function _clLoad(){
+  try {
+    const r = await fetch('/api/courses');
+    if (!r.ok) { clRender(); return; }
+    const {items, recipes} = await r.json();
+    _cl = items; _clRecipes = recipes;
+    // Migration unique depuis localStorage
+    const oldItems   = JSON.parse(localStorage.getItem('kc_courses')||'[]');
+    const oldRecipes = JSON.parse(localStorage.getItem('kc_cl_recipes')||'[]');
+    if (!_cl.length && oldItems.length) {
+      for (const rec of oldRecipes) {
+        await fetch('/api/courses/recipes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)}).catch(()=>{});
+      }
+      _clRecipes = oldRecipes;
+      for (const it of oldItems) {
+        const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(it)});
+        const {id} = await res.json();
+        _cl.push({...it, id});
+      }
+      localStorage.removeItem('kc_courses');
+      localStorage.removeItem('kc_cl_recipes');
+      showToast('Courses migrées ✓','ok');
+    }
+  } catch(e) {}
+  clRender();
 }
-let _cl = JSON.parse(localStorage.getItem('kc_courses') || '[]');
-let _clRecipes = JSON.parse(localStorage.getItem('kc_cl_recipes') || '[]');
-function clSave()        { localStorage.setItem('kc_courses', JSON.stringify(_cl)); }
-function clSaveRecipes() { localStorage.setItem('kc_cl_recipes', JSON.stringify(_clRecipes)); }
-function clId()          { return Date.now() + Math.random().toString(36).slice(2); }
 
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 function clRender() {
@@ -3143,10 +3161,17 @@ function clRecipesSectionHTML() {
 function clRecipePortions(recipeId, delta) {
   const rec = _clRecipes.find(r=>r.id===recipeId); if(!rec) return;
   const newP = rec.portions + delta;
-  if(newP<=0){ _cl=_cl.filter(i=>i.recipeId!==recipeId); _clRecipes=_clRecipes.filter(r=>r.id!==recipeId); clSaveRecipes(); clSave(); clRender(); showToast('Recette supprimée','ok'); return; }
+  if(newP<=0){
+    _cl=_cl.filter(i=>i.recipeId!==recipeId);
+    _clRecipes=_clRecipes.filter(r=>r.id!==recipeId);
+    fetch('/api/courses/recipes/'+encodeURIComponent(recipeId),{method:'DELETE'}).catch(()=>{});
+    clRender(); showToast('Recette supprimée','ok'); return;
+  }
   const ratio = newP/rec.portions;
   _cl.forEach(i=>{ if(i.recipeId===recipeId) i.qty=Math.round((i.qty||1)*ratio*10)/10; });
-  rec.portions=newP; clSaveRecipes(); clSave(); clRender();
+  rec.portions=newP;
+  fetch('/api/courses/recipes/'+encodeURIComponent(recipeId),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({portions:newP,qty_ratio:ratio})}).catch(()=>{});
+  clRender();
   showToast(`${rec.nom} : ${newP} portion${newP>1?'s':''}`, 'ok');
 }
 function clShowBadge(e,recipeId) {
@@ -3164,22 +3189,26 @@ function clTab(tab, m) {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;clSave();clRender();} }
-function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); clSave(); clRender(); }
-function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){i.qty=Math.max(1,(i.qty||1)+d);clSave();clRender();} }
-function clToggleRayon(rayon){ const items=_cl.filter(i=>i.m==='magasin'&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>i.done=!allDone); clSave();clRender(); }
+function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});clRender();} }
+function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); fetch('/api/courses/items/'+id,{method:'DELETE'}).catch(()=>{}); clRender(); }
+async function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){const q=Math.max(1,(i.qty||1)+d);i.qty=q;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty:q})}).catch(()=>{});clRender();} }
+function clToggleRayon(rayon){ const items=_cl.filter(i=>i.m==='magasin'&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
 
 // ── Ajout depuis recherche ────────────────────────────────────────────────────
-function clAddItem() {
+async function clAddItem() {
   const inp = document.getElementById('cl-search-input');
   const v   = inp?.value.trim(); if(!v) return;
   const found = CL_CATALOG.find(c=>c.n.toLowerCase()===v.toLowerCase());
-  _cl.unshift({id:clId(),qty:1,done:false,origin:'manuel',
-    n:found?found.n:v, icone:null, m:found?found.m:'drive', r:found?found.r:'Autre'});
-  clSave(); clRender();
-  if(inp){ inp.value=''; inp.classList.remove('expanded'); }
-  _clSearchOpen=false;
-  showToast('✓ Ajouté à la liste','ok');
+  const item = {qty:1, done:false, origin:'manuel', n:found?found.n:v, icone:null, m:found?found.m:'drive', r:found?found.r:'Autre'};
+  try {
+    const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    const {id} = await res.json();
+    _cl.unshift({...item, id});
+    clRender();
+    if(inp){ inp.value=''; inp.classList.remove('expanded'); }
+    _clSearchOpen=false;
+    showToast('✓ Ajouté à la liste','ok');
+  } catch(e){ showToast('Erreur réseau','error'); }
 }
 
 // ── fab-search courses (copie toggleSearch) ────────────────────────────────────
@@ -3234,7 +3263,8 @@ function clCtxUnit() {
   const units=['','pièce','pack','kg','g','L','cl','ml','bouteille','boîte','sachet'];
   const cur=item.unit||'';
   item.unit=units[(units.indexOf(cur)+1)%units.length];
-  clSave(); clRender(); clCloseCtx();
+  fetch('/api/courses/items/'+item.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({unit:item.unit})}).catch(()=>{});
+  clRender(); clCloseCtx();
   showToast(item.unit?'Unité : '+item.unit:'Unité supprimée','ok');
 }
 function clSearchURL(item) {
@@ -3258,7 +3288,7 @@ function clOpenMmodal(id) {
   document.getElementById('cl-mmodal').classList.add('on');
 }
 function clCloseMmodal(){ document.getElementById('cl-mmodal').classList.remove('on'); }
-function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;clSave();clRender();} clCloseMmodal(); showToast('✓ Marchand mis à jour','ok'); }
+function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({m})}).catch(()=>{});clRender();} clCloseMmodal(); showToast('✓ Marchand mis à jour','ok'); }
 
 // ── Boutons marchands ─────────────────────────────────────────────────────────
 function clOpenDrive() {
@@ -3273,25 +3303,14 @@ function clCopyFourche() {
   navigator.clipboard.writeText(txt).then(()=>showToast('✓ Liste copiée','ok')).catch(()=>alert(txt));
 }
 
-// ── Init (sans toucher à switchPage) ─────────────────────────────────────────
+// ── Init courses ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser la liste au premier affichage de la page courses
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      m.addedNodes.forEach(function(n) {
-        if(n.classList && n.classList.contains('active') && n.id === 'page-courses') {
-          clRender();
-        }
-      });
-    });
-  });
-  const content = document.getElementById('content');
-  if(content) observer.observe(content, {childList:false, subtree:true, attributes:true, attributeFilter:['class']});
-  // Aussi au clic sur l'onglet courses dans le bottom nav
+  _clLoad();
+  // Rafraîchir depuis l'API à chaque fois qu'on ouvre l'onglet courses
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', function() {
       if(tab.querySelector('.nav-label')?.textContent === 'Courses') {
-        setTimeout(clRender, 50);
+        setTimeout(_clLoad, 50);
       }
     });
   });
@@ -4509,24 +4528,30 @@ function mIngClose(){
   _mIngData = []; _mIngChecked.clear();
 }
 
-function mIngConfirm(){
+async function mIngConfirm(){
   if(_mIngChecked.size===0){ showToast('Aucun ingrédient sélectionné','warn'); return; }
   let nbAdded = 0;
-  _mIngData.forEach(recipe=>{
+  for(const recipe of _mIngData){
     const sid = recipe.recipeId;
-    if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
-      _clRecipes.push({id:sid, nom:recipe.recipeName, photo:recipe.photo||null, portions:recipe.portions});
+    if(!_clRecipes.find(cr=>String(cr.id)===sid)){
+      const recObj = {id:sid, nom:recipe.recipeName, photo:recipe.photo||null, portions:recipe.portions};
+      _clRecipes.push(recObj);
+      fetch('/api/courses/recipes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(recObj)}).catch(()=>{});
     }
-    recipe.ingredients.forEach((ing,i)=>{
-      if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) return;
-      _cl.push({ id:clId(), n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
-                 qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
-                 done:false, origin:'recette', recipeId:sid });
-      nbAdded++;
-    });
-  });
-  if(typeof _clRecipes!=='undefined') clSaveRecipes();
-  clSave(); clRender();
+    for(let i=0;i<recipe.ingredients.length;i++){
+      const ing = recipe.ingredients[i];
+      if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) continue;
+      const item = {n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
+                    qty:parseFloat(ing.qty)||1, unit:ing.unite||'', done:false, origin:'recette', recipeId:sid};
+      try{
+        const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+        const {id} = await res.json();
+        _cl.push({...item, id});
+        nbAdded++;
+      }catch(e){}
+    }
+  }
+  clRender();
   showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
   mIngClose();
   if(_mSelMode) mSelExit();
