@@ -2169,38 +2169,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <div class="cl-title">Ma Liste</div>
           <div class="cl-count" id="cl-count">0 article</div>
         </div>
-        <div class="cl-tabs">
+        <div class="cl-tabs" id="cl-tabs">
           <div class="cl-tab on"  data-m="all"     onclick="clTab(this,'all')">Tout</div>
-          <div class="cl-tab"     data-m="drive"   onclick="clTab(this,'drive')">🚗 Drive</div>
-          <div class="cl-tab"     data-m="fourche" onclick="clTab(this,'fourche')">🌿 La Fourche</div>
-          <div class="cl-tab"     data-m="magasin" onclick="clTab(this,'magasin')">🏪 Magasin</div>
         </div>
       </div>
 
       <div class="cl-marchand on" id="clv-all"><div id="cl-all-list"></div><div style="height:100px"></div></div>
-      <div class="cl-marchand" id="clv-drive">
-        <div class="cl-banner">
-          <div class="cl-banner-l"><div class="cl-banner-ico">🚗</div>
-            <div><div class="cl-banner-name">Carrefour Drive</div><div class="cl-banner-n" id="cl-drive-n">0 article</div></div></div>
-          <button class="cl-banner-btn drive" onclick="clOpenDrive()">Ouvrir →</button>
-        </div>
-        <div id="cl-drive-list"></div><div style="height:100px"></div>
-      </div>
-      <div class="cl-marchand" id="clv-fourche">
-        <div class="cl-banner">
-          <div class="cl-banner-l"><div class="cl-banner-ico">🌿</div>
-            <div><div class="cl-banner-name">La Fourche</div><div class="cl-banner-n" id="cl-fourche-n">0 article</div></div></div>
-          <button class="cl-banner-btn fourche" onclick="clCopyFourche()">📋 Copier</button>
-        </div>
-        <div id="cl-fourche-list"></div><div style="height:100px"></div>
-      </div>
-      <div class="cl-marchand" id="clv-magasin">
-        <div class="cl-banner">
-          <div class="cl-banner-l"><div class="cl-banner-ico">🏪</div>
-            <div><div class="cl-banner-name">Carrefour Magasin</div><div class="cl-banner-n" id="cl-magasin-n">0 article</div></div></div>
-        </div>
-        <div id="cl-magasin-list"></div><div style="height:100px"></div>
-      </div>
+      <div id="cl-dyn-panels"></div>
 
       <!-- Menu contextuel ••• -->
       <div class="cl-ctx-menu" id="cl-ctx-menu">
@@ -3163,13 +3138,15 @@ const CL_CATALOG = [
 
 let _cl = [];
 let _clRecipes = [];
+let _clMarchands = [];
 
 async function _clLoad(){
   try {
-    const r = await fetch('/api/courses');
-    if (!r.ok) { clRender(); return; }
-    const {items, recipes} = await r.json();
+    const [rC, rM] = await Promise.all([fetch('/api/courses'), fetch('/api/marchands')]);
+    if (!rC.ok) { clBuildMarchandTabs(); clRender(); return; }
+    const {items, recipes} = await rC.json();
     _cl = items; _clRecipes = recipes;
+    if (rM.ok) _clMarchands = await rM.json();
     // Migration unique depuis localStorage
     const oldItems   = JSON.parse(localStorage.getItem('kc_courses')||'[]');
     const oldRecipes = JSON.parse(localStorage.getItem('kc_cl_recipes')||'[]');
@@ -3188,24 +3165,75 @@ async function _clLoad(){
       showToast('Courses migrées ✓','ok');
     }
   } catch(e) {}
+  clBuildMarchandTabs();
   clRender();
+}
+
+// ── Construction dynamique des onglets marchands ──────────────────────────────
+function clBuildMarchandTabs() {
+  const tabsEl   = document.getElementById('cl-tabs');
+  const panelsEl = document.getElementById('cl-dyn-panels');
+  if (!tabsEl || !panelsEl) return;
+  tabsEl.querySelectorAll('.cl-tab:not([data-m="all"])').forEach(el => el.remove());
+  panelsEl.innerHTML = '';
+  _clMarchands.forEach(m => {
+    const key = String(m.id);
+    // — Onglet —
+    const tab = document.createElement('div');
+    tab.className = 'cl-tab';
+    tab.dataset.m = key;
+    tab.style.cssText = 'display:flex;align-items:center;gap:5px';
+    tab.onclick = function() { clTab(this, key); };
+    if (m.image) {
+      const img = document.createElement('img');
+      img.src = m.image;
+      img.style.cssText = 'width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0';
+      tab.appendChild(img);
+    } else {
+      const ini = document.createElement('span');
+      ini.style.cssText = 'width:18px;height:18px;border-radius:50%;background:var(--grey);display:inline-flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;color:var(--orange);flex-shrink:0';
+      ini.textContent = (m.nom||'?').trim().slice(0,2).toUpperCase();
+      tab.appendChild(ini);
+    }
+    const nameEl = document.createElement('span');
+    nameEl.textContent = m.nom;
+    tab.appendChild(nameEl);
+    tabsEl.appendChild(tab);
+    // — Panel —
+    const logoHTML = m.image
+      ? `<img src="${m.image}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+      : `<div style="width:36px;height:36px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:var(--orange);flex-shrink:0">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
+    const panel = document.createElement('div');
+    panel.className = 'cl-marchand';
+    panel.id = 'clv-' + key;
+    panel.innerHTML = `<div class="cl-banner">
+        <div class="cl-banner-l">${logoHTML}
+          <div><div class="cl-banner-name">${m.nom}</div><div class="cl-banner-n" id="cl-${key}-n">0 article</div></div>
+        </div>
+      </div>
+      <div id="cl-${key}-list"></div>
+      <div style="height:100px"></div>`;
+    panelsEl.appendChild(panel);
+  });
 }
 
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 function clRender() {
   const total = _cl.filter(i=>!i.done).length;
   document.getElementById('cl-count').textContent = total + ' article' + (total>1?'s':'');
-  const byM = {drive:[],fourche:[],magasin:[]};
-  _cl.forEach(i=>{ if(byM[i.m]) byM[i.m].push(i); });
-  ['drive','fourche','magasin'].forEach(m=>{
-    const n = byM[m].filter(i=>!i.done).length;
-    const el = document.getElementById('cl-'+m+'-n');
-    if(el) el.textContent = n+' article'+(n>1?'s':'');
+  const byM = {};
+  _clMarchands.forEach(m => { byM[String(m.id)] = []; });
+  _cl.forEach(i => { const k = String(i.m); if (byM[k]) byM[k].push(i); });
+  _clMarchands.forEach(m => {
+    const k = String(m.id);
+    const n = (byM[k]||[]).filter(i=>!i.done).length;
+    const el = document.getElementById('cl-'+k+'-n');
+    if (el) el.textContent = n + ' article' + (n>1?'s':'');
   });
   clRenderAll(byM);
-  clRenderMarchand('drive',   byM.drive,   false);
-  clRenderMarchand('fourche', byM.fourche, false);
-  clRenderMarchand('magasin', byM.magasin, true);
+  _clMarchands.forEach(m => {
+    clRenderMarchand(String(m.id), byM[String(m.id)]||[], m.rayons||[]);
+  });
 }
 
 function clItemHTML(item) {
@@ -3246,33 +3274,38 @@ function clItemHTML(item) {
 function clRenderAll(byM) {
   const el = document.getElementById('cl-all-list'); if(!el) return;
   let h = '';
-  ['drive','fourche','magasin'].forEach(m=>{
-    const items = byM[m]; if(!items.length) return;
-    const mc = CL_MARCHANDS[m];
-    const n  = items.filter(i=>!i.done).length;
+  _clMarchands.forEach(m => {
+    const k = String(m.id);
+    const items = byM[k]||[]; if(!items.length) return;
+    const n = items.filter(i=>!i.done).length;
+    const icoHTML = m.image
+      ? `<img src="${m.image}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+      : `<span style="font-size:.75rem;font-weight:900;color:var(--orange)">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</span>`;
     h += `<div style="padding:10px 14px 6px;background:var(--grey-l);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--grey)">
-      <span style="font-size:1.1rem">${mc.ico}</span>
-      <span style="font-size:.85rem;font-weight:800;flex:1">${mc.label}</span>
+      ${icoHTML}
+      <span style="font-size:.85rem;font-weight:800;flex:1">${m.nom}</span>
       <span style="font-size:.72rem;color:var(--grey-d)">${n} à prendre</span></div>`;
-    items.forEach(i=>h+=clItemHTML(i));
+    items.forEach(i => h += clItemHTML(i));
   });
   if(!h) h = '<div style="text-align:center;padding:3rem 1rem;color:var(--grey-d)">🛒 Liste vide</div>';
   h += clRecipesSectionHTML();
   el.innerHTML = h;
 }
 
-function clRenderMarchand(m, items, byRayon) {
+function clRenderMarchand(m, items, rayons) {
   const el = document.getElementById('cl-'+m+'-list'); if(!el) return;
   if(!items.length){ el.innerHTML='<div style="text-align:center;padding:3rem 1rem;color:var(--grey-d)">Aucun article</div>'; return; }
-  if(!byRayon){ el.innerHTML = items.map(clItemHTML).join(''); return; }
+  if(!rayons||!rayons.length){ el.innerHTML = items.map(clItemHTML).join(''); return; }
   const groups = {};
   items.forEach(i=>{ const r=i.r||'Autre'; if(!groups[r])groups[r]=[]; groups[r].push(i); });
+  const ordered = rayons.map(r=>r.nom);
+  Object.keys(groups).forEach(r=>{ if(!ordered.includes(r)) ordered.push(r); });
   let h='';
-  CL_RAYONS.forEach(r=>{
+  ordered.forEach(r=>{
     if(!groups[r]) return;
     const n=groups[r].filter(i=>!i.done).length;
     h+=`<div class="cl-rayon"><div class="cl-rayon-hd">
-      <div class="cl-rayon-chk${groups[r].every(i=>i.done)?' on':''}" onclick="clToggleRayon('${r}')"></div>
+      <div class="cl-rayon-chk${groups[r].every(i=>i.done)?' on':''}" onclick="clToggleRayon('${m}','${r}')"></div>
       <div class="cl-rayon-name">${r}</div>
       <span style="font-size:.72rem;color:var(--grey-d)">${n} article${n>1?'s':''}</span></div>
       ${groups[r].map(clItemHTML).join('')}</div>`;
@@ -3350,14 +3383,17 @@ function clTab(tab, m) {
 function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});clRender();} }
 function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); fetch('/api/courses/items/'+id,{method:'DELETE'}).catch(()=>{}); clRender(); }
 async function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){const q=Math.max(1,(i.qty||1)+d);i.qty=q;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty:q})}).catch(()=>{});clRender();} }
-function clToggleRayon(rayon){ const items=_cl.filter(i=>i.m==='magasin'&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
+function clToggleRayon(mKey, rayon){ const items=_cl.filter(i=>String(i.m)===String(mKey)&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
 
 // ── Ajout depuis recherche ────────────────────────────────────────────────────
 async function clAddItem() {
   const inp = document.getElementById('cl-search-input');
   const v   = inp?.value.trim(); if(!v) return;
   const found = CL_CATALOG.find(c=>c.n.toLowerCase()===v.toLowerCase());
-  const item = {qty:1, done:false, origin:'manuel', n:found?found.n:v, icone:null, m:found?found.m:'drive', r:found?found.r:'Autre'};
+  const activeTab = document.querySelector('#cl-tabs .cl-tab.on');
+  const tabM = activeTab?.dataset.m;
+  const defaultM = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
+  const item = {qty:1, done:false, origin:'manuel', n:found?found.n:v, icone:null, m:defaultM, r:found?found.r:'Autre'};
   try {
     const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
     const {id} = await res.json();
@@ -3437,12 +3473,18 @@ function clOpenMmodal(id) {
   _clEditId=id;
   const item=_cl.find(i=>i.id===id); if(!item) return;
   document.getElementById('cl-msheet-sub').textContent=item.n;
-  document.getElementById('cl-mopts').innerHTML=Object.entries(CL_MARCHANDS).map(([k,mc])=>`
-    <div class="cl-mopt${item.m===k?' sel':''}" onclick="clSetMarchand('${id}','${k}')">
-      <div class="cl-mopt-ico">${mc.ico}</div>
-      <div><div class="cl-mopt-name">${mc.label}</div></div>
-      ${item.m===k?'<span style="font-size:.65rem;font-weight:800;color:var(--orange)">Actuel</span>':''}
-    </div>`).join('');
+  document.getElementById('cl-mopts').innerHTML=_clMarchands.map(m=>{
+    const k = String(m.id);
+    const sel = String(item.m)===k;
+    const logoHTML = m.image
+      ? `<img src="${m.image}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
+      : `<div style="width:28px;height:28px;border-radius:50%;background:var(--grey-l);display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:900;color:var(--orange)">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
+    return `<div class="cl-mopt${sel?' sel':''}" onclick="clSetMarchand('${id}','${k}')">
+      <div class="cl-mopt-ico">${logoHTML}</div>
+      <div><div class="cl-mopt-name">${m.nom}</div></div>
+      ${sel?'<span style="font-size:.65rem;font-weight:800;color:var(--orange)">Actuel</span>':''}
+    </div>`;
+  }).join('');
   document.getElementById('cl-mmodal').classList.add('on');
 }
 function clCloseMmodal(){ document.getElementById('cl-mmodal').classList.remove('on'); }
@@ -4699,7 +4741,7 @@ async function mIngConfirm(){
     for(let i=0;i<recipe.ingredients.length;i++){
       const ing = recipe.ingredients[i];
       if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) continue;
-      const item = {n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
+      const item = {n:ing.nom, icone:ing.ingredient_icone||null, m:_clMarchands[0]?String(_clMarchands[0].id):'0', r:'Épicerie',
                     qty:parseFloat(ing.qty)||1, unit:ing.unite||'', done:false, origin:'recette', recipeId:sid};
       try{
         const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
