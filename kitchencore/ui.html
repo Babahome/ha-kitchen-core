@@ -3742,7 +3742,7 @@ function renderIngrs() {
         <span class="ev3-drag-handle">⠿</span>
         <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?'🍳':'🥕'}</button>
         ${sub
-          ? `<input class="ev3-ingr-name" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" style="font-style:italic">`
+          ? `<input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" style="font-style:italic">`
           : `<input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
@@ -3753,7 +3753,8 @@ function renderIngrs() {
         <button class="ev3-row-del" onclick="delIngr(${x})">✕</button>
       </div>`;
     }).join('') +
-    `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>`;
+    `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>` +
+    `<datalist id="ev3-recettes-dl">${_rv.map(r=>`<option value="${ev3Esc(r.nom)}">`).join('')}</datalist>`;
   ev3BindDrag('e-ingrs', _eIngr, renderIngrs, '.ev3-drag-handle');
 }
 function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',note:'',type:'ingredient'}); renderIngrs(); }
