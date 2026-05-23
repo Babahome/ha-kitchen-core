@@ -127,6 +127,20 @@ db.exec(`
     photo     TEXT,
     portions  INTEGER DEFAULT 2
   );
+  CREATE TABLE IF NOT EXISTS marchands (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom      TEXT NOT NULL,
+    emoji    TEXT DEFAULT '🏪',
+    image    TEXT,
+    position INTEGER DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS marchands_rayons (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    marchand_id INTEGER NOT NULL REFERENCES marchands(id) ON DELETE CASCADE,
+    nom         TEXT NOT NULL,
+    emoji       TEXT DEFAULT '📦',
+    position    INTEGER DEFAULT 0
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -817,6 +831,77 @@ app.delete('/api/courses/recipes/:id', (req, res) => {
     db.prepare('DELETE FROM courses_recipes WHERE recipe_id=?').run(req.params.id);
   })();
   res.status(204).end();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MARCHANDS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function getMarchand(id) {
+  const m = db.prepare('SELECT * FROM marchands WHERE id=?').get(id);
+  if (!m) return null;
+  m.rayons = db.prepare('SELECT * FROM marchands_rayons WHERE marchand_id=? ORDER BY position, id').all(id);
+  return m;
+}
+
+app.get('/api/marchands', (_req, res) => {
+  const marchands = db.prepare('SELECT * FROM marchands ORDER BY position, id').all();
+  marchands.forEach(m => {
+    m.rayons = db.prepare('SELECT * FROM marchands_rayons WHERE marchand_id=? ORDER BY position, id').all(m.id);
+  });
+  res.json(marchands);
+});
+
+app.post('/api/marchands', (req, res) => {
+  const { nom, emoji='🏪', image=null } = req.body;
+  if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
+  const pos = db.prepare('SELECT COALESCE(MAX(position)+1,0) AS p FROM marchands').get().p;
+  const r = db.prepare('INSERT INTO marchands(nom,emoji,image,position) VALUES(?,?,?,?)').run(nom.trim(), emoji, image, pos);
+  res.status(201).json(getMarchand(r.lastInsertRowid));
+});
+
+app.patch('/api/marchands/:id', (req, res) => {
+  const f=[], v=[];
+  ['nom','emoji','image'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
+  v.push(req.params.id);
+  db.prepare(`UPDATE marchands SET ${f.join(',')} WHERE id=?`).run(...v);
+  res.json(getMarchand(req.params.id));
+});
+
+app.delete('/api/marchands/:id', (req, res) => {
+  db.prepare('DELETE FROM marchands WHERE id=?').run(req.params.id);
+  res.status(204).end();
+});
+
+app.post('/api/marchands/:id/rayons', (req, res) => {
+  const { nom, emoji='📦' } = req.body;
+  if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
+  const pos = db.prepare('SELECT COALESCE(MAX(position)+1,0) AS p FROM marchands_rayons WHERE marchand_id=?').get(req.params.id).p;
+  const r = db.prepare('INSERT INTO marchands_rayons(marchand_id,nom,emoji,position) VALUES(?,?,?,?)').run(req.params.id, nom.trim(), emoji, pos);
+  res.status(201).json(db.prepare('SELECT * FROM marchands_rayons WHERE id=?').get(r.lastInsertRowid));
+});
+
+app.patch('/api/marchands/:id/rayons/:rid', (req, res) => {
+  const f=[], v=[];
+  ['nom','emoji'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
+  v.push(req.params.rid);
+  db.prepare(`UPDATE marchands_rayons SET ${f.join(',')} WHERE id=?`).run(...v);
+  res.json(db.prepare('SELECT * FROM marchands_rayons WHERE id=?').get(req.params.rid));
+});
+
+app.delete('/api/marchands/:id/rayons/:rid', (req, res) => {
+  db.prepare('DELETE FROM marchands_rayons WHERE id=?').run(req.params.rid);
+  res.status(204).end();
+});
+
+app.put('/api/marchands/:id/rayons/order', (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
+  const upd = db.prepare('UPDATE marchands_rayons SET position=? WHERE id=? AND marchand_id=?');
+  db.transaction(() => { order.forEach(({ id, position }) => upd.run(position, id, req.params.id)); })();
+  res.json({ ok: true });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -1771,6 +1771,65 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .rv-json-hint code { background:rgba(0,0,0,.07); border-radius:4px; padding:1px 4px; font-size:.72rem; }
 /* ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════════════ */
 
+/* ══ MARCHANDS ══════════════════════════════════════════════════════════════ */
+#page-marchands { background: var(--grey-l); }
+.mch-content { padding: 12px 12px 100px; }
+.mch-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+.mch-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--grey-l); }
+.mch-logo { width: 52px; height: 52px; border-radius: 14px; background: var(--orange-l); display: grid; place-items: center; font-size: 1.7rem; cursor: pointer; flex-shrink: 0; overflow: hidden; transition: transform .15s; }
+.mch-logo:active { transform: scale(.92); }
+.mch-logo img { width: 100%; height: 100%; object-fit: cover; }
+.mch-info { flex: 1; min-width: 0; }
+.mch-nom { font-size: 1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mch-sub { font-size: .75rem; color: var(--text2); font-weight: 600; margin-top: 2px; }
+.mch-actions { display: flex; gap: 6px; }
+.mch-btn { width: 34px; height: 34px; border-radius: 9px; border: none; background: var(--grey-l); cursor: pointer; font-size: 1rem; display: grid; place-items: center; transition: background .15s; }
+.mch-btn:active { background: var(--grey); }
+.mch-rayons-section { padding: 10px 14px 14px; }
+.mch-rayons-label { font-size: .73rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.mch-rayons-label span:last-child { font-weight: 600; text-transform: none; letter-spacing: 0; }
+.mch-rayon-list { display: flex; flex-direction: column; gap: 4px; }
+.mch-rayon-row { display: flex; align-items: center; gap: 10px; background: var(--grey-l); border-radius: 10px; padding: 9px 10px; cursor: grab; user-select: none; touch-action: none; transition: background .15s, box-shadow .15s; border: 2px solid transparent; }
+.mch-rayon-row.dragging { opacity: .45; cursor: grabbing; }
+.mch-rayon-row.drag-over { background: var(--orange-l); border-color: var(--orange); }
+.mch-rayon-handle { color: var(--grey-d); font-size: 1.1rem; flex-shrink: 0; line-height: 1; }
+.mch-rayon-emoji { font-size: 1.2rem; flex-shrink: 0; }
+.mch-rayon-nom { flex: 1; font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mch-rayon-actions { display: flex; gap: 4px; }
+.mch-rayon-action-btn { width: 28px; height: 28px; border-radius: 7px; border: none; background: white; cursor: pointer; font-size: .85rem; display: grid; place-items: center; transition: background .15s; }
+.mch-rayon-action-btn:active { background: var(--grey); }
+.mch-rayon-add-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 2px dashed var(--grey); cursor: pointer; color: var(--text2); font-size: .88rem; font-weight: 700; transition: all .15s; margin-top: 4px; }
+.mch-rayon-add-row:active { border-color: var(--orange); color: var(--orange); background: var(--orange-l); }
+.mch-empty { text-align: center; padding: 48px 20px; color: var(--text2); }
+.mch-empty-ico { font-size: 3rem; margin-bottom: 10px; }
+.mch-empty-txt { font-size: .9rem; font-weight: 700; line-height: 1.6; }
+.mch-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; place-items: center; z-index: 200; padding: 20px; }
+.mch-overlay.open { display: grid; }
+.mch-modal-box { background: white; border-radius: 18px; padding: 20px; width: 100%; max-width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,.2); max-height: 90dvh; overflow-y: auto; }
+.mch-modal-box::-webkit-scrollbar { display: none; }
+.mch-modal-title { font-size: 1rem; font-weight: 900; margin-bottom: 16px; }
+.mch-form-group { margin-bottom: 14px; }
+.mch-form-label { font-size: .8rem; font-weight: 800; color: var(--text2); margin-bottom: 5px; display: block; }
+.mch-form-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--grey); font-family: var(--font); font-size: .95rem; font-weight: 700; outline: none; transition: border .15s; }
+.mch-form-input:focus { border-color: var(--orange); }
+.mch-img-upload-area { display: flex; align-items: center; gap: 12px; }
+.mch-img-preview { width: 64px; height: 64px; border-radius: 14px; background: var(--orange-l); display: grid; place-items: center; font-size: 2rem; flex-shrink: 0; overflow: hidden; border: 2px solid var(--grey); }
+.mch-img-preview img { width: 100%; height: 100%; object-fit: cover; }
+.mch-img-upload-btns { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.mch-img-btn { width: 100%; padding: 9px 12px; border-radius: 10px; border: 2px solid var(--grey); background: var(--grey-l); font-family: var(--font); font-size: .82rem; font-weight: 800; cursor: pointer; text-align: center; transition: all .15s; color: var(--text); }
+.mch-img-btn:active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+.mch-img-btn.remove { color: var(--red); border-color: var(--red); background: #fff5f5; }
+.mch-img-btn.remove:active { background: #fde8e8; }
+.mch-emoji-picker-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.mch-emoji-opt { width: 38px; height: 38px; border-radius: 9px; border: 2px solid var(--grey); background: var(--grey-l); cursor: pointer; font-size: 1.3rem; display: grid; place-items: center; transition: all .15s; }
+.mch-emoji-opt.active { border-color: var(--orange); background: var(--orange-l); }
+.mch-emoji-opt:active { transform: scale(.9); }
+.mch-modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+.mch-btn-cancel { flex: 1; padding: 11px; border-radius: 10px; border: 2px solid var(--grey); background: white; font-family: var(--font); font-size: .9rem; font-weight: 800; cursor: pointer; }
+.mch-btn-confirm { flex: 2; padding: 11px; border-radius: 10px; border: none; background: var(--orange); color: white; font-family: var(--font); font-size: .9rem; font-weight: 800; cursor: pointer; }
+.mch-btn-confirm:active { background: var(--orange-d); }
+.mch-btn-danger { flex: 1; padding: 11px; border-radius: 10px; border: 2px solid var(--red); background: white; color: var(--red); font-family: var(--font); font-size: .9rem; font-weight: 800; cursor: pointer; }
+/* ══ /MARCHANDS ═════════════════════════════════════════════════════════════ */
 
 </style>
 </head>
@@ -2452,6 +2511,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
     </div>
 
+    <!-- ══ PAGE MARCHANDS ═══════════════════════════════════════════════════ -->
+    <div id="page-marchands" class="page">
+      <div class="mch-content" id="mch-content">
+        <div class="mch-empty"><div class="mch-empty-ico">🏪</div><div class="mch-empty-txt">Chargement…</div></div>
+      </div>
+    </div>
 
   </div><!-- /content -->
 
@@ -2545,6 +2610,68 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
 
   </div>
+  <!-- ── MODAL MARCHAND ── -->
+  <div class="mch-overlay" id="mch-modal">
+    <div class="mch-modal-box">
+      <div class="mch-modal-title" id="mch-modal-title">Nouveau marchand</div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">Image du marchand</label>
+        <div class="mch-img-upload-area">
+          <div class="mch-img-preview" id="mch-img-preview">🏪</div>
+          <div class="mch-img-upload-btns">
+            <label class="mch-img-btn" for="mch-file-input">📁 Choisir une image</label>
+            <input type="file" id="mch-file-input" accept="image/*" onchange="_mchHandleImageUpload(event)" style="display:none">
+            <button class="mch-img-btn remove" id="mch-img-remove" onclick="_mchRemoveImage()" style="display:none">✕ Supprimer l'image</button>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
+      </div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">Ou choisir un emoji</label>
+        <div class="mch-emoji-picker-row" id="mch-emoji-picker"></div>
+      </div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">Nom du marchand</label>
+        <input class="mch-form-input" id="mch-nom-input" type="text" placeholder="Ex: Carrefour Magasin" maxlength="40">
+      </div>
+      <div class="mch-modal-btns">
+        <button class="mch-btn-cancel" onclick="_mchCloseModalMarchand()">Annuler</button>
+        <button class="mch-btn-confirm" onclick="_mchSaveMarchand()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL RAYON ── -->
+  <div class="mch-overlay" id="mch-ray-modal">
+    <div class="mch-modal-box">
+      <div class="mch-modal-title" id="mch-ray-modal-title">Nouveau rayon</div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">Emoji</label>
+        <div class="mch-emoji-picker-row" id="mch-ray-emoji-picker"></div>
+      </div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">Nom du rayon</label>
+        <input class="mch-form-input" id="mch-ray-nom-input" type="text" placeholder="Ex: Fruits & Légumes" maxlength="40">
+      </div>
+      <div class="mch-modal-btns">
+        <button class="mch-btn-cancel" onclick="_mchCloseModalRayon()">Annuler</button>
+        <button class="mch-btn-confirm" onclick="_mchSaveRayon()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL CONFIRMATION MARCHANDS ── -->
+  <div class="mch-overlay" id="mch-confirm-modal">
+    <div class="mch-modal-box">
+      <div class="mch-modal-title" id="mch-confirm-title">Supprimer ?</div>
+      <p id="mch-confirm-body" style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5"></p>
+      <div class="mch-modal-btns" style="margin-top:18px">
+        <button class="mch-btn-cancel" onclick="_mchCloseConfirm()">Annuler</button>
+        <button class="mch-btn-danger" id="mch-confirm-ok-btn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DRAWER -->
   <div class="drawer-overlay" id="overlay" onclick="toggleDrawer()"></div>
   <div class="drawer" id="drawer">
@@ -2563,6 +2690,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-item"><div class="d-icon">📋</div> Historique</div>
       <div class="drawer-sep"></div>
             <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Gérer les ingrédients</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Gérer les marchands</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item"><div class="d-icon">⚙️</div> Zones de rangement</div>
       <div class="drawer-item"><div class="d-icon">🔔</div> Alertes de stock</div>
@@ -2780,6 +2908,7 @@ const PAGE_CONFIG = {
   menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
+  marchands:   { title: '🏪 Marchands', fab: true,  search: false, fabIcon: '+', dark: false },
 };
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
@@ -2842,6 +2971,7 @@ function switchPage(tab, page, title) {
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
   if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
+  if (page === 'marchands'   && typeof _mchLoad === 'function') _mchLoad();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -2849,8 +2979,9 @@ function fabAction() {
   const active = document.querySelector('.page.active');
   if (!active) return;
   const page = active.id.replace('page-', '');
-  if (page === 'stock')    { if(typeof openScanner==='function') openScanner(); return; }
-  if (page === 'courses')  { clFabAction(); return; }
+  if (page === 'stock')     { if(typeof openScanner==='function') openScanner(); return; }
+  if (page === 'courses')   { clFabAction(); return; }
+  if (page === 'marchands') { _mchOpenModalMarchand(); return; }
   showToast('Bientôt disponible', 'warn');
 }
 
@@ -5737,6 +5868,380 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 })();
+
+// ════════════════════════════════════════════════════════════════════════════
+// MARCHANDS
+// ════════════════════════════════════════════════════════════════════════════
+
+const _MCH_EMOJIS = ['🏪','🛒','🚗','🌿','🏬','🧺','🛍️','🍃','🌾','🔵','🟠','🏷️'];
+const _RAY_EMOJIS = ['🥦','🥩','🥛','🍞','🫙','🧃','❄️','🐟','🧴','🍷','🫒','🌾','🧂','🧁','🍫','📦','🥚','🧅','🫐','🍋'];
+
+let _mchData = [];
+let _mchLoading = false;
+
+async function _mchLoad() {
+  if (_mchLoading) return;
+  _mchLoading = true;
+  document.getElementById('mch-content').innerHTML = '<div class="mch-empty"><div class="mch-empty-ico">⏳</div><div class="mch-empty-txt">Chargement…</div></div>';
+  try {
+    const r = await fetch('/api/marchands');
+    if (!r.ok) throw new Error(await r.text());
+    _mchData = await r.json();
+    _mchRender();
+  } catch(e) {
+    showToast('Erreur chargement marchands', 'err');
+    document.getElementById('mch-content').innerHTML = '<div class="mch-empty"><div class="mch-empty-ico">⚠️</div><div class="mch-empty-txt">Erreur de chargement</div></div>';
+  } finally {
+    _mchLoading = false;
+  }
+}
+
+function _mchRender() {
+  const container = document.getElementById('mch-content');
+  if (!_mchData.length) {
+    container.innerHTML = `<div class="mch-empty"><div class="mch-empty-ico">🏪</div><div class="mch-empty-txt">Aucun marchand<br><span style="font-weight:400;font-size:.82rem">Appuie sur "+" pour commencer</span></div></div>`;
+    return;
+  }
+  container.innerHTML = _mchData.map(m => _mchRenderMarchand(m)).join('');
+  _mchData.forEach(m => _mchInitDragDrop(m.id));
+}
+
+function _mchRenderMarchand(m) {
+  const nb = m.rayons.length;
+  const rayonsHTML = nb
+    ? m.rayons.map(r => _mchRenderRayon(m.id, r)).join('')
+    : '<div style="font-size:.82rem;color:var(--text2);font-weight:600;padding:4px 2px">Aucun rayon — ajoutes-en un !</div>';
+  return `
+  <div class="mch-card" id="mch-card-${m.id}">
+    <div class="mch-head">
+      <div class="mch-logo" onclick="_mchOpenModalMarchand(${m.id})">${_mchLogoHTML(m)}</div>
+      <div class="mch-info">
+        <div class="mch-nom">${_mchEscH(m.nom)}</div>
+        <div class="mch-sub">${nb} rayon${nb>1?'s':''}</div>
+      </div>
+      <div class="mch-actions">
+        <button class="mch-btn" onclick="_mchOpenModalMarchand(${m.id})">✏️</button>
+        <button class="mch-btn" onclick="_mchConfirmDeleteMarchand(${m.id})">🗑</button>
+      </div>
+    </div>
+    <div class="mch-rayons-section">
+      <div class="mch-rayons-label"><span>Rayons — ordre de parcours</span><span>↕ glisser pour réordonner</span></div>
+      <div class="mch-rayon-list" id="mch-rayon-list-${m.id}">${rayonsHTML}</div>
+      <div class="mch-rayon-add-row" onclick="_mchOpenModalRayon(${m.id})"><span style="font-size:1.1rem">＋</span> Ajouter un rayon</div>
+    </div>
+  </div>`;
+}
+
+function _mchRenderRayon(mId, r) {
+  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}" draggable="true">
+    <div class="mch-rayon-handle">⠿</div>
+    <div class="mch-rayon-emoji">${r.emoji}</div>
+    <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
+    <div class="mch-rayon-actions">
+      <button class="mch-rayon-action-btn" onclick="_mchOpenModalRayon(${mId},${r.id})">✏️</button>
+      <button class="mch-rayon-action-btn" onclick="_mchConfirmDeleteRayon(${mId},${r.id})">🗑</button>
+    </div>
+  </div>`;
+}
+
+function _mchLogoHTML(m) {
+  if (m.image) return `<img src="${m.image}" alt="${_mchEscH(m.nom)}">`;
+  return m.emoji || '🏪';
+}
+
+function _mchEscH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+
+let _mchCurrentImage = null;
+let _mchSelEmoji = '🏪';
+let _mchEditId = null;
+
+function _mchHandleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Format non supporté', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _mchResizeImage(e.target.result, 200, 200, (resized) => {
+      _mchCurrentImage = resized;
+      _mchSelEmoji = null;
+      _mchUpdateImagePreview();
+      document.querySelectorAll('#mch-emoji-picker .mch-emoji-opt').forEach(o => o.classList.remove('active'));
+    });
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function _mchResizeImage(dataUrl, maxW, maxH, callback) {
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    if (w > h) { h = Math.round(h * maxW / w); w = maxW; }
+    else        { w = Math.round(w * maxH / h); h = maxH; }
+    canvas.width = maxW; canvas.height = maxH;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, maxW, maxH);
+    ctx.drawImage(img, Math.round((maxW-w)/2), Math.round((maxH-h)/2), w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.82));
+  };
+  img.src = dataUrl;
+}
+
+function _mchRemoveImage() {
+  _mchCurrentImage = null;
+  document.getElementById('mch-file-input').value = '';
+  _mchUpdateImagePreview();
+}
+
+function _mchUpdateImagePreview() {
+  const preview   = document.getElementById('mch-img-preview');
+  const removeBtn = document.getElementById('mch-img-remove');
+  if (_mchCurrentImage) {
+    preview.innerHTML = `<img src="${_mchCurrentImage}" alt="aperçu">`;
+    removeBtn.style.display = 'block';
+  } else {
+    preview.innerHTML = _mchSelEmoji || '🏪';
+    removeBtn.style.display = 'none';
+  }
+}
+
+// ── Modal marchand ────────────────────────────────────────────────────────────
+
+function _mchOpenModalMarchand(id) {
+  _mchEditId = id || null;
+  const nomInp = document.getElementById('mch-nom-input');
+  document.getElementById('mch-modal-title').textContent = id ? 'Modifier le marchand' : 'Nouveau marchand';
+  if (id) {
+    const m = _mchData.find(x => x.id === id);
+    nomInp.value     = m.nom;
+    _mchCurrentImage = m.image || null;
+    _mchSelEmoji     = m.image ? null : (m.emoji || '🏪');
+  } else {
+    nomInp.value     = '';
+    _mchCurrentImage = null;
+    _mchSelEmoji     = '🏪';
+  }
+  _mchRenderEmojiPicker('mch-emoji-picker', _MCH_EMOJIS, _mchSelEmoji, (e) => {
+    _mchSelEmoji = e; _mchCurrentImage = null; _mchUpdateImagePreview();
+  });
+  _mchUpdateImagePreview();
+  document.getElementById('mch-modal').classList.add('open');
+  setTimeout(() => nomInp.focus(), 120);
+}
+
+function _mchCloseModalMarchand() {
+  document.getElementById('mch-modal').classList.remove('open');
+}
+
+async function _mchSaveMarchand() {
+  const nom = document.getElementById('mch-nom-input').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
+  const emoji = _mchCurrentImage ? '🏪' : (_mchSelEmoji || '🏪');
+  const image = _mchCurrentImage || null;
+  try {
+    if (_mchEditId) {
+      await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji, image}) });
+      showToast('Marchand modifié ✓', 'ok');
+    } else {
+      await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji, image}) });
+      showToast('Marchand ajouté ✓', 'ok');
+    }
+    _mchCloseModalMarchand();
+    await _mchLoad();
+  } catch(e) { showToast('Erreur lors de l\'enregistrement', 'err'); }
+}
+
+// ── Modal rayon ───────────────────────────────────────────────────────────────
+
+let _mchEditRayonMId = null;
+let _mchEditRayonId  = null;
+let _mchSelRayEmoji  = '📦';
+
+function _mchOpenModalRayon(mId, rId) {
+  _mchEditRayonMId = mId;
+  _mchEditRayonId  = rId || null;
+  const nomInp = document.getElementById('mch-ray-nom-input');
+  document.getElementById('mch-ray-modal-title').textContent = rId ? 'Modifier le rayon' : 'Nouveau rayon';
+  if (rId) {
+    const r = _mchData.find(x => x.id === mId).rayons.find(x => x.id === rId);
+    nomInp.value    = r.nom;
+    _mchSelRayEmoji = r.emoji;
+  } else {
+    nomInp.value    = '';
+    _mchSelRayEmoji = '📦';
+  }
+  _mchRenderEmojiPicker('mch-ray-emoji-picker', _RAY_EMOJIS, _mchSelRayEmoji, (e) => { _mchSelRayEmoji = e; });
+  document.getElementById('mch-ray-modal').classList.add('open');
+  setTimeout(() => nomInp.focus(), 120);
+}
+
+function _mchCloseModalRayon() {
+  document.getElementById('mch-ray-modal').classList.remove('open');
+}
+
+async function _mchSaveRayon() {
+  const nom = document.getElementById('mch-ray-nom-input').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
+  try {
+    if (_mchEditRayonId) {
+      await fetch(`/api/marchands/${_mchEditRayonMId}/rayons/${_mchEditRayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
+      showToast('Rayon modifié ✓', 'ok');
+    } else {
+      await fetch(`/api/marchands/${_mchEditRayonMId}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
+      showToast('Rayon ajouté ✓', 'ok');
+    }
+    _mchCloseModalRayon();
+    await _mchLoad();
+  } catch(e) { showToast('Erreur lors de l\'enregistrement', 'err'); }
+}
+
+// ── Confirmations suppression ─────────────────────────────────────────────────
+
+function _mchOpenConfirm(title, body, cb) {
+  document.getElementById('mch-confirm-title').textContent = title;
+  document.getElementById('mch-confirm-body').textContent  = body;
+  document.getElementById('mch-confirm-ok-btn').onclick = () => { _mchCloseConfirm(); cb(); };
+  document.getElementById('mch-confirm-modal').classList.add('open');
+}
+function _mchCloseConfirm() { document.getElementById('mch-confirm-modal').classList.remove('open'); }
+
+function _mchConfirmDeleteMarchand(id) {
+  const m = _mchData.find(x => x.id === id);
+  _mchOpenConfirm(
+    `Supprimer "${m.nom}" ?`,
+    `Ce marchand et ses ${m.rayons.length} rayon(s) seront supprimés définitivement.`,
+    async () => {
+      try {
+        await fetch(`/api/marchands/${id}`, { method:'DELETE' });
+        showToast('Marchand supprimé', 'warn');
+        await _mchLoad();
+      } catch(e) { showToast('Erreur suppression', 'err'); }
+    }
+  );
+}
+
+function _mchConfirmDeleteRayon(mId, rId) {
+  const m = _mchData.find(x => x.id === mId);
+  const r = m.rayons.find(x => x.id === rId);
+  _mchOpenConfirm(
+    `Supprimer le rayon "${r.nom}" ?`,
+    `Il sera retiré de "${m.nom}".`,
+    async () => {
+      try {
+        await fetch(`/api/marchands/${mId}/rayons/${rId}`, { method:'DELETE' });
+        showToast('Rayon supprimé', 'warn');
+        await _mchLoad();
+      } catch(e) { showToast('Erreur suppression', 'err'); }
+    }
+  );
+}
+
+// ── Emoji picker ──────────────────────────────────────────────────────────────
+
+function _mchRenderEmojiPicker(containerId, emojis, selected, onSelect) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = emojis.map(e =>
+    `<div class="mch-emoji-opt${e === selected ? ' active' : ''}" onclick="_mchSelectEmoji(this,'${containerId}',${JSON.stringify(e)})">${e}</div>`
+  ).join('');
+  container._onSelect = onSelect;
+}
+
+function _mchSelectEmoji(el, containerId, emoji) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.mch-emoji-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  if (container._onSelect) container._onSelect(emoji);
+}
+
+// ── Drag & Drop rayons ────────────────────────────────────────────────────────
+
+function _mchInitDragDrop(mId) {
+  const list = document.getElementById(`mch-rayon-list-${mId}`);
+  if (!list) return;
+  let dragSrc = null;
+
+  list.querySelectorAll('.mch-rayon-row').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragSrc = row; row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
+      _mchCommitOrder(mId, list);
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (row === dragSrc) return;
+      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+      const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+      list.insertBefore(dragSrc, e.clientY < mid ? row : row.nextSibling);
+    });
+    row.addEventListener('drop', e => e.preventDefault());
+
+    let touchStartY = 0, touchClone = null;
+    row.addEventListener('touchstart', e => {
+      dragSrc = row; touchStartY = e.touches[0].clientY;
+      row.classList.add('dragging');
+      touchClone = row.cloneNode(true);
+      const rect = row.getBoundingClientRect();
+      Object.assign(touchClone.style, {
+        position:'fixed', left:rect.left+'px', top:rect.top+'px',
+        width:rect.width+'px', opacity:'.85', zIndex:'9999',
+        pointerEvents:'none', borderRadius:'10px',
+        background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+      });
+      document.body.appendChild(touchClone);
+    }, { passive: true });
+
+    row.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const dy = touch.clientY - touchStartY;
+      if (touchClone) {
+        const rect = dragSrc.getBoundingClientRect();
+        touchClone.style.top = (rect.top + dy) + 'px';
+      }
+      const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+      const target = els.find(el => el.classList.contains('mch-rayon-row') && el !== dragSrc && el.closest(`#mch-rayon-list-${mId}`));
+      if (target) {
+        list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+        const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+        list.insertBefore(dragSrc, touch.clientY < mid ? target : target.nextSibling);
+      }
+    }, { passive: false });
+
+    row.addEventListener('touchend', () => {
+      row.classList.remove('dragging');
+      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      _mchCommitOrder(mId, list);
+    });
+  });
+}
+
+async function _mchCommitOrder(mId, list) {
+  const order = [];
+  list.querySelectorAll('.mch-rayon-row').forEach((row, i) => {
+    order.push({ id: parseInt(row.dataset.rayonId), position: i });
+  });
+  try {
+    await fetch(`/api/marchands/${mId}/rayons/order`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });
+  } catch(e) { showToast('Erreur sauvegarde ordre', 'err'); }
+}
+
+// Fermer les modaux marchands en cliquant sur l'overlay
+['mch-modal','mch-ray-modal','mch-confirm-modal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
 
 </script>
 </body>
