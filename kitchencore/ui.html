@@ -1205,6 +1205,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-sg      { background:white;border:1px solid var(--grey);border-radius:10px;overflow:hidden;display:none;box-shadow:var(--shadow);margin-bottom:10px; }
 .m-sg.on   { display:block; }
 .m-si2     { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--grey-l); }
+.m-si2-th  { width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ebebeb; }
+.m-si2-th img { width:100%;height:100%;object-fit:cover; }
+.m-si2-ini { font-size:.75rem;font-weight:900;color:#a0a0a0;letter-spacing:-.02em; }
+.m-si2-emo { font-size:1.1rem; }
 .m-si2:last-child{border-bottom:none}
 .m-si2:active{background:var(--orange-l)}
 .m-ok      { width:100%;padding:.85rem;border-radius:12px;border:none;background:var(--orange);color:white;font-size:.92rem;font-weight:800;font-family:var(--font);cursor:pointer;margin-top:4px; }
@@ -3951,16 +3955,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ════════════════════════════════════════════════════════════════════════════
 // PAGE MENU — Timeline + Modal + Drag&Drop (v0.5)
 // ════════════════════════════════════════════════════════════════════════════
-const MR = [
-  {n:'Poulet basquaise',e:'🫕',t:'one pot'},{n:'Tarte tatin poireaux',e:'🥧',t:'tarte'},
-  {n:'Soupe lentilles',e:'🍲',t:'soupe'},{n:'Tagliatelles asperges',e:'🍝',t:'pâtes'},
-  {n:'Mousse chocolat',e:'🍰',t:'dessert'},{n:'Buddha bowl',e:'🥗',t:'salade'},
-  {n:'Pizza maison',e:'🍕',t:'pizza'},{n:'Quiche lorraine',e:'🥧',t:'tarte'},
-  {n:'Risotto champignons',e:'🍚',t:'riz'},{n:'Gratin dauphinois',e:'🥔',t:'gratin'},
-  {n:'Saumon papillote',e:'🐟',t:'poisson'},{n:'Steak frites',e:'🥩',t:'viande'},
-  {n:'Omelette champignons',e:'🍳',t:'rapide'},{n:'Curry pois chiches',e:'🍛',t:'végé'},
-  {n:'Crêpes maison',e:'🥞',t:'dessert'},
-];
 const MC = {
   p:{l:'Petit-déj',s:'sp',t:'tp',e:'🌅',o:0},
   d:{l:'Déjeuner', s:'sd',t:'td',e:'☀️',o:1},
@@ -4088,15 +4082,17 @@ function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remo
 function mSrch(v){
   _mP=null; const q=v.trim().toLowerCase(); const w=document.getElementById('m-sg');
   if(!q){w.className='m-sg';return;}
-  // Chercher d'abord dans les recettes localStorage, puis dans MR
-  const rvList = (typeof _rv !== 'undefined') ? _rv : [];
-  const rvHits = rvList.filter(r=>r.nom.toLowerCase().includes(q)).slice(0,4)
-    .map(r=>({n:r.nom,e:r.emoji||'🍽️',t:'recette'}));
-  const mrHits = MR.filter(r=>r.n.toLowerCase().includes(q))
-    .filter(r=>!rvHits.find(h=>h.n===r.n)).slice(0,5-rvHits.length);
-  const hits = [...rvHits, ...mrHits];
-  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.n.replace(/'/g,"\'")}','${r.e}')"><span style="font-size:1.1rem">${r.e}</span><span style="font-size:.87rem;font-weight:700;flex:1">${r.n}</span><span style="font-size:.7rem;color:var(--grey-d)">${r.t}</span></div>`).join('')
-    +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\'")}','📝')"><span style="font-size:1.1rem">📝</span><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
+  const rvList=(typeof _rv!=='undefined')?_rv:[];
+  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q)).slice(0,5);
+  const mkThumb=r=>{
+    const ini=r.nom.trim().substring(0,2).toUpperCase();
+    return r.photo
+      ?`<div class="m-si2-th"><img src="${r.photo}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+      :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
+  };
+  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}')">
+    ${mkThumb(r)}<span style="font-size:.87rem;font-weight:700;flex:1">${r.nom}</span><span style="font-size:.7rem;color:var(--grey-d)">recette</span></div>`).join('')
+    +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\\'")}','📝')"><div class="m-si2-th"><span class="m-si2-emo">📝</span></div><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
   w.className='m-sg on';
 }
 function mPk(n,e){
@@ -4117,8 +4113,9 @@ function _mPortRender(){
   const el=document.getElementById('m-portval'); if(el) el.textContent=_mPortions;
 }
 function mRnd(){
-  const pool = [...MR, ...(typeof _rv!=='undefined'?_rv.map(r=>({n:r.nom,e:r.emoji||'🍽️'})):[])];
-  const r=pool[Math.floor(Math.random()*pool.length)]; mPk(r.n||r.nom,r.e||r.emoji||'🍽️');
+  const pool=(typeof _rv!=='undefined')?_rv:[];
+  if(!pool.length)return;
+  const r=pool[Math.floor(Math.random()*pool.length)]; mPk(r.nom,r.emoji||'🍽️');
   const b=document.getElementById('m-rd');
   b.style.transition='transform .4s ease'; b.style.transform='rotate(360deg)';
   setTimeout(()=>{b.style.transform='';},420);
