@@ -1608,6 +1608,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .frame > .ing-bottom-sheet .name-option.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
   .frame > .ing-bottom-sheet .name-option .check { font-size: 16px; opacity: 0; transition: opacity .15s; }
   .frame > .ing-bottom-sheet .name-option.active .check { opacity: 1; }
+  .frame > .ing-bottom-sheet .name-option-avatar {
+    width: 36px; height: 36px; flex-shrink: 0;
+    border-radius: 8px; background: #dde2e7;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 900; color: #7a8694;
+    overflow: hidden; margin-right: 10px;
+  }
+  .frame > .ing-bottom-sheet .name-option-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .frame > .ing-bottom-sheet .form-label {
     display: block; font-size: 13px; font-weight: 700;
     color: var(--grey-d); margin-bottom: 6px;
@@ -5423,12 +5431,17 @@ function _ingOpenMergeSheet() {
   document.getElementById('ing-mergeImpact').innerHTML =
     `Impactera <strong>${totalRecipes} recette(s)</strong> — l'ingrédient choisi remplacera tous les autres`;
 
-  document.getElementById('ing-mergeNameOptions').innerHTML = items.map(i =>
-    `<div class="name-option" onclick="ingSelectMergeName(this)" data-name="${i.name.replace(/"/g, '&quot;')}">
-      ${i.name}
+  document.getElementById('ing-mergeNameOptions').innerHTML = items.map(i => {
+    const ini = (i.name || '?').slice(0, 2).toUpperCase();
+    const avatar = i.imageUrl
+      ? `<div class="name-option-avatar"><img src="${i.imageUrl}" onerror="this.style.display='none';this.insertAdjacentText('afterend','${ini.replace(/'/g,"\\'")}')"></div>`
+      : `<div class="name-option-avatar">${ini}</div>`;
+    return `<div class="name-option" onclick="ingSelectMergeName(this)" data-name="${i.name.replace(/"/g, '&quot;')}">
+      ${avatar}
+      <span style="flex:1">${i.name}</span>
       <span class="check">✓</span>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 
   document.getElementById('ing-mergeCustomName').value = '';
   _ingShowSheet('ing-mergeSheet');
