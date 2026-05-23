@@ -184,10 +184,40 @@ app.patch('/api/ingredients/:id', (req, res) => {
 });
 
 app.delete('/api/ingredients/:id', (req, res) => {
-  const n = db.prepare('SELECT COUNT(*) as n FROM produits WHERE ingredient_id=?').get(req.params.id).n;
-  if (n > 0) return res.status(409).json({ error: `${n} produit(s) lié(s)` });
+  try {
+    const n = db.prepare('SELECT COUNT(*) as n FROM produits WHERE ingredient_id=?').get(req.params.id).n;
+    if (n > 0) return res.status(409).json({ error: `${n} produit(s) lié(s)` });
+  } catch(_) {}
   db.prepare('DELETE FROM ingredients WHERE id=?').run(req.params.id);
   res.status(204).end();
+});
+
+app.post('/api/ingredients/merge', (req, res) => {
+  const { keep_id, merge_ids, name } = req.body;
+  if (!keep_id || !name || !Array.isArray(merge_ids))
+    return res.status(400).json({ error: 'keep_id, name et merge_ids requis' });
+
+  const doMerge = db.transaction(() => {
+    const kept = db.prepare('SELECT nom FROM ingredients WHERE id=?').get(keep_id);
+    db.prepare('UPDATE ingredients SET nom=? WHERE id=?').run(name, keep_id);
+    if (kept && kept.nom !== name) {
+      db.prepare('UPDATE recette_ingredients SET nom=? WHERE nom=?').run(name, kept.nom);
+    }
+    for (const id of merge_ids) {
+      const ing = db.prepare('SELECT nom FROM ingredients WHERE id=?').get(id);
+      if (!ing) continue;
+      db.prepare('UPDATE recette_ingredients SET nom=? WHERE nom=?').run(name, ing.nom);
+      try { db.prepare('UPDATE produits SET ingredient_id=? WHERE ingredient_id=?').run(keep_id, id); } catch(_) {}
+      db.prepare('DELETE FROM ingredients WHERE id=?').run(id);
+    }
+  });
+
+  try {
+    doMerge();
+    res.json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(keep_id));
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // FIX #5 — Route search ajoutée (manquait, utilisée par l'autocomplétion recettes)

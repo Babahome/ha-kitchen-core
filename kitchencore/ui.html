@@ -5041,7 +5041,9 @@ async function _ingDeleteIngredient() {
   const id = document.getElementById('ing-editIngId').value;
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
-  if (!confirm('Supprimer cet ingrédient ?')) return;
+  const rc = ing.usedIn ? ing.usedIn.length : 0;
+  const warn = rc > 0 ? `\n⚠️ Utilisé dans ${rc} recette${rc>1?'s':''}.` : '';
+  if (!confirm(`Supprimer "${ing.name}" ?${warn}`)) return;
   try {
     const res = await fetch('/api/ingredients/'+ing._dbId, { method:'DELETE' });
     if (res.status === 409) { const d=await res.json(); _ingToast(d.error||'Impossible de supprimer'); return; }
@@ -5128,19 +5130,18 @@ async function _ingConfirmMerge() {
 
   if (!canonical) return;
 
+  const mergeIds = idsToMerge
+    .filter(id => id !== canonical.id)
+    .map(id => { const o = _ingAll.find(i => i.id === id); return o ? o._dbId : null; })
+    .filter(Boolean);
+
   try {
-    // 1. Renommer le canonical via API
-    await fetch('/api/ingredients/'+canonical._dbId, {
-      method: 'PATCH',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nom: canonicalName })
+    const res = await fetch('/api/ingredients/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keep_id: canonical._dbId, merge_ids: mergeIds, name: canonicalName })
     });
-    // 2. Supprimer les doublons via API
-    for (const id of idsToMerge) {
-      if (id === canonical.id) continue;
-      const other = _ingAll.find(i => i.id === id);
-      if (other) await fetch('/api/ingredients/'+other._dbId, { method:'DELETE' });
-    }
+    if (!res.ok) { const d = await res.json(); _ingToast(d.error || 'Erreur fusion'); return; }
     await _ingLoadData();
     _ingSelectedIds.clear();
     _ingSelectMode = false;
@@ -5157,7 +5158,12 @@ async function _ingDeleteSelected() {
   const ids = [..._ingSelectedIds];
   if (!ids.length) return;
   const names = ids.map(id => (_ingAll.find(i => i.id === id) || {}).name).filter(Boolean).join(', ');
-  if (!confirm(`Supprimer ${ids.length} ingrédient(s) ?\n${names}`)) return;
+  const withRecipes = ids.map(id => {
+    const ing = _ingAll.find(i => i.id === id);
+    return ing && ing.usedIn && ing.usedIn.length > 0 ? `${ing.name} (${ing.usedIn.length} recette${ing.usedIn.length>1?'s':''})` : null;
+  }).filter(Boolean);
+  const warn = withRecipes.length > 0 ? `\n⚠️ Utilisé dans des recettes : ${withRecipes.join(', ')}` : '';
+  if (!confirm(`Supprimer ${ids.length} ingrédient(s) ?\n${names}${warn}`)) return;
   let ok = 0, blocked = 0;
   for (const id of ids) {
     const ing = _ingAll.find(i => i.id === id);
