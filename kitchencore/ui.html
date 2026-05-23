@@ -922,8 +922,15 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .p-scroll   { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch; }
 .p-scroll::-webkit-scrollbar{ display:none; }
 
-.d-hero     { width:100%;aspect-ratio:16/9;background:var(--orange-l);display:flex;align-items:center;justify-content:center;font-size:5rem;overflow:hidden;flex-shrink:0; }
+.d-hero     { width:100%;aspect-ratio:16/9;background:var(--orange-l);display:flex;align-items:center;justify-content:center;font-size:5rem;overflow:hidden;flex-shrink:0;position:relative; }
 .d-hero img { width:100%;height:100%;object-fit:cover; }
+.d-fav-btn  { position:absolute;bottom:10px;right:10px;width:36px;height:36px;
+              border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;
+              background:rgba(255,255,255,.88);backdrop-filter:blur(4px);
+              display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.2);
+              color:var(--grey-d);transition:all .15s;z-index:2; }
+.d-fav-btn.on { color:#f87171; }
+.d-fav-btn:active { transform:scale(.9); }
 .d-meta     { padding:16px; }
 .d-nom      { font-size:1.4rem;font-weight:900;line-height:1.2;margin-bottom:8px; }
 .d-tags     { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px; }
@@ -3425,6 +3432,7 @@ async function openDetail(id) {
       ${r.photo
         ? `<img src="${r.photo}" onerror="this.style.display='none'">`
         : `<span class="rcard-initials" style="font-size:3.5rem">${initials}</span>`}
+      <button class="d-fav-btn${r.favori?' on':''}" onclick="toggleFav('${id}')">${r.favori?'♥':'♡'}</button>
     </div>
     <div class="d-meta">
       <div class="d-nom">${r.nom}</div>
@@ -3435,9 +3443,6 @@ async function openDetail(id) {
         ${r.temps_cuisson?`<div class="d-info"><div class="d-info-v">🔥 ${r.temps_cuisson}min</div><div class="d-info-l">cuisson</div></div>`:''}
       </div>
       <div class="d-stars">${stars}</div>
-    </div>
-    <div class="d-acts">
-      <button class="d-act ghost" style="flex:.6" onclick="toggleFav('${id}')">${r.favori?'♥':'♡'}</button>
     </div>
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
     ${steps?`<div class="d-sec"><div class="d-sec-ttl">Préparation</div>${steps}</div>`:''}
@@ -3539,9 +3544,6 @@ function buildFormV3(r) {
   // Tags
   _eSelTags = r ? [...(r.tags||[])] : [];
   ev3RenderTags();
-
-  // Fermer le picker emoji si ouvert
-  document.getElementById('ev3-emoji-panel').style.display = 'none';
 
   renderIngrs(); renderSteps();
 }
