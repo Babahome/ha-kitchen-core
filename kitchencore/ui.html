@@ -1216,6 +1216,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:white;color:var(--orange);font-size:1.1rem;font-weight:900;cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:0 1px 3px rgba(0,0,0,.1); }
 .m-portbtn:active { background:var(--orange);color:white; }
 .m-portval { font-size:1rem;font-weight:900;color:var(--text);min-width:24px;text-align:center; }
+.m-thumb { width:52px;flex-shrink:0;align-self:stretch;overflow:hidden;display:flex;align-items:center;justify-content:center; }
+.m-thumb img { width:100%;height:100%;object-fit:cover; }
+.m-thumb-ini { width:100%;height:100%;background:#ebebeb;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#a0a0a0;letter-spacing:-.02em; }
+.m-thumb-emo { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem; }
 
 
 
@@ -3986,19 +3990,29 @@ function mBuild(){
     const b=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
     const l=i===0?'📍 Aujourd\'hui — '+b:i===1?'Demain — '+b:i===-1?'Hier — '+b:b;
     const rp=_md[k]||[];
+    const rvList=(typeof _rv!=='undefined')?_rv:[];
     const cards=rp.map((r,x)=>{
       const c=MC[r.t]||MC.a;
       const tCls = r.t==='g' ? 'tg2' : c.t;
       const portStr = r.portions ? `<span class="m-port">👥 ${r.portions} port.</span>` : '';
+      const rvMatch=rvList.find(v=>v.nom&&v.nom.toLowerCase()===r.n.toLowerCase());
+      const photo=r.photo||(rvMatch&&rvMatch.photo)||null;
+      const ini=r.n.trim().substring(0,2).toUpperCase();
+      const thumbHtml=photo
+        ?`<div class="m-thumb"><img src="${photo}" onerror="this.parentElement.innerHTML='<div class=\\'m-thumb-ini\\'>${ini}</div>'"></div>`
+        :rvMatch
+          ?`<div class="m-thumb"><div class="m-thumb-ini">${ini}</div></div>`
+          :`<div class="m-thumb"><div class="m-thumb-emo">${r.e||'🍽️'}</div></div>`;
       return `<div class="mcard" id="mc-${k}-${x}" data-k="${k}" data-x="${x}">
         <div class="m-grip" draggable="true"
           ondragstart="mDS(event,'${k}',${x})" ondragend="mDE()"
           ontouchstart="mTS(event,'${k}',${x})" ontouchmove="mTM(event)" ontouchend="mTE(event)">⠿</div>
         <div class="m-sel"><span class="m-sel-box">✓</span></div>
         <div class="m-st ${c.s}"></div>
+        ${thumbHtml}
         <div class="m-bd">
           <div class="m-tg ${tCls}">${c.e} ${c.l}${portStr}</div>
-          <div class="m-nm">${r.e||'🍽️'} ${r.n}</div>
+          <div class="m-nm">${r.n}</div>
           ${r.note?`<div class="m-nt">${r.note}</div>`:''}
         </div>
         <div class="m-bts">
@@ -4089,12 +4103,10 @@ function mPk(n,e){
   _mP={n,e};
   document.getElementById('m-si').value=n;
   document.getElementById('m-sg').className='m-sg';
-  // Si on n'est pas en mode édition et qu'on trouve la recette → pré-remplir portions
-  if(_mEditIdx===null){
-    const rvList = (typeof _rv!=='undefined') ? _rv : [];
-    const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===n.toLowerCase());
-    if(r && r.portions) { _mPortions = r.portions; _mPortRender(); }
-  }
+  const rvList=(typeof _rv!=='undefined')?_rv:[];
+  const rv=rvList.find(rr=>rr.nom&&rr.nom.toLowerCase()===n.toLowerCase());
+  if(rv?.photo) _mP.photo=rv.photo;
+  if(_mEditIdx===null&&rv?.portions){ _mPortions=rv.portions; _mPortRender(); }
 }
 // Sélecteur portions
 function mPortDelta(d){
