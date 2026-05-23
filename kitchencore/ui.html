@@ -3939,7 +3939,7 @@ function renderIngrs() {
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
              <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px">
                ${subThumb}
-               <input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" onchange="renderIngrs()" style="font-style:italic;flex:1">
+               <input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_rv.find(r=>r.nom.toLowerCase()===this.value.toLowerCase());_eIngr[${x}].sous_recette_id=_m?_m.id:null;}).call(this)" onchange="renderIngrs()" style="font-style:italic;flex:1">
              </div>`
           : `<input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
