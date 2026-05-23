@@ -958,6 +958,7 @@ textarea.rv-einput { resize:none;min-height:60px; }
                 color:var(--text2);flex-shrink:0;overflow:hidden;text-transform:uppercase; }
 .d-ingr-photo img { width:100%;height:100%;object-fit:cover; }
 .d-ingr-nom { font-size:.88rem;flex:1;min-width:0; }
+.d-ingr-note { font-size:.75rem;color:var(--text2);font-style:italic;margin-top:1px; }
 .d-step-row { display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l); }
 .d-step-row:last-child{ border-bottom:none; }
 .d-step-num { width:28px;height:28px;border-radius:50%;background:var(--orange);color:white;display:grid;place-items:center;font-size:.8rem;font-weight:800;flex-shrink:0;margin-top:1px; }
@@ -1100,6 +1101,9 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-ingr-name::placeholder { color:var(--grey-d); }
 .ev3-row-del   { width:22px; height:22px; border-radius:50%; border:none; background:transparent; cursor:pointer; font-size:.8rem; color:var(--grey-d); flex-shrink:0; display:grid; place-items:center; transition:all .15s; }
 .ev3-row-del:active { background:#fecaca; color:#f87171; }
+.ev3-note-input { font-size:.75rem; color:var(--text2); font-style:italic; border:none; border-bottom:1px dashed transparent; background:transparent; font-family:var(--font); outline:none; width:100%; margin-top:2px; padding:0; transition:border-color .15s; }
+.ev3-note-input:focus { border-bottom-color:var(--grey-d); }
+.ev3-note-input::placeholder { color:var(--grey-d); }
 .ev3-add-row   { display:flex; align-items:center; gap:6px; padding:10px 16px; cursor:pointer; color:var(--orange); font-size:.85rem; font-weight:700; }
 .ev3-add-row:active { opacity:.7; }
 
@@ -3479,7 +3483,10 @@ async function openDetail(id) {
     <div class="d-ingr-row">
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
-      <span class="d-ingr-nom">${i.nom}</span>
+      <div style="flex:1;min-width:0">
+        <div class="d-ingr-nom">${i.nom}</div>
+        ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
+      </div>
     </div>`;
   }).join('');
   const steps = (r.etapes||[]).map((s,n)=>`
@@ -3736,9 +3743,14 @@ function renderIngrs() {
         <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?'🍳':'🥕'}</button>
         ${sub
           ? `<input class="ev3-ingr-name" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" style="font-style:italic">`
-          : `<input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
-             <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
-             <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">`
+          : `<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+               <div style="display:flex;align-items:center;gap:7px">
+                 <input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
+                 <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+                 <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">
+               </div>
+               <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
+             </div>`
         }
         <button class="ev3-row-del" onclick="delIngr(${x})">✕</button>
       </div>`;
@@ -3746,7 +3758,7 @@ function renderIngrs() {
     `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>`;
   ev3BindDrag('e-ingrs', _eIngr, renderIngrs, '.ev3-drag-handle');
 }
-function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',type:'ingredient'}); renderIngrs(); }
+function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',note:'',type:'ingredient'}); renderIngrs(); }
 function delIngr(x) { _eIngr.splice(x,1); renderIngrs(); }
 function ev3ToggleIngType(x) {
   const cur = _eIngr[x].type||'ingredient';

@@ -88,7 +88,8 @@ db.exec(`
     nom              TEXT NOT NULL,
     qty              TEXT DEFAULT '',
     unite            TEXT DEFAULT '',
-    sous_recette_id  INTEGER REFERENCES recettes(id) ON DELETE SET NULL
+    sous_recette_id  INTEGER REFERENCES recettes(id) ON DELETE SET NULL,
+    note             TEXT DEFAULT ''
   );
   CREATE TABLE IF NOT EXISTS recette_etapes (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,6 +114,7 @@ db.exec(`
   ['ingredients', 'created_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recettes',    'source',        "TEXT DEFAULT ''"],
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
+  ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -452,14 +454,14 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
 
 function saveIngredients(recetteId, ingredients) {
   db.prepare('DELETE FROM recette_ingredients WHERE recette_id=?').run(recetteId);
-  const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id) VALUES(?,?,?,?,?,?,?)');
+  const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id,note) VALUES(?,?,?,?,?,?,?,?)');
   const autoAdd = db.prepare('INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)');
   (ingredients || []).forEach((ing, i) => {
     // Auto-ajout transparent dans la table ingredients (sauf sous-recettes)
     if (ing.type !== 'sous_recette' && ing.nom?.trim()) {
       autoAdd.run(ing.nom.trim(), 'Autre', 1, '🥫');
     }
-    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null);
+    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null, ing.note||'');
   });
 }
 
@@ -534,9 +536,10 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
 
     const ingredients = (m.recipeIngredient||[]).map((ing, i) => ({
       position: i, type: 'ingredient',
-      nom:   [ing.food?.name, ing.note].filter(Boolean).join(' ') || ing.display || '',
+      nom:   ing.food?.name || ing.display || '',
       qty:   ing.quantity != null ? String(ing.quantity) : '',
       unite: ing.unit?.name || '',
+      note:  ing.note || '',
       sous_recette_id: null,
     }));
 
