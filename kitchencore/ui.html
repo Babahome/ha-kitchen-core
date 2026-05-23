@@ -3418,18 +3418,8 @@ async function addToCourses(id) {
     const res  = await fetch('/api/recettes/'+sid+'/courses');
     const data = await res.json();
     if(!data.ingredients || data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
-    if(!_clRecipes.find(cr=>String(cr.id)===sid)) {
-      _clRecipes.push({id:sid, nom:r.nom, photo:r.photo||data.photo||null, portions:data.portions});
-      clSaveRecipes();
-    }
-    data.ingredients.forEach(ing=>{
-      if(!ing.nom) return;
-      _cl.push({ id:clId(), n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
-                 qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
-                 done:false, origin:'recette', recipeId:sid });
-    });
-    clSave(); clRender();
-    showToast('✓ '+data.ingredients.length+' ingrédient'+(data.ingredients.length>1?'s':'')+' ajouté'+(data.ingredients.length>1?'s':'')+' aux courses','ok');
+    _mIngData = [{ recipeId:sid, recipeName:r.nom, photo:r.photo||data.photo||null, portions:data.portions, ingredients:data.ingredients }];
+    mIngOpen();
   } catch(e) { showToast('Erreur lors de la récupération des ingrédients','error'); }
 }
 function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) showToast('📅 "'+r.nom+'" → menu','ok'); }
@@ -4510,7 +4500,7 @@ function mIngConfirm(){
   clSave(); clRender();
   showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
   mIngClose();
-  mSelExit();
+  if(_mSelMode) mSelExit();
 }
 
 // Event delegation sur page-menu
