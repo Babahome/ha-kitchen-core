@@ -4531,13 +4531,14 @@ const _ING_DEMO_RECIPES = [
 ];
 
 // ─── State (toutes les vars sont locales à l'IIFE) ───
-let _ingAll          = [];
-let _ingSelectedIds  = new Set();
-let _ingTab          = 'tous';
-let _ingFilter       = 'tous';
-let _ingSelectMode   = false;
-let _ingSearchQuery  = '';
-let _ingEditingId    = null;
+let _ingAll             = [];
+let _ingSelectedIds     = new Set();
+let _ingTab             = 'tous';
+let _ingFilter          = 'tous';
+let _ingSelectMode      = false;
+let _ingSearchQuery     = '';
+let _ingEditingId       = null;
+let _ingLastSelectedId  = null;
 let _ingDetailId     = null;
 let _ingBooted       = false;
 
@@ -4749,7 +4750,7 @@ function _ingRenderCard(ing, i) {
     ? `<img src="${ing.imageUrl}" onerror="this.parentElement.innerHTML='${safeEmoji}';">`
     : (ing.emoji || '🍽');
 
-  return `<div class="ing-card${selected?' selected':''}" style="animation-delay:${i*0.03}s"
+  return `<div class="ing-card${selected?' selected':''}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
     onclick="ingOnCardClick('${ing.id}', event)">
     ${_ingSelectMode ? `<div class="ing-checkbox">${selected?'✓':''}</div>` : ''}
     <div class="ing-avatar ${hasImage?'has-img':'no-img'}">${avatarContent}</div>
@@ -4869,6 +4870,7 @@ function _ingToggleSelectMode() {
   _ingSelectMode = !_ingSelectMode;
   if (!_ingSelectMode) {
     _ingSelectedIds.clear();
+    _ingLastSelectedId = null;
   }
   _ingUpdateSelectModeUI();
   _ingRender();
@@ -4896,13 +4898,35 @@ function _ingUpdateSelectModeUI() {
 
 function _ingOnCardClick(id, e) {
   if (_ingSelectMode) {
-    if (_ingSelectedIds.has(id)) _ingSelectedIds.delete(id);
-    else _ingSelectedIds.add(id);
+    if (e && e.shiftKey && _ingLastSelectedId && _ingLastSelectedId !== id) {
+      // Sélection par plage : tous les items entre le dernier cliqué et celui-ci
+      const visibleIds = _ingGetFilteredItems().map(i => i.id);
+      const a = visibleIds.indexOf(_ingLastSelectedId);
+      const b = visibleIds.indexOf(id);
+      if (a !== -1 && b !== -1) {
+        const [from, to] = a < b ? [a, b] : [b, a];
+        for (let k = from; k <= to; k++) _ingSelectedIds.add(visibleIds[k]);
+      }
+    } else {
+      if (_ingSelectedIds.has(id)) _ingSelectedIds.delete(id);
+      else _ingSelectedIds.add(id);
+    }
+    _ingLastSelectedId = id;
     _ingUpdateSelectModeUI();
-    _ingRender();
+    _ingUpdateCardsSelection();
   } else {
     _ingOpenDetailPanel(id);
   }
+}
+
+// Met à jour l'état visuel des cartes sans re-rendre toute la grille
+function _ingUpdateCardsSelection() {
+  document.querySelectorAll('#ing-ingredientsGrid [data-ing-id]').forEach(card => {
+    const sel = _ingSelectedIds.has(card.dataset.ingId);
+    card.classList.toggle('selected', sel);
+    const cb = card.querySelector('.ing-checkbox');
+    if (cb) cb.textContent = sel ? '✓' : '';
+  });
 }
 
 // ─── Detail Panel ───
