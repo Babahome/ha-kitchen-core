@@ -4538,6 +4538,7 @@ let _ingFilter          = 'tous';
 let _ingSelectMode      = false;
 let _ingSearchQuery     = '';
 let _ingEditingId       = null;
+let _ingPendingPhotoFile = null;
 let _ingLastSelectedId  = null;
 let _ingDetailId     = null;
 let _ingBooted       = false;
@@ -4577,16 +4578,19 @@ async function _ingLoadData() {
     const data = await res.json();
     console.log('[ING] items reçus:', data.length, data[0] || '(vide)');
     if (!Array.isArray(data)) throw new Error('Réponse API invalide (non-tableau)');
-    _ingAll = data.map(a => ({
-      id:             String(a.id),
-      name:           a.nom || '',
-      emoji:          a.icone || '',
-      rayonCarrefour: _mapCategorie(a.categorie),
-      rayonFourche:   '',
-      imageUrl:       '',
-      usedIn:         [],
-      _dbId:          a.id,
-    }));
+    _ingAll = data.map(a => {
+      const iconeIsUrl = a.icone && (a.icone.startsWith('http') || a.icone.startsWith('/') || a.icone.startsWith('data:'));
+      return {
+        id:             String(a.id),
+        name:           a.nom || '',
+        emoji:          iconeIsUrl ? '🥫' : (a.icone || '🥫'),
+        rayonCarrefour: _mapCategorie(a.categorie),
+        rayonFourche:   '',
+        imageUrl:       iconeIsUrl ? a.icone : '',
+        usedIn:         [],
+        _dbId:          a.id,
+      };
+    });
     // Peupler usedIn depuis la BDD via API
     let usedInMap = {};
     try {
@@ -4981,6 +4985,7 @@ function _ingOpenEditSheet(id, e) {
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
   _ingEditingId = id;
+  _ingPendingPhotoFile = null;
 
   document.getElementById('ing-editIngId').value = id;
   document.getElementById('ing-editSheetTitle').textContent = `✏️ ${ing.name}`;
@@ -5054,14 +5059,35 @@ async function _ingSaveIngredient() {
   const newName  = document.getElementById('ing-editName').value.trim() || ing.name;
   const newEmoji = _ingGetSelectedEmoji() || ing.emoji;
   const newRayon = _ingGetSelectedRayon('ing-rayonCarrefour') || ing.rayonCarrefour;
+  let   imageUrl = document.getElementById('ing-editImageUrl').value.trim();
 
   try {
+    // Upload fichier si sélectionné depuis le téléphone
+    if (_ingPendingPhotoFile) {
+      const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = e => resolve(e.target.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(_ingPendingPhotoFile);
+      });
+      const upRes = await fetch(`/api/ingredients/${ing._dbId}/photo`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ base64, mime: _ingPendingPhotoFile.type || 'image/jpeg' })
+      });
+      if (!upRes.ok) { _ingToast('Erreur upload photo'); return; }
+      const { url } = await upRes.json();
+      imageUrl = url;
+      _ingPendingPhotoFile = null;
+    }
+
     // Convertir l'id rayon UI ('epicerie') en label BDD ('Épicerie')
     const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
+    const icone = imageUrl || newEmoji;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nom: newName, icone: newEmoji, categorie: rayonLabel })
+      body: JSON.stringify({ nom: newName, icone, categorie: rayonLabel })
     });
     if (!res.ok) { const d=await res.json(); _ingToast(d.error||'Erreur'); return; }
     await _ingLoadData();
@@ -5093,11 +5119,12 @@ function _ingTriggerImageUpload() {
 function _ingHandleImageFile(input) {
   const file = input.files[0];
   if (!file) return;
+  _ingPendingPhotoFile = file;
   const reader = new FileReader();
   reader.onload = e => {
-    const url = e.target.result;
-    document.getElementById('ing-editImageUrl').value = url;
-    _ingPreviewImageUrl(url);
+    _ingPreviewImageUrl(e.target.result);
+    // Vider l'URL texte — la vraie URL sera définie après upload au save
+    document.getElementById('ing-editImageUrl').value = '';
   };
   reader.readAsDataURL(file);
 }
