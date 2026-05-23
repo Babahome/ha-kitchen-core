@@ -425,7 +425,12 @@ function getRecette(id) {
 function expandIngredients(recetteId, portions, basePortions, depth) {
   depth = depth || 0;
   if (depth > 3) return [];
-  const ingredients = db.prepare('SELECT * FROM recette_ingredients WHERE recette_id=? ORDER BY position').all(recetteId);
+  const ingredients = db.prepare(`
+    SELECT ri.*, i.icone as ingredient_icone
+    FROM recette_ingredients ri
+    LEFT JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
+    WHERE ri.recette_id=? ORDER BY ri.position
+  `).all(recetteId);
   const result = [];
   const ratio  = basePortions > 0 ? portions / basePortions : 1;
   for (const ing of ingredients) {
@@ -664,7 +669,7 @@ app.get('/api/recettes/:id/courses', (req, res) => {
   const r = db.prepare('SELECT * FROM recettes WHERE id=?').get(req.params.id);
   if (!r) return res.status(404).json({ error: 'Introuvable' });
   const portions = parseInt(req.query.portions) || r.portions;
-  res.json({ recette_id: r.id, nom: r.nom, portions, ingredients: expandIngredients(r.id, portions, r.portions) });
+  res.json({ recette_id: r.id, nom: r.nom, photo: r.photo||null, portions, ingredients: expandIngredients(r.id, portions, r.portions) });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

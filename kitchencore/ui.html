@@ -672,7 +672,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                 flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .15s; }
 .cl-chk.on    { background:var(--orange);border-color:var(--orange);color:white;font-size:.8rem; }
 .cl-emoji     { width:46px;height:46px;border-radius:8px;background:var(--grey-l);
-                display:grid;place-items:center;font-size:1.3rem;flex-shrink:0; }
+                display:grid;place-items:center;font-size:1.3rem;flex-shrink:0;overflow:hidden; }
 .cl-body      { flex:1;min-width:0; }
 .cl-name      { font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .cl-origin    { font-size:.7rem;color:var(--grey-d);margin-top:2px; }
@@ -740,7 +740,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-rl-top    { display:flex;align-items:center;gap:12px;padding:12px 14px 10px; }
 .cl-rl-ico    { width:46px;height:46px;border-radius:12px;
                 background:linear-gradient(135deg,var(--orange),var(--orange-d));
-                display:grid;place-items:center;font-size:1.5rem;flex-shrink:0; }
+                display:grid;place-items:center;font-size:1.5rem;flex-shrink:0;overflow:hidden; }
 .cl-rl-info   { flex:1;min-width:0; }
 .cl-rl-name   { font-size:.95rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .cl-rl-sub    { font-size:.72rem;color:var(--grey-d);margin-top:2px; }
@@ -2999,40 +2999,16 @@ const CL_CATALOG = [
 ];
 
 // Reset localStorage si ancienne version
-if(localStorage.getItem('kc_seed_v') !== '3') {
+if(localStorage.getItem('kc_seed_v') !== '4') {
   localStorage.removeItem('kc_courses');
   localStorage.removeItem('kc_cl_recipes');
-  localStorage.setItem('kc_seed_v','3');
+  localStorage.setItem('kc_seed_v','4');
 }
 let _cl = JSON.parse(localStorage.getItem('kc_courses') || '[]');
 let _clRecipes = JSON.parse(localStorage.getItem('kc_cl_recipes') || '[]');
 function clSave()        { localStorage.setItem('kc_courses', JSON.stringify(_cl)); }
 function clSaveRecipes() { localStorage.setItem('kc_cl_recipes', JSON.stringify(_clRecipes)); }
 function clId()          { return Date.now() + Math.random().toString(36).slice(2); }
-
-// Seed
-(function(){
-  if(_cl.length > 0) return;
-  _clRecipes = [
-    {id:'r1',nom:'Poulet basquaise',  e:'🫕',portions:2},
-    {id:'r2',nom:'Mousse au chocolat',e:'🍰',portions:4},
-  ];
-  clSaveRecipes();
-  _cl = [
-    {id:clId(),n:'Lait demi-écrémé',   e:'🥛',m:'drive',  r:'Crèmerie',                qty:3,done:false,origin:'stock bas'},
-    {id:clId(),n:'Emmental râpé',       e:'🧀',m:'drive',  r:'Crèmerie',                qty:2,done:false,origin:'stock bas'},
-    {id:clId(),n:'Pain de mie',         e:'🍞',m:'drive',  r:'Boulangerie',             qty:1,done:false,origin:'stock bas'},
-    {id:clId(),n:'Steak haché 5% MG',   e:'🥩',m:'drive',  r:'Boucherie & Poissonnerie',qty:2,done:true, origin:'stock bas'},
-    {id:clId(),n:'Huile olive BIO',     e:'🫙',m:'fourche',r:'Épicerie',                qty:2,done:false,origin:'recette',recipeId:'r1'},
-    {id:clId(),n:'Poivrons rouges',     e:'🫑',m:'magasin',r:'Fruits & Légumes',        qty:2,done:false,origin:'recette',recipeId:'r1'},
-    {id:clId(),n:'Poulet fermier',       e:'🍗',m:'magasin',r:'Boucherie & Poissonnerie',qty:1,done:false,origin:'recette',recipeId:'r1'},
-    {id:clId(),n:'Chocolat noir 85%',   e:'🍫',m:'fourche',r:'Épicerie',                qty:3,done:false,origin:'recette',recipeId:'r2'},
-    {id:clId(),n:'Oeufs plein air',     e:'🥚',m:'drive',  r:'Crèmerie',                qty:1,done:false,origin:'recette',recipeId:'r2'},
-    {id:clId(),n:'Fromage de chèvre',   e:'🧀',m:'magasin',r:'Crèmerie',                qty:2,done:false,origin:'manuel'},
-    {id:clId(),n:'Lentilles BIO',       e:'🌱',m:'fourche',r:'Épicerie',                qty:1,done:false,origin:'manuel'},
-  ];
-  clSave();
-})();
 
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 function clRender() {
@@ -3057,12 +3033,18 @@ function clItemHTML(item) {
   const isDel  = qty <= 1;
   const qLabel = qty + (unit ? ' '+unit : '');
   const recipe = item.recipeId ? _clRecipes.find(r=>String(r.id)===String(item.recipeId)) : null;
+  const recIni = recipe ? (recipe.nom||'?').trim().slice(0,2).toUpperCase() : '';
   const badge  = recipe
-    ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${recipe.e}</div>`
+    ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${recIni}</div>`
     : '';
+  const ini    = (item.n||'?').trim().slice(0,2).toUpperCase();
+  const icone  = item.icone;
+  const icoContent = (icone && (icone.startsWith('http') || icone.startsWith('/')))
+    ? `<img src="${icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.7rem;font-weight:800;color:var(--grey-d)\\'>${ini}</span>'">`
+    : `<span style="font-size:.7rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
   return `<div class="cl-item${item.done?' done':''}" id="cli-${item.id}">
     <div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?'✓':''}</div>
-    <div class="cl-emoji">${item.e||'🛒'}</div>
+    <div class="cl-emoji">${icoContent}</div>
     <div class="cl-body">
       <div class="cl-name">${item.n}</div>
       <div class="cl-origin">${item.origin||'manuel'}${recipe?' · '+recipe.nom:''}</div>
@@ -3125,10 +3107,14 @@ function clRecipesSectionHTML() {
   const cards = active.map(rec=>{
     const items = _cl.filter(i=>String(i.recipeId)===String(rec.id));
     const done  = items.filter(i=>i.done).length;
-    const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.e} ${i.n}</span>`).join('');
+    const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.n}</span>`).join('');
+    const rIni  = (rec.nom||'?').trim().slice(0,2).toUpperCase();
+    const rIco  = (rec.photo && (rec.photo.startsWith('http') || rec.photo.startsWith('/')))
+      ? `<img src="${rec.photo}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-size:.9rem;font-weight:800;color:white\\'>${rIni}</span>'">`
+      : `<span style="font-size:.9rem;font-weight:800;color:white">${rIni}</span>`;
     return `<div class="cl-rl-card">
       <div class="cl-rl-top">
-        <div class="cl-rl-ico">${rec.e}</div>
+        <div class="cl-rl-ico">${rIco}</div>
         <div class="cl-rl-info">
           <div class="cl-rl-name">${rec.nom}</div>
           <div class="cl-rl-sub">${done}/${items.length} ingrédients cochés</div>
@@ -3161,7 +3147,7 @@ function clRecipePortions(recipeId, delta) {
 function clShowBadge(e,recipeId) {
   e.stopPropagation();
   const rec=_clRecipes.find(r=>r.id===recipeId);
-  if(rec) showToast(`${rec.e} ${rec.nom} · ${rec.portions} portion${rec.portions>1?'s':''}`, 'ok');
+  if(rec) showToast(`${rec.nom} · ${rec.portions} portion${rec.portions>1?'s':''}`, 'ok');
 }
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
@@ -3184,7 +3170,7 @@ function clAddItem() {
   const v   = inp?.value.trim(); if(!v) return;
   const found = CL_CATALOG.find(c=>c.n.toLowerCase()===v.toLowerCase());
   _cl.unshift({id:clId(),qty:1,done:false,origin:'manuel',
-    n:found?found.n:v, e:found?found.e:'🛒', m:found?found.m:'drive', r:found?found.r:'Autre'});
+    n:found?found.n:v, icone:null, m:found?found.m:'drive', r:found?found.r:'Autre'});
   clSave(); clRender();
   if(inp){ inp.value=''; inp.classList.remove('expanded'); }
   _clSearchOpen=false;
@@ -3429,12 +3415,12 @@ async function addToCourses(id) {
     const data = await res.json();
     if(!data.ingredients || data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
     if(!_clRecipes.find(cr=>String(cr.id)===sid)) {
-      _clRecipes.push({id:sid, nom:r.nom, portions:data.portions});
+      _clRecipes.push({id:sid, nom:r.nom, photo:r.photo||data.photo||null, portions:data.portions});
       clSaveRecipes();
     }
     data.ingredients.forEach(ing=>{
       if(!ing.nom) return;
-      _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
+      _cl.push({ id:clId(), n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
                  qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
                  done:false, origin:'recette', recipeId:sid });
     });
@@ -4334,7 +4320,7 @@ async function mSelAddToCourses(){
       const res  = await fetch('/api/recettes/'+r.id+'/courses?portions='+portMenu);
       const data = await res.json();
       if(!data.ingredients || data.ingredients.length===0) continue;
-      _mIngData.push({ recipeId:String(r.id), recipeName:r.nom, portions:portMenu, ingredients:data.ingredients });
+      _mIngData.push({ recipeId:String(r.id), recipeName:r.nom, photo:r.photo||null, portions:portMenu, ingredients:data.ingredients });
     } catch(e) {}
   }
 
@@ -4352,7 +4338,7 @@ async function mAddOneToCourses(k,x){
     const res=await fetch('/api/recettes/'+r.id+'/courses?portions='+portMenu);
     const data=await res.json();
     if(!data.ingredients||data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
-    _mIngData=[{recipeId:String(r.id),recipeName:r.nom,portions:portMenu,ingredients:data.ingredients}];
+    _mIngData=[{recipeId:String(r.id),recipeName:r.nom,photo:r.photo||null,portions:portMenu,ingredients:data.ingredients}];
     mIngOpen();
   }catch(e){ showToast('Erreur réseau','error'); }
 }
@@ -4445,11 +4431,11 @@ function mIngConfirm(){
   _mIngData.forEach(recipe=>{
     const sid = recipe.recipeId;
     if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
-      _clRecipes.push({id:sid, nom:recipe.recipeName, portions:recipe.portions});
+      _clRecipes.push({id:sid, nom:recipe.recipeName, photo:recipe.photo||null, portions:recipe.portions});
     }
     recipe.ingredients.forEach((ing,i)=>{
       if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) return;
-      _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
+      _cl.push({ id:clId(), n:ing.nom, icone:ing.ingredient_icone||null, m:'drive', r:'Épicerie',
                  qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
                  done:false, origin:'recette', recipeId:sid });
       nbAdded++;
