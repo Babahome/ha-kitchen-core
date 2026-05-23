@@ -2779,12 +2779,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomates cerises">
       </div>
       <div class="ing-panel-section">
-        <label class="ing-panel-label">Rayon — Carrefour / Carrefour Drive</label>
-        <div class="ing-panel-rayon-grid" id="ing-rayonCarrefour"></div>
-      </div>
-      <div class="ing-panel-section">
-        <label class="ing-panel-label">Rayon — La Fourche</label>
-        <div class="ing-panel-rayon-grid" id="ing-rayonFourche"></div>
+        <label class="ing-panel-label">Rayon</label>
+        <div class="ing-panel-rayon-grid" id="ing-rayonGrid"></div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Recettes liées</label>
@@ -2827,7 +2823,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="sheet-close" onclick="ingCloseRayonSheet()">✕</button>
     </div>
     <div class="sheet-body">
-      <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Choisir le rayon Carrefour pour les <strong id="ing-rayonSelCount">0</strong> ingrédients sélectionnés</p>
+      <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Choisir le rayon pour les <strong id="ing-rayonSelCount">0</strong> ingrédients sélectionnés</p>
       <div class="rayon-grid" id="ing-rayonSheetGrid"></div>
       <div style="height:12px"></div>
       <button class="btn-primary" onclick="ingApplyRayonSelected()">✓ Appliquer</button>
@@ -4815,18 +4811,10 @@ document.addEventListener('DOMContentLoaded', function(){
 const _ING_KEY         = 'kc_ingredients_v1';
 const _ING_RECIPES_KEY = 'kc_recettes';
 
-const _ING_RAYONS = [
-  { id: 'cremerie',     label: 'Crèmerie',         emoji: '🥛' },
-  { id: 'boucherie',    label: 'Boucherie',        emoji: '🥩' },
-  { id: 'epicerie',     label: 'Épicerie',         emoji: '🫙' },
-  { id: 'surgeles',     label: 'Surgelés',         emoji: '❄️' },
-  { id: 'fl',           label: 'Fruits & Légumes', emoji: '🥦' },
-  { id: 'boissons',     label: 'Boissons',         emoji: '🧃' },
-  { id: 'boulangerie',  label: 'Boulangerie',      emoji: '🍞' },
-  { id: 'poissonnerie', label: 'Poissonnerie',     emoji: '🐟' },
-  { id: 'hygiene',      label: 'Hygiène',          emoji: '🧴' },
-  { id: 'autre',        label: 'Autre',            emoji: '📦' },
-];
+let _ingRayons = []; // chargé depuis /api/rayons
+async function _ingLoadRayons() {
+  try { _ingRayons = await fetch('/api/rayons').then(r => r.json()); } catch(_) {}
+}
 
 
 const _ING_DEMO_RECIPES = [
@@ -4939,39 +4927,24 @@ function _ingToast(msg) {
 
 // ─── Data layer ───
 async function _ingLoadData() {
-  console.log('[ING] _ingLoadData() appelé');
-  function _mapCategorie(cat) {
-    if (!cat) return 'autre';
-    const norm = cat.toLowerCase().trim()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const byId = _ING_RAYONS.find(r => r.id === norm);
-    if (byId) return byId.id;
-    const byLabel = _ING_RAYONS.find(r =>
-      r.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') === norm
-    );
-    return byLabel ? byLabel.id : 'autre';
-  }
+  await _ingLoadRayons();
   try {
     const res = await fetch('/api/ingredients');
-    console.log('[ING] fetch status:', res.status);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    console.log('[ING] items reçus:', data.length, data[0] || '(vide)');
     if (!Array.isArray(data)) throw new Error('Réponse API invalide (non-tableau)');
     _ingAll = data.map(a => {
       const iconeIsUrl = a.icone && (a.icone.startsWith('http') || a.icone.startsWith('/') || a.icone.startsWith('data:'));
       return {
-        id:             String(a.id),
-        name:           a.nom || '',
-        emoji:          iconeIsUrl ? '🥫' : (a.icone || '🥫'),
-        rayonCarrefour: _mapCategorie(a.categorie),
-        rayonFourche:   '',
-        imageUrl:       iconeIsUrl ? a.icone : '',
-        usedIn:         [],
-        _dbId:          a.id,
+        id:       String(a.id),
+        name:     a.nom || '',
+        emoji:    iconeIsUrl ? '🥫' : (a.icone || '🥫'),
+        rayon_id: a.rayon_id || null,
+        imageUrl: iconeIsUrl ? a.icone : '',
+        usedIn:   [],
+        _dbId:    a.id,
       };
     });
-    // Peupler usedIn depuis la BDD via API
     let usedInMap = {};
     try {
       const uiRes = await fetch('/api/ingredients/usedIn');
@@ -4984,9 +4957,7 @@ async function _ingLoadData() {
         .flatMap(([, recipeIds]) => recipeIds);
       ing.usedIn = [...new Set(ids)];
     });
-    console.log('[ING] _ingAll peuplé:', _ingAll.length, 'items');
   } catch(e) {
-    console.error('[ING] Erreur chargement ingrédients', e);
     _ingToast('Erreur chargement ingrédients');
     return;
   }
@@ -5029,8 +5000,7 @@ function _ingSeedFromRecipes() {
           name: ing.name,
           emoji: '',
           imageUrl: '',
-          rayonCarrefour: '',
-          rayonFourche: '',
+          rayon_id: null,
           usedIn: [],
         });
       }
@@ -5039,71 +5009,16 @@ function _ingSeedFromRecipes() {
     });
   });
   _ingAll = Array.from(map.values());
-
-  const META = {
-    'poulet fermier':       { emoji:'🍗', rc:'boucherie',  rf:'boucherie' },
-    'poivrons rouges':      { emoji:'🫑', rc:'fl',         rf:'fl' },
-    'tomates pelees':       { emoji:'🍅', rc:'epicerie',   rf:'epicerie' },
-    'huile dolive':         { emoji:'🫒', rc:'epicerie',   rf:'epicerie' },
-    'ail':                  { emoji:'🧄', rc:'fl',         rf:'fl' },
-    'oignon':               { emoji:'🧅', rc:'fl',         rf:'fl' },
-    'chocolat noir 70':     { emoji:'🍫', rc:'epicerie',   rf:'epicerie' },
-    'oeufs':                { emoji:'🥚', rc:'cremerie',   rf:'cremerie' },
-    'sucre':                { emoji:'🍬', rc:'epicerie',   rf:'epicerie' },
-    'lentilles corail':     { emoji:'🫘', rc:'epicerie',   rf:'epicerie' },
-    'lait de coco':         { emoji:'🥥', rc:'epicerie',   rf:'epicerie' },
-    'curry':                { emoji:'🌿', rc:'epicerie',   rf:'epicerie' },
-    'tagliatelles':         { emoji:'🍝', rc:'epicerie',   rf:'epicerie' },
-    'asperges vertes':      { emoji:'🥦', rc:'fl',         rf:'fl' },
-    'parmesan':             { emoji:'🧀', rc:'cremerie',   rf:'cremerie' },
-    'citron':               { emoji:'🍋', rc:'fl',         rf:'fl' },
-    'riz basmati':          { emoji:'🍚', rc:'epicerie',   rf:'epicerie' },
-    'pois chiches':         { emoji:'🫘', rc:'epicerie',   rf:'epicerie' },
-    'avocat':               { emoji:'🥑', rc:'fl',         rf:'fl' },
-    'carottes':             { emoji:'🥕', rc:'fl',         rf:'fl' },
-    'concombre':            { emoji:'🥒', rc:'fl',         rf:'fl' },
-    'graines de sesame':    { emoji:'🌾', rc:'epicerie',   rf:'epicerie' },
-    'sauce soja':           { emoji:'🫙', rc:'epicerie',   rf:'epicerie' },
-    'pate brisee':          { emoji:'🥧', rc:'surgeles',   rf:'' },
-    'lardons fumes':        { emoji:'🥓', rc:'boucherie',  rf:'' },
-    'creme fraiche':        { emoji:'🍦', rc:'cremerie',   rf:'cremerie' },
-    'gruyere rape':         { emoji:'🧀', rc:'cremerie',   rf:'cremerie' },
-    'noix de muscade':      { emoji:'🌰', rc:'epicerie',   rf:'epicerie' },
-    'farine t45':           { emoji:'🌾', rc:'epicerie',   rf:'epicerie' },
-    'levure boulangere':    { emoji:'🫙', rc:'epicerie',   rf:'epicerie' },
-    'mozzarella':           { emoji:'🧀', rc:'cremerie',   rf:'cremerie' },
-    'origan':               { emoji:'🌿', rc:'epicerie',   rf:'epicerie' },
-    'riz arborio':          { emoji:'🍚', rc:'epicerie',   rf:'epicerie' },
-    'champignons de paris': { emoji:'🍄', rc:'fl',         rf:'fl' },
-    'beurre':               { emoji:'🧈', rc:'cremerie',   rf:'cremerie' },
-    'bouillon de legumes':  { emoji:'🫙', rc:'epicerie',   rf:'epicerie' },
-    'vin blanc':            { emoji:'🍾', rc:'boissons',   rf:'' },
-    'lait':                 { emoji:'🥛', rc:'cremerie',   rf:'cremerie' },
-    'gingembre frais':      { emoji:'🌿', rc:'fl',         rf:'fl' },
-  };
-
-  _ingAll.forEach(ing => {
-    const key = _ingNormalize(ing.name);
-    const meta = META[key] || Object.entries(META).find(([k]) => key.startsWith(k) || k.startsWith(key.slice(0,6)))?.[1];
-    if (meta) {
-      ing.emoji = meta.emoji || '';
-      ing.rayonCarrefour = meta.rc || '';
-      ing.rayonFourche = meta.rf || '';
-    }
-  });
-
   _ingSaveData();
 }
 
 // ─── Render ───
 function _ingRender() {
   if (!document.getElementById('ing-ingredientsGrid')) return;
-  console.log('[ING] _ingRender() — _ingAll:', _ingAll.length, '| tab:', _ingTab, '| filter:', _ingFilter);
   _ingUpdateStats();
   _ingRenderFilters();
   const grid = document.getElementById('ing-ingredientsGrid');
   const items = _ingGetFilteredItems();
-  console.log('[ING] items filtrés:', items.length);
 
   if (_ingTab === 'doublons') {
     _ingRenderDoublons();
@@ -5132,7 +5047,7 @@ function _ingRender() {
 function _ingRenderCard(ing, i) {
   const selected = _ingSelectedIds.has(ing.id);
   const recipeCount = ing.usedIn ? ing.usedIn.length : 0;
-  const rayon = _ING_RAYONS.find(r => r.id === ing.rayonCarrefour);
+  const rayon = _ingRayons.find(r => r.id === ing.rayon_id);
   const hasImage = !!ing.imageUrl;
   const initials = (ing.name || '?').slice(0, 2);
   const avatarContent = hasImage
@@ -5204,29 +5119,29 @@ function _ingUpdateStats() {
   const elSI = document.getElementById('ing-statSansImage');
   const elTC = document.getElementById('ing-tabCountTous');
   if (elT) elT.textContent = _ingAll.length;
-  if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayonCarrefour || i.rayonCarrefour === 'autre').length;
+  if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayon_id).length;
   if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
   if (elTC) elTC.textContent = `(${_ingAll.length})`;
 }
 
 function _ingRenderFilters() {
-  const rayonsUsed = [...new Set(_ingAll.map(i => i.rayonCarrefour).filter(Boolean))];
+  const rayonsUsed = [...new Set(_ingAll.map(i => i.rayon_id).filter(Boolean))];
   const row = document.getElementById('ing-filterRow');
   if (!row) return;
   row.innerHTML = `<button class="filter-chip${_ingFilter==='tous'?' active':''}" onclick="ingSetFilter('tous', this)">Tout</button>`
     + rayonsUsed.map(id => {
-      const r = _ING_RAYONS.find(x => x.id === id);
+      const r = _ingRayons.find(x => x.id === id);
       if (!r) return '';
-      return `<button class="filter-chip${_ingFilter===id?' active':''}" onclick="ingSetFilter('${id}', this)">${r.emoji} ${r.label}</button>`;
+      return `<button class="filter-chip${_ingFilter===id?' active':''}" onclick="ingSetFilter(${id}, this)">${r.emoji} ${r.nom}</button>`;
     }).join('');
 }
 
 function _ingGetFilteredItems() {
   let items = [..._ingAll];
-  if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayonCarrefour || i.rayonCarrefour === 'autre');
+  if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayon_id);
   if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
-  if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayonCarrefour === _ingFilter);
+  if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayon_id === _ingFilter);
   if (_ingSearchQuery) {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
@@ -5336,12 +5251,10 @@ function _ingOpenDetailPanel(id) {
     : `<span class="ing-panel-initials">${initials}</span>`;
 
   const rayonsDiv = document.getElementById('ing-detailRayons');
-  const rc = _ING_RAYONS.find(r => r.id === ing.rayonCarrefour);
-  const rf = _ING_RAYONS.find(r => r.id === ing.rayonFourche);
-  rayonsDiv.innerHTML = '';
-  if (rc) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🛒 ${rc.emoji} ${rc.label}</span>`;
-  if (rf && rf.id !== rc?.id) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🌿 ${rf.emoji} ${rf.label}</span>`;
-  if (!rc && !rf) rayonsDiv.innerHTML = `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Non défini</span>`;
+  const rc = _ingRayons.find(r => r.id === ing.rayon_id);
+  rayonsDiv.innerHTML = rc
+    ? `<span class="rayon-chip active" style="pointer-events:none">${rc.emoji} ${rc.nom}</span>`
+    : `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Non défini</span>`;
 
   const _rvSrc = (typeof _rv !== 'undefined' && Array.isArray(_rv)) ? _rv : [];
   const linked = (ing.usedIn || []).map(id =>
@@ -5432,9 +5345,8 @@ function _ingOpenEditPanel(id, e) {
       </div>`;
   }
 
-  // Rayon grids
-  _ingRenderRayonGrid('ing-rayonCarrefour', ing.rayonCarrefour);
-  _ingRenderRayonGrid('ing-rayonFourche', ing.rayonFourche || ing.rayonCarrefour);
+  // Rayon grid
+  _ingRenderRayonGrid('ing-rayonGrid', ing.rayon_id);
 
   // Recipes
   const _rvSrc2 = (typeof _rv !== 'undefined' && Array.isArray(_rv)) ? _rv : [];
@@ -5449,10 +5361,10 @@ function _ingOpenEditPanel(id, e) {
 }
 
 function _ingRenderRayonGrid(containerId, selected) {
-  document.getElementById(containerId).innerHTML = _ING_RAYONS.map(r =>
+  document.getElementById(containerId).innerHTML = _ingRayons.map(r =>
     `<button class="rayon-chip${r.id===selected?' active':''}" data-rayon-id="${r.id}"
-      onclick="ingSelectRayon('${containerId}', '${r.id}', this)">
-      ${r.emoji} ${r.label}
+      onclick="ingSelectRayon('${containerId}', ${r.id}, this)">
+      ${r.emoji} ${r.nom}
     </button>`
   ).join('');
 }
@@ -5464,7 +5376,7 @@ function _ingSelectRayon(containerId, id, btn) {
 
 function _ingGetSelectedRayon(containerId) {
   const active = document.querySelector(`#${containerId} .rayon-chip.active`);
-  return active ? (active.dataset.rayonId || '') : '';
+  return active ? (parseInt(active.dataset.rayonId) || null) : null;
 }
 
 async function _ingSaveIngredient() {
@@ -5473,7 +5385,7 @@ async function _ingSaveIngredient() {
   if (!ing) return;
 
   const newName  = document.getElementById('ing-editName').value.trim() || ing.name;
-  const newRayon = _ingGetSelectedRayon('ing-rayonCarrefour') || ing.rayonCarrefour;
+  const newRayon = _ingGetSelectedRayon('ing-rayonGrid') ?? ing.rayon_id;
   let   imageUrl = document.getElementById('ing-editImageUrl').value.trim();
 
   try {
@@ -5496,9 +5408,7 @@ async function _ingSaveIngredient() {
       _ingPendingPhotoFile = null;
     }
 
-    // Convertir l'id rayon UI ('epicerie') en label BDD ('Épicerie')
-    const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
-    const body = { nom: newName, categorie: rayonLabel };
+    const body = { nom: newName, rayon_id: newRayon };
     if (imageUrl) body.icone = imageUrl;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
@@ -5673,7 +5583,6 @@ function _ingCloseRayonSheet() { _ingHideSheet('ing-rayonSheet'); }
 async function _ingApplyRayonSelected() {
   const newRayon = _ingGetSelectedRayon('ing-rayonSheetGrid');
   if (!newRayon) { _ingToast('Choisir un rayon'); return; }
-  const rayonLabel = (_ING_RAYONS.find(r => r.id === newRayon) || {}).label || newRayon;
   const ids = [..._ingSelectedIds];
   let ok = 0;
   for (const id of ids) {
@@ -5683,7 +5592,7 @@ async function _ingApplyRayonSelected() {
       await fetch('/api/ingredients/' + ing._dbId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categorie: rayonLabel })
+        body: JSON.stringify({ rayon_id: newRayon })
       });
       ok++;
     } catch(e) {}
@@ -5701,7 +5610,7 @@ async function _ingCreateFromSearch() {
     const res = await fetch('/api/ingredients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nom, categorie: 'Autre', icone: '' })
+      body: JSON.stringify({ nom, icone: '' })
     });
     if (!res.ok) {
       const d = await res.json();
@@ -6115,7 +6024,7 @@ async function _mchSaveRayon() {
   if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
   try {
     if (_mchEditRayonId) {
-      await fetch(`/api/marchands/${_mchEditRayonMId}/rayons/${_mchEditRayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
+      await fetch(`/api/rayons/${_mchEditRayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
       showToast('Rayon modifié ✓', 'ok');
     } else {
       await fetch(`/api/marchands/${_mchEditRayonMId}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
@@ -6256,7 +6165,7 @@ function _mchInitDragDrop(mId) {
 async function _mchCommitOrder(mId, list) {
   const order = [];
   list.querySelectorAll('.mch-rayon-row').forEach((row, i) => {
-    order.push({ id: parseInt(row.dataset.rayonId), position: i });
+    order.push({ rayon_id: parseInt(row.dataset.rayonId), position: i });
   });
   try {
     await fetch(`/api/marchands/${mId}/rayons/order`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });

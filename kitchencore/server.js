@@ -134,12 +134,17 @@ db.exec(`
     image    TEXT,
     position INTEGER DEFAULT 0
   );
-  CREATE TABLE IF NOT EXISTS marchands_rayons (
+  CREATE TABLE IF NOT EXISTS rayons (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom   TEXT NOT NULL UNIQUE,
+    emoji TEXT DEFAULT '📦'
+  );
+  CREATE TABLE IF NOT EXISTS marchand_rayons (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     marchand_id INTEGER NOT NULL REFERENCES marchands(id) ON DELETE CASCADE,
-    nom         TEXT NOT NULL,
-    emoji       TEXT DEFAULT '📦',
-    position    INTEGER DEFAULT 0
+    rayon_id    INTEGER NOT NULL REFERENCES rayons(id) ON DELETE CASCADE,
+    position    INTEGER DEFAULT 0,
+    UNIQUE(marchand_id, rayon_id)
   );
 `);
 
@@ -157,9 +162,36 @@ db.exec(`
   ['recettes',    'source',        "TEXT DEFAULT ''"],
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
+  ['ingredients', 'rayon_id',      'INTEGER REFERENCES rayons(id)'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
+
+// Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='marchands_rayons'").get()) {
+  db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
+  db.exec(`INSERT OR IGNORE INTO marchand_rayons(marchand_id,rayon_id,position)
+    SELECT mr.marchand_id,r.id,mr.position FROM marchands_rayons mr
+    JOIN rayons r ON LOWER(TRIM(r.nom))=LOWER(TRIM(mr.nom))`);
+  db.exec(`DROP TABLE marchands_rayons`);
+}
+
+// Seed rayons par défaut si la table est vide
+if (db.prepare('SELECT COUNT(*) as n FROM rayons').get().n === 0) {
+  const ins = db.prepare('INSERT OR IGNORE INTO rayons(nom,emoji) VALUES(?,?)');
+  [
+    ['Fruits et Légumes','🥦'],['Viandes et Poissons','🥩'],
+    ['Crèmerie et Produits laitiers','🥛'],['Charcuterie et Traiteur','🧂'],
+    ['Surgelés','❄️'],['Épicerie sucrée','🍫'],['Épicerie salée','🫙'],
+    ['Boissons','🧃'],['Pains et Pâtisseries','🍞'],['Bio et Écologie','🫒'],
+    ['Entretien et Nettoyage','🧴'],['Hygiène et Beauté','🍷'],['Autre','📦'],
+  ].forEach(([n,e]) => ins.run(n,e));
+}
+
+// Migration : mapper ingredients.categorie → rayon_id (correspondance par nom)
+db.exec(`UPDATE ingredients SET rayon_id=(
+  SELECT id FROM rayons WHERE LOWER(TRIM(nom))=LOWER(TRIM(ingredients.categorie)) LIMIT 1
+) WHERE rayon_id IS NULL AND categorie IS NOT NULL AND categorie!=''`);
 
 // Seed unités de base si vide
 if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
@@ -220,7 +252,7 @@ app.post('/api/ingredients', (req, res) => {
 
 app.patch('/api/ingredients/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','categorie','seuil_alerte','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
@@ -834,21 +866,65 @@ app.delete('/api/courses/recipes/:id', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// RAYONS (référentiel global)
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/rayons', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM rayons ORDER BY id').all());
+});
+
+app.post('/api/rayons', (req, res) => {
+  const { nom, emoji='📦' } = req.body;
+  if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
+  try {
+    const r = db.prepare('INSERT INTO rayons(nom,emoji) VALUES(?,?)').run(nom.trim(), emoji);
+    res.status(201).json(db.prepare('SELECT * FROM rayons WHERE id=?').get(r.lastInsertRowid));
+  } catch(e) {
+    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Rayon déjà existant' : e.message });
+  }
+});
+
+app.patch('/api/rayons/:id', (req, res) => {
+  const f=[], v=[];
+  ['nom','emoji'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
+  v.push(req.params.id);
+  try {
+    db.prepare(`UPDATE rayons SET ${f.join(',')} WHERE id=?`).run(...v);
+    res.json(db.prepare('SELECT * FROM rayons WHERE id=?').get(req.params.id));
+  } catch(e) {
+    res.status(409).json({ error: 'Nom déjà utilisé' });
+  }
+});
+
+app.delete('/api/rayons/:id', (req, res) => {
+  const n_ing = db.prepare('SELECT COUNT(*) as n FROM ingredients WHERE rayon_id=?').get(req.params.id).n;
+  const n_mr  = db.prepare('SELECT COUNT(*) as n FROM marchand_rayons WHERE rayon_id=?').get(req.params.id).n;
+  if (n_ing > 0 || n_mr > 0)
+    return res.status(409).json({ error: `Rayon utilisé par ${n_ing} ingrédient(s) et ${n_mr} marchand(s)` });
+  db.prepare('DELETE FROM rayons WHERE id=?').run(req.params.id);
+  res.status(204).end();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MARCHANDS
 // ══════════════════════════════════════════════════════════════════════════════
+
+const _sqlMarchandRayons = `
+  SELECT r.id, r.nom, r.emoji, mr.position
+  FROM marchand_rayons mr JOIN rayons r ON r.id=mr.rayon_id
+  WHERE mr.marchand_id=? ORDER BY mr.position, mr.id`;
 
 function getMarchand(id) {
   const m = db.prepare('SELECT * FROM marchands WHERE id=?').get(id);
   if (!m) return null;
-  m.rayons = db.prepare('SELECT * FROM marchands_rayons WHERE marchand_id=? ORDER BY position, id').all(id);
+  m.rayons = db.prepare(_sqlMarchandRayons).all(id);
   return m;
 }
 
 app.get('/api/marchands', (_req, res) => {
   const marchands = db.prepare('SELECT * FROM marchands ORDER BY position, id').all();
-  marchands.forEach(m => {
-    m.rayons = db.prepare('SELECT * FROM marchands_rayons WHERE marchand_id=? ORDER BY position, id').all(m.id);
-  });
+  marchands.forEach(m => { m.rayons = db.prepare(_sqlMarchandRayons).all(m.id); });
   res.json(marchands);
 });
 
@@ -874,33 +950,42 @@ app.delete('/api/marchands/:id', (req, res) => {
   res.status(204).end();
 });
 
+// POST /api/marchands/:id/rayons  — lie un rayon global au marchand (crée le rayon s'il n'existe pas)
 app.post('/api/marchands/:id/rayons', (req, res) => {
-  const { nom, emoji='📦' } = req.body;
-  if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
-  const pos = db.prepare('SELECT COALESCE(MAX(position)+1,0) AS p FROM marchands_rayons WHERE marchand_id=?').get(req.params.id).p;
-  const r = db.prepare('INSERT INTO marchands_rayons(marchand_id,nom,emoji,position) VALUES(?,?,?,?)').run(req.params.id, nom.trim(), emoji, pos);
-  res.status(201).json(db.prepare('SELECT * FROM marchands_rayons WHERE id=?').get(r.lastInsertRowid));
+  const { rayon_id, nom, emoji='📦' } = req.body;
+  let rId = rayon_id ? parseInt(rayon_id) : null;
+  if (!rId && nom?.trim()) {
+    const existing = db.prepare('SELECT id FROM rayons WHERE LOWER(TRIM(nom))=LOWER(TRIM(?))').get(nom.trim());
+    if (existing) { rId = existing.id; }
+    else {
+      try {
+        const r = db.prepare('INSERT INTO rayons(nom,emoji) VALUES(?,?)').run(nom.trim(), emoji);
+        rId = r.lastInsertRowid;
+      } catch(e) { return res.status(500).json({ error: e.message }); }
+    }
+  }
+  if (!rId) return res.status(400).json({ error: 'rayon_id ou nom requis' });
+  const pos = db.prepare('SELECT COALESCE(MAX(position)+1,0) AS p FROM marchand_rayons WHERE marchand_id=?').get(req.params.id).p;
+  try {
+    db.prepare('INSERT INTO marchand_rayons(marchand_id,rayon_id,position) VALUES(?,?,?)').run(req.params.id, rId, pos);
+    res.status(201).json(db.prepare('SELECT r.id,r.nom,r.emoji,mr.position FROM marchand_rayons mr JOIN rayons r ON r.id=mr.rayon_id WHERE mr.marchand_id=? AND mr.rayon_id=?').get(req.params.id, rId));
+  } catch(e) {
+    res.status(409).json({ error: 'Rayon déjà présent chez ce marchand' });
+  }
 });
 
-app.patch('/api/marchands/:id/rayons/:rid', (req, res) => {
-  const f=[], v=[];
-  ['nom','emoji'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
-  if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
-  v.push(req.params.rid);
-  db.prepare(`UPDATE marchands_rayons SET ${f.join(',')} WHERE id=?`).run(...v);
-  res.json(db.prepare('SELECT * FROM marchands_rayons WHERE id=?').get(req.params.rid));
-});
-
+// DELETE /api/marchands/:id/rayons/:rayon_id — supprime le lien (le rayon global reste)
 app.delete('/api/marchands/:id/rayons/:rid', (req, res) => {
-  db.prepare('DELETE FROM marchands_rayons WHERE id=?').run(req.params.rid);
+  db.prepare('DELETE FROM marchand_rayons WHERE marchand_id=? AND rayon_id=?').run(req.params.id, req.params.rid);
   res.status(204).end();
 });
 
+// PUT /api/marchands/:id/rayons/order — réordonne les rayons d'un marchand
 app.put('/api/marchands/:id/rayons/order', (req, res) => {
   const { order } = req.body;
   if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
-  const upd = db.prepare('UPDATE marchands_rayons SET position=? WHERE id=? AND marchand_id=?');
-  db.transaction(() => { order.forEach(({ id, position }) => upd.run(position, id, req.params.id)); })();
+  const upd = db.prepare('UPDATE marchand_rayons SET position=? WHERE marchand_id=? AND rayon_id=?');
+  db.transaction(() => { order.forEach(({ rayon_id, position }) => upd.run(position, req.params.id, rayon_id)); })();
   res.json({ ok: true });
 });
 
