@@ -574,6 +574,18 @@ app.get('/api/recettes', (_req, res) => {
   res.json(rows);
 });
 
+app.get('/api/ingredients/usedIn', (_req, res) => {
+  const rows = db.prepare(
+    "SELECT nom, recette_id FROM recette_ingredients WHERE nom IS NOT NULL AND nom != '' AND type != 'sous_recette'"
+  ).all();
+  const map = {};
+  rows.forEach(({ nom, recette_id }) => {
+    if (!map[nom]) map[nom] = [];
+    if (!map[nom].includes(recette_id)) map[nom].push(recette_id);
+  });
+  res.json(map);
+});
+
 app.get('/api/recettes/:id', (req, res) => {
   const r = getRecette(req.params.id);
   if (!r) return res.status(404).json({ error: 'Recette introuvable' });

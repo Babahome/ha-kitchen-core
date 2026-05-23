@@ -4587,13 +4587,18 @@ async function _ingLoadData() {
       usedIn:         [],
       _dbId:          a.id,
     }));
-    // Peupler usedIn depuis les recettes en localStorage
-    const _localRecipes = _ingGetRecipes();
+    // Peupler usedIn depuis la BDD via API
+    let usedInMap = {};
+    try {
+      const uiRes = await fetch('/api/ingredients/usedIn');
+      if (uiRes.ok) usedInMap = await uiRes.json();
+    } catch(_) {}
     _ingAll.forEach(ing => {
       const normName = _ingNormalize(ing.name);
-      ing.usedIn = _localRecipes
-        .filter(r => (r.ingredients || []).some(i => _ingNormalize(i.name) === normName))
-        .map(r => r.id);
+      const ids = Object.entries(usedInMap)
+        .filter(([nom]) => _ingNormalize(nom) === normName)
+        .flatMap(([, recipeIds]) => recipeIds);
+      ing.usedIn = [...new Set(ids)];
     });
     console.log('[ING] _ingAll peuplé:', _ingAll.length, 'items');
   } catch(e) {
@@ -4949,11 +4954,13 @@ function _ingOpenDetailPanel(id) {
   if (rf && rf.id !== rc?.id) rayonsDiv.innerHTML += `<span class="rayon-chip active" style="pointer-events:none">🌿 La Fourche : ${rf.emoji} ${rf.label}</span>`;
   if (!rc && !rf) rayonsDiv.innerHTML = `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Non défini</span>`;
 
-  const recipes = _ingGetRecipes();
-  const linked = recipes.filter(r => ing.usedIn?.includes(r.id));
+  const _rvSrc = (typeof _rv !== 'undefined' && Array.isArray(_rv)) ? _rv : [];
+  const linked = (ing.usedIn || []).map(id =>
+    _rvSrc.find(r => String(r.id).replace(/^d_/, '') === String(id))
+  ).filter(Boolean);
   const recDiv = document.getElementById('ing-detailRecipes');
   recDiv.innerHTML = linked.length
-    ? linked.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.name}</div>`).join('')
+    ? linked.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Aucune recette liée</span>`;
 
   document.getElementById('ing-detailPanel').classList.add('open');
@@ -4999,10 +5006,12 @@ function _ingOpenEditSheet(id, e) {
   _ingRenderRayonGrid('ing-rayonFourche', ing.rayonFourche || ing.rayonCarrefour);
 
   // Recipes
-  const recipes = _ingGetRecipes();
-  const linked = recipes.filter(r => ing.usedIn?.includes(r.id));
-  document.getElementById('ing-editRecipesList').innerHTML = linked.length
-    ? linked.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.name}</div>`).join('')
+  const _rvSrc2 = (typeof _rv !== 'undefined' && Array.isArray(_rv)) ? _rv : [];
+  const linked2 = (ing.usedIn || []).map(id =>
+    _rvSrc2.find(r => String(r.id).replace(/^d_/, '') === String(id))
+  ).filter(Boolean);
+  document.getElementById('ing-editRecipesList').innerHTML = linked2.length
+    ? linked2.map(r => `<div class="recipe-mini"><span class="recipe-mini-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px">Aucune recette liée</span>`;
 
   _ingShowSheet('ing-editSheet');
