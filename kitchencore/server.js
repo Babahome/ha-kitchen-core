@@ -484,12 +484,19 @@ app.get('/api/recettes/import/mealie/search', async (req, res) => {
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const search  = q ? `&search=${encodeURIComponent(q)}` : '';
-    const mRes    = await fetch(`${base}/api/recipes?page=1&perPage=50${search}`, { headers });
-    if (!mRes.ok) return res.status(mRes.status).json({ error: 'Mealie inaccessible' });
-    const data    = await mRes.json();
+    const PER_PAGE = 50;
+    let page = 1, allItems = [], total = 0;
+    do {
+      const mRes = await fetch(`${base}/api/recipes?page=${page}&perPage=${PER_PAGE}${search}`, { headers });
+      if (!mRes.ok) return res.status(mRes.status).json({ error: 'Mealie inaccessible' });
+      const data = await mRes.json();
+      total = data.total || 0;
+      allItems = allItems.concat(data.items || []);
+      page++;
+    } while (allItems.length < total);
     res.json({
-      total: data.total || 0,
-      items: (data.items || []).map(r => ({
+      total,
+      items: allItems.map(r => ({
         slug:        r.slug,
         nom:         r.name,
         description: r.description || '',
