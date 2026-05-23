@@ -883,6 +883,7 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .rcard { background:white;border-radius:14px;margin:0 14px 12px;overflow:hidden;display:flex;align-items:stretch;min-height:100px;cursor:pointer;border:1px solid var(--grey);box-shadow:var(--shadow);transition:transform .15s; }
 .rcard:active{ transform:scale(.98); }
 .rcard-img { width:110px;flex-shrink:0;background:var(--orange-l);display:flex;align-items:center;justify-content:center;font-size:2.5rem;overflow:hidden;position:relative; }
+.rcard-initials { font-size:2rem;font-weight:900;color:var(--orange);opacity:.6;letter-spacing:-.02em;text-transform:uppercase;line-height:1; }
 .rcard-img img{ width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
 .rcard-body{ flex:1;padding:12px 12px 10px;display:flex;flex-direction:column;min-width:0; }
 .rcard-title{ font-size:.92rem;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px; }
@@ -913,6 +914,10 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .p-btn      { padding:7px 14px;border-radius:8px;border:1.5px solid var(--orange);background:white;color:var(--orange);font-size:.8rem;font-weight:800;cursor:pointer;font-family:var(--font);flex-shrink:0; }
 .p-btn.pri  { background:var(--orange);color:white;border:none; }
 .p-btn:active{ opacity:.8; }
+.p-more-btn { width:36px;height:36px;border-radius:50%;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:1.1rem;border:none;flex-shrink:0;color:var(--text2); }
+.p-more-btn:active{ background:var(--grey); }
+.detail-ctx { position:absolute;right:14px;top:62px;background:white;border-radius:12px;border:1px solid var(--grey);z-index:90;min-width:200px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);display:none; }
+.detail-ctx.open{ display:block; }
 
 .p-scroll   { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch; }
 .p-scroll::-webkit-scrollbar{ display:none; }
@@ -938,10 +943,14 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .d-sec      { padding:0 16px 16px; }
 .d-sec-ttl  { font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--grey-d);padding:14px 0 10px;display:flex;align-items:center;gap:6px; }
 .d-sec-ttl::after{ content:'';flex:1;height:1px;background:var(--grey); }
-.d-ingr-row { display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--grey-l); }
+.d-ingr-row { display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--grey-l); }
 .d-ingr-row:last-child{ border-bottom:none; }
-.d-ingr-qty { font-size:.85rem;font-weight:800;color:var(--orange);min-width:60px; }
-.d-ingr-nom { font-size:.88rem;flex:1; }
+.d-ingr-qty { font-size:.85rem;font-weight:800;color:var(--orange);min-width:72px;flex-shrink:0; }
+.d-ingr-photo { width:28px;height:28px;border-radius:6px;background:var(--grey-l);
+                display:grid;place-items:center;font-size:.62rem;font-weight:800;
+                color:var(--text2);flex-shrink:0;overflow:hidden;text-transform:uppercase; }
+.d-ingr-photo img { width:100%;height:100%;object-fit:cover; }
+.d-ingr-nom { font-size:.88rem;flex:1;min-width:0; }
 .d-step-row { display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l); }
 .d-step-row:last-child{ border-bottom:none; }
 .d-step-num { width:28px;height:28px;border-radius:50%;background:var(--orange);color:white;display:grid;place-items:center;font-size:.8rem;font-weight:800;flex-shrink:0;margin-top:1px; }
@@ -1022,8 +1031,9 @@ textarea.einput{ resize:none;min-height:60px; }
 /* Hero */
 .ev3-hero { width:100%; aspect-ratio:16/9; background:var(--orange-l); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; cursor:pointer; flex-shrink:0; }
 .ev3-hero img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
-.ev3-hero-emoji-bg { font-size:5rem; position:relative; z-index:1; line-height:1; }
-.ev3-hero-emoji-badge { position:absolute; top:10px; left:10px; background:rgba(0,0,0,.45); backdrop-filter:blur(4px); border-radius:99px; padding:4px 10px; font-size:1.5rem; line-height:1; z-index:3; display:none; }
+.ev3-hero-placeholder { font-size:3.5rem;font-weight:900;color:var(--orange);opacity:.5;
+                        letter-spacing:-.02em;text-transform:uppercase;line-height:1;
+                        position:relative;z-index:1; }
 .ev3-hero-overlay { position:absolute; inset:0; background:rgba(0,0,0,.22); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
 .ev3-hero-overlay span { color:white; font-size:.85rem; font-weight:700; }
 .ev3-hero-overlay-icon { font-size:1.8rem; }
@@ -2120,6 +2130,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <button class="p-back" onclick="closeDetail()">←</button>
           <div class="p-title" id="detail-title"></div>
           <button class="p-btn" onclick="openEdit(_currentId)">✏️ Modifier</button>
+          <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
+        </div>
+        <div class="detail-ctx" id="detail-ctx">
+          <div class="ctx-item" onclick="addToCourses(_currentId);detailMenuClose()"><span>🛒</span> Ajouter aux courses</div>
+          <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
         </div>
         <div class="p-scroll" id="detail-body"></div>
       </div>
@@ -2142,28 +2157,23 @@ body[data-menu-sel="1"] #main-fab { display:none; }
             <button class="ev3-fav-btn" id="ev3-fav-btn" onclick="ev3ToggleFav()">♡</button>
           </div>
 
-          <!-- Hero photo / emoji -->
+          <!-- Hero photo -->
           <div class="ev3-hero" id="ev3-hero"
                onclick="ev3TriggerPhoto()"
                ontouchstart="this.classList.add('touching')"
                ontouchend="this.classList.remove('touching')">
             <img id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
-            <span id="ev3-hero-emoji-bg" class="ev3-hero-emoji-bg">🍽️</span>
-            <span class="ev3-hero-emoji-badge" id="ev3-hero-emoji-badge">🍽️</span>
+            <div id="ev3-hero-placeholder" class="ev3-hero-placeholder"></div>
             <div class="ev3-hero-overlay">
               <span class="ev3-hero-overlay-icon">📷</span>
               <span>Changer la photo</span>
             </div>
             <div class="ev3-hero-fabs" onclick="event.stopPropagation()">
-              <button class="ev3-hero-fab" onclick="ev3ToggleEmojiPanel()">😀 Emoji</button>
               <button class="ev3-hero-fab" id="ev3-clear-photo-btn" style="display:none" onclick="ev3ClearPhoto()">✕ Photo</button>
             </div>
           </div>
           <input type="file" id="ev3-file-input" accept="image/*" style="display:none" onchange="ev3HandlePhotoFile(this)">
           <input type="hidden" id="ev3-photo-hidden">
-
-          <!-- Picker emoji -->
-          <div class="ev3-emoji-panel" id="ev3-emoji-panel"></div>
 
           <!-- Méta -->
           <div class="ev3-meta">
@@ -3285,11 +3295,13 @@ function renderList() {
     el.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:var(--grey-d)"><div style="font-size:3rem;opacity:.3">🍳</div><p style="margin-top:.5rem;font-size:.88rem">Aucune recette</p></div>';
     return;
   }
-  el.innerHTML = filtered.map(r=>`
+  el.innerHTML = filtered.map(r=>{
+    const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
+    return `
     <div class="rcard" onclick="openDetail('${r.id}')">
       <div class="rcard-img">
         ${r.photo?`<img src="${r.photo}" onerror="this.style.display='none'">`:''}
-        <span>${r.emoji||'🍽️'}</span>
+        ${!r.photo?`<span class="rcard-initials">${initials}</span>`:''}
       </div>
       <div class="rcard-body">
         <div class="rcard-title">${r.nom}</div>
@@ -3300,7 +3312,8 @@ function renderList() {
           <div class="rcard-more" onclick="openCtx(event,'${r.id}')">•••</div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function setFilter(chip, tag) {
@@ -3354,7 +3367,7 @@ async function addToCourses(id) {
     const data = await res.json();
     if(!data.ingredients || data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
     if(!_clRecipes.find(cr=>String(cr.id)===sid)) {
-      _clRecipes.push({id:sid, nom:r.nom, e:r.emoji||'🍽️', portions:data.portions});
+      _clRecipes.push({id:sid, nom:r.nom, portions:data.portions});
       clSaveRecipes();
     }
     data.ingredients.forEach(ing=>{
@@ -3382,11 +3395,21 @@ async function openDetail(id) {
 
   const stars = [1,2,3,4,5].map(i=>`<span class="d-star${i<=(r.note||0)?' on':''}" onclick="setNote('${id}',${i})">★</span>`).join('');
   const tags  = (r.tags||[]).map(t=>`<span class="d-tag">${t}</span>`).join('');
-  const ingrs = (r.ingredients||[]).map(i=>`
+  const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
+  const ingrs = (r.ingredients||[]).map(i=>{
+    const icone = i.ingredient_icone;
+    const isUrl = icone && (icone.startsWith('http') || icone.startsWith('/'));
+    const photoHtml = isUrl
+      ? `<div class="d-ingr-photo"><img src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
+      : `<div class="d-ingr-photo">${(i.nom||'?').slice(0,2).toUpperCase()}</div>`;
+    const qtyTxt = [i.qty, i.unite].filter(Boolean).join(' ');
+    return `
     <div class="d-ingr-row">
-      <span class="d-ingr-qty">${i.qty} ${i.unite}</span>
+      <span class="d-ingr-qty">${qtyTxt}</span>
+      ${photoHtml}
       <span class="d-ingr-nom">${i.nom}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const steps = (r.etapes||[]).map((s,n)=>`
     <div class="d-step-row">
       <div class="d-step-num">${n+1}</div>
@@ -3399,8 +3422,9 @@ async function openDetail(id) {
 
   document.getElementById('detail-body').innerHTML = `
     <div class="d-hero">
-      ${r.photo?`<img src="${r.photo}" onerror="this.style.display='none'">`:''}
-      <span style="${r.photo?'':''}font-size:5rem">${r.emoji||'🍽️'}</span>
+      ${r.photo
+        ? `<img src="${r.photo}" onerror="this.style.display='none'">`
+        : `<span class="rcard-initials" style="font-size:3.5rem">${initials}</span>`}
     </div>
     <div class="d-meta">
       <div class="d-nom">${r.nom}</div>
@@ -3413,8 +3437,6 @@ async function openDetail(id) {
       <div class="d-stars">${stars}</div>
     </div>
     <div class="d-acts">
-      <button class="d-act pri" onclick="addToCourses('${id}')">🛒 Courses</button>
-      <button class="d-act ghost" onclick="addToMenu('${id}')">📅 Menu</button>
       <button class="d-act ghost" style="flex:.6" onclick="toggleFav('${id}')">${r.favori?'♥':'♡'}</button>
     </div>
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
@@ -3423,7 +3445,18 @@ async function openDetail(id) {
   `;
   document.getElementById('panel-detail').classList.add('open');
 }
-function closeDetail() { document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
+function closeDetail() { detailMenuClose(); document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
+function detailMenuToggle(e) {
+  e.stopPropagation();
+  const m = document.getElementById('detail-ctx');
+  const isOpen = m.classList.contains('open');
+  detailMenuClose();
+  if(!isOpen) {
+    m.classList.add('open');
+    setTimeout(()=>document.addEventListener('click', detailMenuClose, {once:true}), 10);
+  }
+}
+function detailMenuClose() { document.getElementById('detail-ctx')?.classList.remove('open'); }
 async function setNote(id,n) {
   await fetch('/api/recettes/'+id+'/note', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({note:n}) });
   await loadRecettes(); openDetail(id);
@@ -3448,7 +3481,6 @@ async function openEdit(id) {
   _eSteps   = r ? JSON.parse(JSON.stringify(r.etapes||[]))      : [{titre:'',texte:'',timer:0}];
   _eNote    = r?.note||0;
   _eFavori  = r?.favori||false;
-  _eEmoji   = r?.emoji||'🍽️';
   _eSelTags = r ? [...(r.tags||[])] : [];
   if(!_eIngr.length)  _eIngr  = [{nom:'',qty:'',unite:'',type:'ingredient'}];
   if(!_eSteps.length) _eSteps = [{titre:'',texte:'',timer:0}];
@@ -3465,29 +3497,30 @@ function buildFormV3(r) {
 
   // Nom / desc / temps / source
   document.getElementById('e-nom').value      = r?.nom||'';
+  document.getElementById('e-nom').oninput    = function(){
+    const ph = document.getElementById('ev3-hero-placeholder');
+    if(ph && document.getElementById('ev3-hero-img').style.display==='none')
+      ph.textContent = this.value.trim().slice(0,2).toUpperCase();
+  };
   document.getElementById('e-desc').value     = r?.desc||r?.description||'';
   document.getElementById('e-portions').value = r?.portions||2;
   document.getElementById('e-prep').value     = r?.temps_prep||0;
   document.getElementById('e-cuisson').value  = r?.temps_cuisson||0;
   document.getElementById('e-source').value   = r?.source||'';
 
-  // Emoji
-  _eEmoji = r?.emoji||'🍽️';
-  document.getElementById('ev3-hero-emoji-bg').textContent    = _eEmoji;
-  document.getElementById('ev3-hero-emoji-badge').textContent = _eEmoji;
-
-  // Photo
+  // Photo + placeholder initiales
   const heroImg  = document.getElementById('ev3-hero-img');
   const clearBtn = document.getElementById('ev3-clear-photo-btn');
+  const ph       = document.getElementById('ev3-hero-placeholder');
+  const nom      = r?.nom||'';
+  ph.textContent = nom.trim().slice(0,2).toUpperCase();
   if(r?.photo){
     heroImg.src = r.photo; heroImg.style.display = 'block';
-    document.getElementById('ev3-hero-emoji-bg').style.display    = 'none';
-    document.getElementById('ev3-hero-emoji-badge').style.display = 'block';
+    ph.style.display = 'none';
     clearBtn.style.display = 'flex';
   } else {
     heroImg.src = ''; heroImg.style.display = 'none';
-    document.getElementById('ev3-hero-emoji-bg').style.display    = '';
-    document.getElementById('ev3-hero-emoji-badge').style.display = 'none';
+    ph.style.display = '';
     clearBtn.style.display = 'none';
   }
   document.getElementById('ev3-photo-hidden').value = r?.photo||'';
@@ -3554,16 +3587,14 @@ function ev3HandlePhotoFile(input) {
 function ev3SetPhoto(url) {
   const img = document.getElementById('ev3-hero-img');
   img.src = url; img.style.display = 'block';
-  document.getElementById('ev3-hero-emoji-bg').style.display    = 'none';
-  document.getElementById('ev3-hero-emoji-badge').style.display = 'block';
+  document.getElementById('ev3-hero-placeholder').style.display = 'none';
   document.getElementById('ev3-clear-photo-btn').style.display  = 'flex';
   document.getElementById('ev3-photo-hidden').value = url;
 }
 function ev3ClearPhoto() {
   const img = document.getElementById('ev3-hero-img');
   img.src = ''; img.style.display = 'none';
-  document.getElementById('ev3-hero-emoji-bg').style.display    = '';
-  document.getElementById('ev3-hero-emoji-badge').style.display = 'none';
+  document.getElementById('ev3-hero-placeholder').style.display = '';
   document.getElementById('ev3-clear-photo-btn').style.display  = 'none';
   document.getElementById('ev3-photo-hidden').value = '';
   document.getElementById('ev3-file-input').value   = '';
@@ -3686,7 +3717,6 @@ async function saveRecette() {
   if(!nom){ showToast('Le nom est obligatoire','warn'); return; }
   const payload = {
     nom,
-    emoji:        _eEmoji||'🍽️',
     photo:        document.getElementById('ev3-photo-hidden')?.value||'',
     description:  document.getElementById('e-desc')?.value.trim()||'',
     portions:     parseInt(document.getElementById('e-portions')?.value)||2,
@@ -4256,7 +4286,7 @@ async function mSelAddToCourses(){
 
       const sid = String(r.id);
       if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
-        _clRecipes.push({id:sid, nom:r.nom, e:r.emoji||'🍽️', portions:portMenu});
+        _clRecipes.push({id:sid, nom:r.nom, portions:portMenu});
       }
       data.ingredients.forEach(ing=>{
         if(!ing.nom) return;

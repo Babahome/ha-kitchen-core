@@ -412,7 +412,12 @@ function getRecette(id) {
   if (!r) return null;
   r.tags        = JSON.parse(r.tags || '[]');
   r.favori      = !!r.favori;
-  r.ingredients = db.prepare('SELECT * FROM recette_ingredients WHERE recette_id=? ORDER BY position').all(id);
+  r.ingredients = db.prepare(`
+    SELECT ri.*, i.icone as ingredient_icone
+    FROM recette_ingredients ri
+    LEFT JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
+    WHERE ri.recette_id=? ORDER BY ri.position
+  `).all(id);
   r.etapes      = db.prepare('SELECT * FROM recette_etapes WHERE recette_id=? ORDER BY position').all(id);
   return r;
 }
