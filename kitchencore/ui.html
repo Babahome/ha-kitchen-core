@@ -5070,7 +5070,7 @@ function _ingUpdateStats() {
   const elSI = document.getElementById('ing-statSansImage');
   const elTC = document.getElementById('ing-tabCountTous');
   if (elT) elT.textContent = _ingAll.length;
-  if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayonCarrefour).length;
+  if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayonCarrefour || i.rayonCarrefour === 'autre').length;
   if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
   if (elTC) elTC.textContent = `(${_ingAll.length})`;
 }
@@ -5089,7 +5089,7 @@ function _ingRenderFilters() {
 
 function _ingGetFilteredItems() {
   let items = [..._ingAll];
-  if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayonCarrefour);
+  if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayonCarrefour || i.rayonCarrefour === 'autre');
   if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
   if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayonCarrefour === _ingFilter);
