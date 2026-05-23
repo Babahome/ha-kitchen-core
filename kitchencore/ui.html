@@ -1225,6 +1225,33 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-thumb-ini { width:100%;height:100%;background:#ebebeb;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#a0a0a0;letter-spacing:-.02em; }
 .m-thumb-emo { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem; }
 
+/* Modal sélection ingrédients → courses (depuis Menu) */
+.m-ing-modal  { position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;flex-direction:column;justify-content:flex-end; }
+.m-ing-modal.on { display:flex; }
+.m-ing-sheet  { background:white;border-radius:22px 22px 0 0;width:100%;max-height:82vh;display:flex;flex-direction:column;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.m-ing-handle { width:40px;height:4px;background:var(--grey);border-radius:2px;margin:12px auto 0; }
+.m-ing-head   { padding:14px 20px 12px;border-bottom:1px solid var(--grey);flex-shrink:0; }
+.m-ing-title  { font-size:1rem;font-weight:900;color:var(--text); }
+.m-ing-sub    { font-size:.82rem;color:var(--grey-d);margin-top:3px; }
+.m-ing-list   { flex:1;overflow-y:auto;padding:8px 0; }
+.m-ing-list::-webkit-scrollbar { display:none; }
+.m-ing-recipe { padding:10px 20px 4px;font-size:.72rem;font-weight:900;color:var(--orange);text-transform:uppercase;letter-spacing:.06em; }
+.m-ing-row    { display:flex;align-items:center;padding:10px 20px;gap:12px; }
+.m-ing-check  { width:24px;height:24px;border-radius:8px;border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;flex-shrink:0;color:transparent;font-size:.8rem;font-weight:900;transition:all .15s; }
+.m-ing-check.on { background:var(--orange);border-color:var(--orange);color:white; }
+.m-ing-info   { flex:1;min-width:0; }
+.m-ing-nom    { font-size:.9rem;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.m-ing-qty    { font-size:.78rem;color:var(--grey-d); }
+.m-ing-pantry { font-size:1rem;opacity:.28;cursor:pointer;transition:opacity .15s;padding:6px;flex-shrink:0;line-height:1; }
+.m-ing-pantry.on { opacity:1; }
+.m-ing-foot   { padding:12px 20px 28px;border-top:1px solid var(--grey);display:flex;gap:8px;flex-shrink:0; }
+.m-ing-tog    { flex:1;height:44px;border-radius:12px;border:2px solid var(--grey);background:white;font-family:var(--font);font-size:.82rem;font-weight:800;color:var(--text2);cursor:pointer; }
+.m-ing-ok     { flex:2;height:44px;border-radius:12px;border:none;background:var(--orange);color:white;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer; }
+.m-ing-ok:active,.m-ing-tog:active { opacity:.8; }
+/* Toggle pantry dans fiche ingrédient */
+.ing-pantry-toggle { display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;border:2px solid var(--grey);background:white;font-family:var(--font);font-size:.85rem;font-weight:800;cursor:pointer;color:var(--text2);transition:all .15s;margin-top:4px; }
+.ing-pantry-toggle.on { border-color:var(--orange);background:var(--orange-l);color:var(--orange); }
+
 
 
 
@@ -2335,6 +2362,21 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
         </div>
       </div>
+      <!-- Modal sélection ingrédients → courses -->
+      <div class="m-ing-modal" id="m-ing-modal" onclick="if(event.target===this)mIngClose()">
+        <div class="m-ing-sheet" onclick="event.stopPropagation()">
+          <div class="m-ing-handle"></div>
+          <div class="m-ing-head">
+            <div class="m-ing-title">Ingrédients à ajouter aux courses</div>
+            <div class="m-ing-sub" id="m-ing-sub">0 sélectionné</div>
+          </div>
+          <div class="m-ing-list" id="m-ing-list"></div>
+          <div class="m-ing-foot">
+            <button class="m-ing-tog" id="m-ing-tog" onclick="mIngToggleAll()">Tout décocher</button>
+            <button class="m-ing-ok" id="m-ing-ok" onclick="mIngConfirm()">Ajouter 0 article</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ══ PAGE PROFIL ══════════════════════════════════════════════════════ -->
@@ -2538,6 +2580,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-section">
         <span class="ing-panel-label">Rayon(s)</span>
         <div style="display:flex;flex-wrap:wrap;gap:8px;" id="ing-detailRayons"></div>
+      </div>
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Stock permanent</span>
+        <button class="ing-pantry-toggle" id="ing-detailPantryBtn" onclick="ingPantryToggleDetail()">🏠 Toujours en cuisine</button>
       </div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Utilisé dans</span>
@@ -3969,6 +4015,8 @@ const MM=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov',
 if(!localStorage.getItem('kc_menu_v')){ localStorage.removeItem('kc_menu'); localStorage.setItem('kc_menu_v','1'); }
 let _md   = JSON.parse(localStorage.getItem('kc_menu')||'{}');
 let _mKey = null, _mT = 'n', _mP = null, _mEditIdx = null, _mPortions = 2;
+let _pantry = new Set(JSON.parse(localStorage.getItem('kc_pantry')||'[]'));
+function _pantrySave(){ localStorage.setItem('kc_pantry',JSON.stringify([..._pantry])); }
 
 function mdk(d){ return d.toISOString().split('T')[0]; }
 function mSv(){ localStorage.setItem('kc_menu',JSON.stringify(_md)); }
@@ -4267,45 +4315,133 @@ function mOpenDetailFromCard(k,x){
 })();
 
 // Ajouter à la liste de courses les ingrédients des recettes sélectionnées
+let _mIngData = [], _mIngChecked = new Set();
+
 async function mSelAddToCourses(){
   if(_mSelSet.size===0) return;
   const rvList = (typeof _rv!=='undefined') ? _rv : [];
-  let nbIngredients = 0, nbNonTrouvees = 0;
+  _mIngData = [];
 
   for(const key of _mSelSet){
     const [k,xs] = key.split('|'); const x = parseInt(xs);
     const item=(_md[k]||[])[x]; if(!item) continue;
     const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===item.n.toLowerCase());
-    if(!r){ nbNonTrouvees++; continue; }
-
+    if(!r) continue;
     const portMenu = item.portions || 2;
     try {
       const res  = await fetch('/api/recettes/'+r.id+'/courses?portions='+portMenu);
       const data = await res.json();
-      if(!data.ingredients || data.ingredients.length===0){ nbNonTrouvees++; continue; }
-
-      const sid = String(r.id);
-      if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
-        _clRecipes.push({id:sid, nom:r.nom, portions:portMenu});
-      }
-      data.ingredients.forEach(ing=>{
-        if(!ing.nom) return;
-        _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
-                   qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
-                   done:false, origin:'recette', recipeId:sid });
-        nbIngredients++;
-      });
-    } catch(e){ nbNonTrouvees++; }
+      if(!data.ingredients || data.ingredients.length===0) continue;
+      _mIngData.push({ recipeId:String(r.id), recipeName:r.nom, portions:portMenu, ingredients:data.ingredients });
+    } catch(e) {}
   }
 
+  if(_mIngData.length===0){ showToast('Aucun ingrédient trouvé pour ces recettes','warn'); return; }
+  mIngOpen();
+}
+
+function mIngOpen(){
+  _mIngChecked = new Set();
+  let html = '';
+  _mIngData.forEach(recipe=>{
+    html += `<div class="m-ing-recipe">${recipe.recipeName}</div>`;
+    recipe.ingredients.forEach((ing,i)=>{
+      const key = recipe.recipeId+'|'+i;
+      const isPantry = _pantry.has(ing.nom);
+      if(!isPantry) _mIngChecked.add(key);
+      const qtyNum = parseFloat(ing.qty);
+      const qtyStr = [isNaN(qtyNum)?null:qtyNum, ing.unite].filter(Boolean).join(' ');
+      const nomEsc = ing.nom.replace(/'/g,"\\'");
+      html += `<div class="m-ing-row">
+        <div class="m-ing-check ${isPantry?'':'on'}" onclick="mIngRowToggle(this,'${key}')">✓</div>
+        <div class="m-ing-info">
+          <span class="m-ing-nom">${ing.nom}</span>
+          ${qtyStr?`<span class="m-ing-qty">${qtyStr}</span>`:''}
+        </div>
+        <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}','${nomEsc}')" title="Toujours dans ma cuisine">🏠</div>
+      </div>`;
+    });
+  });
+  document.getElementById('m-ing-list').innerHTML = html;
+  mIngUpdateCount();
+  document.getElementById('m-ing-modal').classList.add('on');
+}
+
+function mIngRowToggle(el, key){
+  el.classList.toggle('on');
+  if(_mIngChecked.has(key)) _mIngChecked.delete(key);
+  else _mIngChecked.add(key);
+  mIngUpdateCount();
+}
+
+function mIngPantryToggle(el, key, nom){
+  const now = el.classList.toggle('on');
+  if(now){
+    _pantry.add(nom);
+    const check = el.parentElement.querySelector('.m-ing-check');
+    if(check && check.classList.contains('on')){ check.classList.remove('on'); _mIngChecked.delete(key); mIngUpdateCount(); }
+  } else {
+    _pantry.delete(nom);
+    const check = el.parentElement.querySelector('.m-ing-check');
+    if(check && !check.classList.contains('on')){ check.classList.add('on'); _mIngChecked.add(key); mIngUpdateCount(); }
+  }
+  _pantrySave();
+  if(typeof window.__ingPantryRefreshPanel==='function') window.__ingPantryRefreshPanel(nom, now);
+}
+
+function mIngToggleAll(){
+  const allKeys = [];
+  _mIngData.forEach(r=>r.ingredients.forEach((_,i)=>allKeys.push(r.recipeId+'|'+i)));
+  const allChecked = allKeys.every(k=>_mIngChecked.has(k));
+  const checks = document.querySelectorAll('#m-ing-list .m-ing-check');
+  if(allChecked){
+    _mIngChecked.clear();
+    checks.forEach(el=>el.classList.remove('on'));
+  } else {
+    allKeys.forEach(k=>_mIngChecked.add(k));
+    checks.forEach(el=>el.classList.add('on'));
+  }
+  mIngUpdateCount();
+}
+
+function mIngUpdateCount(){
+  const n = _mIngChecked.size;
+  const el = document.getElementById('m-ing-sub');
+  if(el) el.textContent = n+' sélectionné'+(n>1?'s':'');
+  const btn = document.getElementById('m-ing-ok');
+  if(btn) btn.textContent = n===0 ? 'Rien à ajouter' : 'Ajouter '+n+' article'+(n>1?'s':'');
+  const tog = document.getElementById('m-ing-tog');
+  if(tog){
+    const total = _mIngData.reduce((s,r)=>s+r.ingredients.length, 0);
+    tog.textContent = n===total ? 'Tout décocher' : 'Tout cocher';
+  }
+}
+
+function mIngClose(){
+  document.getElementById('m-ing-modal').classList.remove('on');
+  _mIngData = []; _mIngChecked.clear();
+}
+
+function mIngConfirm(){
+  if(_mIngChecked.size===0){ showToast('Aucun ingrédient sélectionné','warn'); return; }
+  let nbAdded = 0;
+  _mIngData.forEach(recipe=>{
+    const sid = recipe.recipeId;
+    if(typeof _clRecipes!=='undefined' && !_clRecipes.find(cr=>String(cr.id)===sid)){
+      _clRecipes.push({id:sid, nom:recipe.recipeName, portions:recipe.portions});
+    }
+    recipe.ingredients.forEach((ing,i)=>{
+      if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) return;
+      _cl.push({ id:clId(), n:ing.nom, e:'🍽️', m:'drive', r:'Épicerie',
+                 qty:parseFloat(ing.qty)||1, unit:ing.unite||'',
+                 done:false, origin:'recette', recipeId:sid });
+      nbAdded++;
+    });
+  });
   if(typeof _clRecipes!=='undefined') clSaveRecipes();
   clSave(); clRender();
-
-  let msg = nbIngredients>0
-    ? '✓ '+nbIngredients+' ingrédient'+(nbIngredients>1?'s':'')+' ajouté'+(nbIngredients>1?'s':'')+' aux courses'
-    : 'Aucun ingrédient à ajouter';
-  if(nbNonTrouvees>0) msg+=' ('+nbNonTrouvees+' recette'+(nbNonTrouvees>1?'s':'')+' introuvable'+(nbNonTrouvees>1?'s':'')+')';
-  showToast(msg, nbIngredients>0?'ok':'warn');
+  showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
+  mIngClose();
   mSelExit();
 }
 
@@ -4940,11 +5076,42 @@ function _ingOpenDetailPanel(id) {
     ? linked.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Aucune recette liée</span>`;
 
+  const pantryBtn = document.getElementById('ing-detailPantryBtn');
+  if(pantryBtn){
+    const inPantry = (typeof _pantry !== 'undefined') && _pantry.has(ing.name);
+    pantryBtn.textContent = inPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
+    pantryBtn.classList.toggle('on', inPantry);
+  }
+
   document.getElementById('ing-detailPanel').classList.add('open');
 }
 
 function _ingCloseDetailPanel() {
   document.getElementById('ing-detailPanel').classList.remove('open');
+}
+
+function _ingPantryToggleDetail(){
+  const ing = _ingAll.find(i=>i.id===_ingDetailId); if(!ing) return;
+  const wasPantry = (typeof _pantry!=='undefined') && _pantry.has(ing.name);
+  if(wasPantry) _pantry.delete(ing.name);
+  else _pantry.add(ing.name);
+  if(typeof _pantrySave==='function') _pantrySave();
+  const btn = document.getElementById('ing-detailPantryBtn');
+  if(btn){
+    btn.textContent = !wasPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
+    btn.classList.toggle('on', !wasPantry);
+  }
+}
+
+function _ingPantryRefreshPanel(nom, isPantry){
+  if(!document.getElementById('ing-detailPanel')?.classList.contains('open')) return;
+  const ing = _ingAll.find(i=>i.name===nom);
+  if(!ing || ing.id!==_ingDetailId) return;
+  const btn = document.getElementById('ing-detailPantryBtn');
+  if(btn){
+    btn.textContent = isPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
+    btn.classList.toggle('on', isPantry);
+  }
 }
 
 function _ingCloseEditPanel() {
@@ -5379,7 +5546,9 @@ window.ingOpenRayonSheet   = _ingOpenRayonSheet;
 window.ingCloseRayonSheet  = _ingCloseRayonSheet;
 window.ingApplyRayonSelected = _ingApplyRayonSelected;
 window.ingCreateFromSearch = _ingCreateFromSearch;
-window.ingHideHdmenu       = _ingHideHdmenu;
+window.ingHideHdmenu          = _ingHideHdmenu;
+window.ingPantryToggleDetail  = _ingPantryToggleDetail;
+window.__ingPantryRefreshPanel = _ingPantryRefreshPanel;
 
 // Exposer pour le hook switchPage (lecture seule)
 window.__ingBoot           = _ingBoot;
