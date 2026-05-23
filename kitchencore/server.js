@@ -99,6 +99,16 @@ db.exec(`
     texte      TEXT NOT NULL,
     timer      INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS menu (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    date     TEXT NOT NULL,
+    nom      TEXT NOT NULL,
+    type     TEXT NOT NULL DEFAULT 'n',
+    portions INTEGER DEFAULT 2,
+    emoji    TEXT DEFAULT '🍽️',
+    note     TEXT DEFAULT '',
+    photo    TEXT
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -680,6 +690,47 @@ app.get('/api/recettes/:id/courses', (req, res) => {
   if (!r) return res.status(404).json({ error: 'Introuvable' });
   const portions = parseInt(req.query.portions) || r.portions;
   res.json({ recette_id: r.id, nom: r.nom, photo: r.photo||null, portions, ingredients: expandIngredients(r.id, portions, r.portions) });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MENU
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/menu', (_req, res) => {
+  const rows = db.prepare('SELECT * FROM menu ORDER BY date, id').all();
+  const grouped = {};
+  for (const r of rows) {
+    if (!grouped[r.date]) grouped[r.date] = [];
+    grouped[r.date].push({ id: r.id, n: r.nom, t: r.type, portions: r.portions, e: r.emoji || '🍽️', note: r.note || '', photo: r.photo || null });
+  }
+  res.json(grouped);
+});
+
+app.post('/api/menu', (req, res) => {
+  const { date, n, t = 'n', portions = 2, e = '🍽️', note = '', photo = null } = req.body;
+  if (!date || !n) return res.status(400).json({ error: 'date et nom requis' });
+  const r = db.prepare('INSERT INTO menu (date,nom,type,portions,emoji,note,photo) VALUES (?,?,?,?,?,?,?)').run(date, n, t, portions, e || '🍽️', note || '', photo);
+  res.json({ id: r.lastInsertRowid });
+});
+
+app.put('/api/menu/:id', (req, res) => {
+  const { date, n, t, portions, e, note, photo } = req.body;
+  const fields = [], vals = [];
+  if (date     !== undefined) { fields.push('date=?');     vals.push(date); }
+  if (n        !== undefined) { fields.push('nom=?');      vals.push(n); }
+  if (t        !== undefined) { fields.push('type=?');     vals.push(t); }
+  if (portions !== undefined) { fields.push('portions=?'); vals.push(portions); }
+  if (e        !== undefined) { fields.push('emoji=?');    vals.push(e); }
+  if (note     !== undefined) { fields.push('note=?');     vals.push(note); }
+  if (photo    !== undefined) { fields.push('photo=?');    vals.push(photo); }
+  if (!fields.length) return res.json({ ok: true });
+  vals.push(req.params.id);
+  db.prepare(`UPDATE menu SET ${fields.join(',')} WHERE id=?`).run(...vals);
+  res.json({ ok: true });
+});
+
+app.delete('/api/menu/:id', (req, res) => {
+  db.prepare('DELETE FROM menu WHERE id=?').run(req.params.id);
+  res.status(204).end();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
