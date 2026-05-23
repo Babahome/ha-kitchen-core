@@ -3471,11 +3471,22 @@ async function openDetail(id) {
   const tags  = (r.tags||[]).map(t=>`<span class="d-tag">${t}</span>`).join('');
   const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
   const ingrs = (r.ingredients||[]).map(i=>{
-    const icone = i.ingredient_icone;
-    const isUrl = icone && (icone.startsWith('http') || icone.startsWith('/'));
-    const photoHtml = isUrl
-      ? `<div class="d-ingr-photo"><img src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
-      : `<div class="d-ingr-photo">${(i.nom||'?').slice(0,2).toUpperCase()}</div>`;
+    const isSub = i.type === 'sous_recette';
+    let photoHtml;
+    if (isSub) {
+      const subRec = _rv.find(r => String(r.id) === String(i.sous_recette_id))
+                  || _rv.find(r => r.nom.toLowerCase() === (i.nom||'').toLowerCase());
+      const subIni = (i.nom||'?').slice(0,2).toUpperCase();
+      photoHtml = subRec?.photo
+        ? `<div class="d-ingr-photo" style="background:#dbeafe"><img src="${subRec.photo}" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.6rem;font-weight:700;color:#1d4ed8\\'>${subIni}</span>'"></div>`
+        : `<div class="d-ingr-photo" style="background:#dbeafe;color:#1d4ed8;font-size:.6rem;font-weight:700">${subIni}</div>`;
+    } else {
+      const icone = i.ingredient_icone;
+      const isUrl = icone && (icone.startsWith('http') || icone.startsWith('/'));
+      photoHtml = isUrl
+        ? `<div class="d-ingr-photo"><img src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
+        : `<div class="d-ingr-photo">${(i.nom||'?').slice(0,2).toUpperCase()}</div>`;
+    }
     const qtyNum = parseFloat(i.qty);
     const qtyDisplay = (!isNaN(qtyNum) && qtyNum !== 0) ? String(i.qty) : '';
     const qtyTxt = [qtyDisplay, abbrevUnit(i.unite)].filter(Boolean).join(' ');
@@ -3484,7 +3495,7 @@ async function openDetail(id) {
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom">${i.nom}</div>
+        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${i.nom}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
@@ -3738,28 +3749,33 @@ function renderIngrs() {
   document.getElementById('e-ingrs').innerHTML =
     _eIngr.map((i,x) => {
       const sub = i.type==='sous_recette';
+      // Miniature sous-recette
       const matchedRec = sub ? _rv.find(r => r.nom.toLowerCase() === (i.nom||'').toLowerCase()) : null;
       const subPhoto = matchedRec?.photo;
       const subIni = (i.nom||'?').slice(0,2).toUpperCase();
       const subThumb = subPhoto
-        ? `<img src="${subPhoto}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
-        : `<div style="width:36px;height:36px;border-radius:6px;background:#dbeafe;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#1d4ed8">${subIni}</div>`;
-      return `<div class="ev3-ingr-row" data-idx="${x}" style="${sub?'align-items:flex-start;padding-top:10px':''}">
+        ? `<img src="${subPhoto}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+        : `<div style="width:28px;height:28px;border-radius:6px;background:#dbeafe;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#1d4ed8">${subIni}</div>`;
+      // Miniature ingrédient normal
+      const ingIcone = i.ingredient_icone;
+      const ingIsUrl = ingIcone && (ingIcone.startsWith('http') || ingIcone.startsWith('/'));
+      const ingIni = (i.nom||'?').slice(0,2).toUpperCase();
+      const ingThumb = ingIsUrl
+        ? `<img src="${ingIcone}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+        : `<div style="width:28px;height:28px;border-radius:6px;background:var(--grey-l);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--text2)">${ingIni}</div>`;
+      return `<div class="ev3-ingr-row" data-idx="${x}">
         <span class="ev3-drag-handle">⠿</span>
         <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?'🍳':'🥕'}</button>
         ${sub
-          ? `<div style="flex:1;min-width:0">
-               <div style="display:flex;align-items:center;gap:6px">
-                 ${subThumb}
-                 <input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" onchange="renderIngrs()" style="font-style:italic">
-               </div>
-               <div style="display:flex;gap:4px;margin-top:6px;padding-left:42px">
-                 <input class="ev3-qty-input" placeholder="Qté" value="${ev3Esc(i.qty)}" oninput="_eIngr[${x}].qty=this.value">
-                 <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
-               </div>
+          ? `<input class="ev3-qty-input" placeholder="Qté" value="${ev3Esc(i.qty)}" oninput="_eIngr[${x}].qty=this.value">
+             <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+             <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px">
+               ${subThumb}
+               <input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value" onchange="renderIngrs()" style="font-style:italic;flex:1">
              </div>`
           : `<input class="ev3-qty-input"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+             ${ingThumb}
              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
                <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
