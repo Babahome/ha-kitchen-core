@@ -1163,6 +1163,7 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-bts     { display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px 8px;flex-shrink:0; }
 .m-bt      { width:26px;height:26px;border-radius:7px;border:none;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:.8rem; }
 .m-bt:active { background:var(--grey); }
+.m-bt-cart { background:var(--orange-l); }
 .m-bar     { height:3px;background:var(--orange);border-radius:2px;margin:1px 0;pointer-events:none; }
 /* Mode sélection menu — checkbox en overlay à gauche, centrée verticalement */
 .mcard { position:relative; }
@@ -4059,6 +4060,7 @@ function mBuild(){
           ${r.note?`<div class="m-nt">${r.note}</div>`:''}
         </div>
         <div class="m-bts">
+          <button class="m-bt m-bt-cart" data-act="courses">🛒</button>
           <button class="m-bt m-bt-edit" data-act="edit">✏️</button>
           <button class="m-bt m-bt-del" data-act="del">🗑</button>
         </div>
@@ -4340,6 +4342,21 @@ async function mSelAddToCourses(){
   mIngOpen();
 }
 
+async function mAddOneToCourses(k,x){
+  const rvList=(typeof _rv!=='undefined')?_rv:[];
+  const item=(_md[k]||[])[x]; if(!item) return;
+  const r=rvList.find(rr=>rr.nom&&rr.nom.toLowerCase()===item.n.toLowerCase());
+  if(!r){ showToast('Recette non trouvée dans le catalogue','warn'); return; }
+  const portMenu=item.portions||2;
+  try{
+    const res=await fetch('/api/recettes/'+r.id+'/courses?portions='+portMenu);
+    const data=await res.json();
+    if(!data.ingredients||data.ingredients.length===0){ showToast('Aucun ingrédient dans cette recette','warn'); return; }
+    _mIngData=[{recipeId:String(r.id),recipeName:r.nom,portions:portMenu,ingredients:data.ingredients}];
+    mIngOpen();
+  }catch(e){ showToast('Erreur réseau','error'); }
+}
+
 function mIngOpen(){
   _mIngChecked = new Set();
   let html = '';
@@ -4463,6 +4480,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const k = card.dataset.k, x = parseInt(card.dataset.x);
     if(act==='edit') mEdit(k,x);
     else if(act==='del') mDel(k,x);
+    else if(act==='courses') mAddOneToCourses(k,x);
   }, true); // capture = true → s'exécute avant les autres
 
   // Tap / long press sur cards (hors boutons)
