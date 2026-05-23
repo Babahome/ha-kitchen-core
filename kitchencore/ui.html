@@ -2630,6 +2630,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <label class="mch-form-label">Nom du marchand</label>
         <input class="mch-form-input" id="mch-nom-input" type="text" placeholder="Ex: Carrefour Magasin" maxlength="40">
       </div>
+      <div class="mch-form-group" id="mch-template-group">
+        <label class="mch-form-label">Préremplir les rayons</label>
+        <select class="mch-form-input" id="mch-template-select">
+          <option value="">— Partir de zéro —</option>
+          <option value="carrefour">Carrefour Drive (14 rayons)</option>
+        </select>
+      </div>
       <div class="mch-modal-btns">
         <button class="mch-btn-cancel" onclick="_mchCloseModalMarchand()">Annuler</button>
         <button class="mch-btn-confirm" onclick="_mchSaveMarchand()">Enregistrer</button>
@@ -5869,8 +5876,26 @@ document.addEventListener('DOMContentLoaded', function() {
 // MARCHANDS
 // ════════════════════════════════════════════════════════════════════════════
 
-const _MCH_EMOJIS = ['🏪','🛒','🚗','🌿','🏬','🧺','🛍️','🍃','🌾','🔵','🟠','🏷️'];
 const _RAY_EMOJIS = ['🥦','🥩','🥛','🍞','🫙','🧃','❄️','🐟','🧴','🍷','🫒','🌾','🧂','🧁','🍫','📦','🥚','🧅','🫐','🍋'];
+
+const _MCH_TEMPLATES = {
+  carrefour: [
+    { nom: 'Fruits et Légumes',             emoji: '🥦' },
+    { nom: 'Viandes et Poissons',           emoji: '🥩' },
+    { nom: 'Crèmerie et Produits laitiers', emoji: '🥛' },
+    { nom: 'Charcuterie et Traiteur',       emoji: '🧂' },
+    { nom: 'Surgelés',                      emoji: '❄️' },
+    { nom: 'Bébé',                          emoji: '🧁' },
+    { nom: 'Épicerie sucrée',               emoji: '🍫' },
+    { nom: 'Épicerie salée',                emoji: '🫙' },
+    { nom: 'Boissons',                      emoji: '🧃' },
+    { nom: 'Pains et Pâtisseries',          emoji: '🍞' },
+    { nom: 'Bio et Écologie',               emoji: '🫒' },
+    { nom: 'Entretien et Nettoyage',        emoji: '🧴' },
+    { nom: 'Hygiène et Beauté',             emoji: '🍷' },
+    { nom: 'Autre',                         emoji: '📦' },
+  ]
+};
 
 let _mchData = [];
 let _mchLoading = false;
@@ -6010,13 +6035,18 @@ function _mchOpenModalMarchand(id) {
   _mchEditId = id || null;
   const nomInp = document.getElementById('mch-nom-input');
   document.getElementById('mch-modal-title').textContent = id ? 'Modifier le marchand' : 'Nouveau marchand';
+  const tg = document.getElementById('mch-template-group');
+  const ts = document.getElementById('mch-template-select');
   if (id) {
     const m = _mchData.find(x => x.id === id);
     nomInp.value     = m.nom;
     _mchCurrentImage = m.image || null;
+    if (tg) tg.style.display = 'none';
   } else {
     nomInp.value     = '';
     _mchCurrentImage = null;
+    if (tg) tg.style.display = 'block';
+    if (ts) ts.value = '';
   }
   _mchUpdateImagePreview();
   document.getElementById('mch-modal').classList.add('open');
@@ -6031,13 +6061,21 @@ async function _mchSaveMarchand() {
   const nom = document.getElementById('mch-nom-input').value.trim();
   if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
   const image = _mchCurrentImage || null;
+  const templateKey = document.getElementById('mch-template-select')?.value || '';
   try {
     if (_mchEditId) {
       await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) });
       showToast('Marchand modifié ✓', 'ok');
     } else {
-      await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) });
-      showToast('Marchand ajouté ✓', 'ok');
+      const created = await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) }).then(r => r.json());
+      if (templateKey && _MCH_TEMPLATES[templateKey]) {
+        for (const r of _MCH_TEMPLATES[templateKey]) {
+          await fetch(`/api/marchands/${created.id}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(r) });
+        }
+        showToast(`Marchand ajouté avec ${_MCH_TEMPLATES[templateKey].length} rayons ✓`, 'ok');
+      } else {
+        showToast('Marchand ajouté ✓', 'ok');
+      }
     }
     _mchCloseModalMarchand();
     await _mchLoad();
