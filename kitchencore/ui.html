@@ -2367,21 +2367,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
         </div>
       </div>
-      <!-- Modal sélection ingrédients → courses -->
-      <div class="m-ing-modal" id="m-ing-modal" onclick="if(event.target===this)mIngClose()">
-        <div class="m-ing-sheet" onclick="event.stopPropagation()">
-          <div class="m-ing-handle"></div>
-          <div class="m-ing-head">
-            <div class="m-ing-title">Ingrédients à ajouter aux courses</div>
-            <div class="m-ing-sub" id="m-ing-sub">0 sélectionné</div>
-          </div>
-          <div class="m-ing-list" id="m-ing-list"></div>
-          <div class="m-ing-foot">
-            <button class="m-ing-tog" id="m-ing-tog" onclick="mIngToggleAll()">Tout décocher</button>
-            <button class="m-ing-ok" id="m-ing-ok" onclick="mIngConfirm()">Ajouter 0 article</button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- ══ PAGE PROFIL ══════════════════════════════════════════════════════ -->
@@ -2473,6 +2458,22 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
   </div>
 
+
+  <!-- Modal sélection ingrédients → courses (global, accessible depuis toutes les pages) -->
+  <div class="m-ing-modal" id="m-ing-modal" onclick="if(event.target===this)mIngClose()">
+    <div class="m-ing-sheet" onclick="event.stopPropagation()">
+      <div class="m-ing-handle"></div>
+      <div class="m-ing-head">
+        <div class="m-ing-title">Ingrédients à ajouter aux courses</div>
+        <div class="m-ing-sub" id="m-ing-sub">0 sélectionné</div>
+      </div>
+      <div class="m-ing-list" id="m-ing-list"></div>
+      <div class="m-ing-foot">
+        <button class="m-ing-tog" id="m-ing-tog" onclick="mIngToggleAll()">Tout décocher</button>
+        <button class="m-ing-ok" id="m-ing-ok" onclick="mIngConfirm()">Ajouter 0 article</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ══ SCANNER MODAL ══════════════════════════════════════════════════════ -->
   <div class="scanner-modal" id="scanner-modal">
