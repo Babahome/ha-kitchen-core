@@ -1608,6 +1608,26 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .frame > .ing-bottom-sheet .name-option.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
   .frame > .ing-bottom-sheet .name-option .check { font-size: 16px; opacity: 0; transition: opacity .15s; }
   .frame > .ing-bottom-sheet .name-option.active .check { opacity: 1; }
+  .frame > .ing-bottom-sheet .form-label {
+    display: block; font-size: 13px; font-weight: 700;
+    color: var(--grey-d); margin-bottom: 6px;
+  }
+  .frame > .ing-bottom-sheet .form-input {
+    width: 100%; box-sizing: border-box;
+    padding: 12px 14px; border: 2px solid var(--grey);
+    border-radius: 10px; font-family: 'Nunito', sans-serif;
+    font-size: 15px; outline: none; background: white;
+    transition: border-color .2s;
+  }
+  .frame > .ing-bottom-sheet .form-input:focus { border-color: var(--orange); }
+  .frame > .ing-bottom-sheet .btn-primary {
+    display: block; width: 100%; margin-top: 16px;
+    padding: 14px; border: none; border-radius: 12px;
+    background: var(--orange); color: white;
+    font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .frame > .ing-bottom-sheet .btn-primary:active { opacity: .85; }
 
   /* ── FILTER SECTION ── */
   #page-ingredients .filter-row {
