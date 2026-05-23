@@ -502,9 +502,10 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
   depth = depth || 0;
   if (depth > 3) return [];
   const ingredients = db.prepare(`
-    SELECT ri.*, i.icone as ingredient_icone
+    SELECT ri.*, i.icone as ingredient_icone, r.nom as rayon_nom
     FROM recette_ingredients ri
     LEFT JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
+    LEFT JOIN rayons r ON r.id = i.rayon_id
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(recetteId);
   const result = [];

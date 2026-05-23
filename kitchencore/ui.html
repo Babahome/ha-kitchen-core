@@ -4741,7 +4741,7 @@ async function mIngConfirm(){
     for(let i=0;i<recipe.ingredients.length;i++){
       const ing = recipe.ingredients[i];
       if(!_mIngChecked.has(sid+'|'+i) || !ing.nom) continue;
-      const item = {n:ing.nom, icone:ing.ingredient_icone||null, m:_clMarchands[0]?String(_clMarchands[0].id):'0', r:'Épicerie',
+      const item = {n:ing.nom, icone:ing.ingredient_icone||null, m:_clMarchands[0]?String(_clMarchands[0].id):'0', r:ing.rayon_nom||'Autre',
                     qty:parseFloat(ing.qty)||1, unit:ing.unite||'', done:false, origin:'recette', recipeId:sid};
       try{
         const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
