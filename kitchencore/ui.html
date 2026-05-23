@@ -3145,7 +3145,7 @@ async function _clLoad(){
     const [rC, rM] = await Promise.all([fetch('/api/courses'), fetch('/api/marchands')]);
     if (!rC.ok) { clBuildMarchandTabs(); clRender(); return; }
     const {items, recipes} = await rC.json();
-    _cl = items; _clRecipes = recipes;
+    _cl = items.map(i=>({...i, id:String(i.id)})); _clRecipes = recipes;
     if (rM.ok) _clMarchands = await rM.json();
     // Migration unique depuis localStorage
     const oldItems   = JSON.parse(localStorage.getItem('kc_courses')||'[]');
@@ -3158,7 +3158,7 @@ async function _clLoad(){
       for (const it of oldItems) {
         const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(it)});
         const {id} = await res.json();
-        _cl.push({...it, id});
+        _cl.push({...it, id:String(id)});
       }
       localStorage.removeItem('kc_courses');
       localStorage.removeItem('kc_cl_recipes');
@@ -3397,7 +3397,7 @@ async function clAddItem() {
   try {
     const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
     const {id} = await res.json();
-    _cl.unshift({...item, id});
+    _cl.unshift({...item, id:String(id)});
     clRender();
     if(inp){ inp.value=''; inp.classList.remove('expanded'); }
     _clSearchOpen=false;
