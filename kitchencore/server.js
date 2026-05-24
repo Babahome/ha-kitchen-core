@@ -163,6 +163,7 @@ db.exec(`
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
   ['ingredients', 'rayon_id',      'INTEGER REFERENCES rayons(id)'],
+  ['menu',        'position',      'INTEGER DEFAULT 0'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -761,7 +762,7 @@ app.get('/api/recettes/:id/courses', (req, res) => {
 // MENU
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/menu', (_req, res) => {
-  const rows = db.prepare('SELECT * FROM menu ORDER BY date, id').all();
+  const rows = db.prepare("SELECT * FROM menu ORDER BY date, CASE type WHEN 'p' THEN 0 WHEN 'd' THEN 1 WHEN 'g' THEN 2 WHEN 'n' THEN 3 ELSE 4 END, position, id").all();
   const grouped = {};
   for (const r of rows) {
     if (!grouped[r.date]) grouped[r.date] = [];
@@ -778,7 +779,7 @@ app.post('/api/menu', (req, res) => {
 });
 
 app.put('/api/menu/:id', (req, res) => {
-  const { date, n, t, portions, e, note, photo } = req.body;
+  const { date, n, t, portions, e, note, photo, position } = req.body;
   const fields = [], vals = [];
   if (date     !== undefined) { fields.push('date=?');     vals.push(date); }
   if (n        !== undefined) { fields.push('nom=?');      vals.push(n); }
@@ -787,6 +788,7 @@ app.put('/api/menu/:id', (req, res) => {
   if (e        !== undefined) { fields.push('emoji=?');    vals.push(e); }
   if (note     !== undefined) { fields.push('note=?');     vals.push(note); }
   if (photo    !== undefined) { fields.push('photo=?');    vals.push(photo); }
+  if (position !== undefined) { fields.push('position=?'); vals.push(position); }
   if (!fields.length) return res.json({ ok: true });
   vals.push(req.params.id);
   db.prepare(`UPDATE menu SET ${fields.join(',')} WHERE id=?`).run(...vals);
