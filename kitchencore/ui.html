@@ -902,7 +902,7 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .ctx-item span{ font-size:1rem; }
 .ctx-item.danger{ color:#f87171; }
 
-.panel { position:fixed;inset:0;z-index:50;display:none;flex-direction:column;overflow:hidden;transition:transform .25s cubic-bezier(.4,0,.2,1); }
+.panel { position:absolute;inset:0;z-index:50;display:none;flex-direction:column;overflow:hidden;transition:transform .25s cubic-bezier(.4,0,.2,1); }
 .panel.open{ display:flex; }
 .panel.detail{ background:white; }
 .panel.edit  { background:var(--grey-l); }
@@ -2234,109 +2234,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ctx-item danger" onclick="deleteRecette(_ctxId);closeCtx()"><span>🗑</span> Supprimer</div>
       </div>
 
-      <div class="panel detail" id="panel-detail">
-        <div class="panel-head">
-          <button class="p-back" onclick="closeDetail()">←</button>
-          <div class="p-title" id="detail-title"></div>
-          <button class="p-btn" onclick="openEdit(_currentId)">✏️ Modifier</button>
-          <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
-        </div>
-        <div class="detail-ctx" id="detail-ctx">
-          <div class="ctx-item" onclick="addToCourses(_currentId);detailMenuClose()"><span>🛒</span> Ajouter aux courses</div>
-          <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
-        </div>
-        <div class="p-scroll" id="detail-body"></div>
-      </div>
-
-      <div class="panel edit" id="panel-edit">
-        <div class="panel-head">
-          <button class="p-back" onclick="closeEdit()">←</button>
-          <div class="p-title" id="edit-title">Nouvelle recette</div>
-        </div>
-
-        <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
-        <button class="ev3-save-fab" onclick="saveRecette()">✓</button>
-
-        <div class="ev3-form" id="edit-form">
-
-          <!-- Étoiles + fav -->
-          <div class="ev3-stars-bar">
-            <span class="ev3-stars-lbl">Note</span>
-            <div class="ev3-stars" id="ev3-stars"></div>
-            <button class="ev3-fav-btn" id="ev3-fav-btn" onclick="ev3ToggleFav()">♡</button>
-          </div>
-
-          <!-- Hero photo -->
-          <div class="ev3-hero" id="ev3-hero"
-               onclick="ev3TriggerPhoto()"
-               ontouchstart="this.classList.add('touching')"
-               ontouchend="this.classList.remove('touching')">
-            <img id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
-            <div id="ev3-hero-placeholder" class="ev3-hero-placeholder"></div>
-            <div class="ev3-hero-overlay">
-              <span class="ev3-hero-overlay-icon">📷</span>
-              <span>Changer la photo</span>
-            </div>
-            <div class="ev3-hero-fabs" onclick="event.stopPropagation()">
-              <button class="ev3-hero-fab" id="ev3-clear-photo-btn" style="display:none" onclick="ev3ClearPhoto()">✕ Photo</button>
-            </div>
-          </div>
-          <input type="file" id="ev3-file-input" accept="image/*" style="display:none" onchange="ev3HandlePhotoFile(this)">
-          <input type="hidden" id="ev3-photo-hidden">
-
-          <!-- Méta -->
-          <div class="ev3-meta">
-            <input class="ev3-nom-input" id="e-nom" placeholder="Nom de la recette…">
-            <div class="ev3-tags-row" id="ev3-tags-row"></div>
-            <div class="ev3-infos">
-              <div class="ev3-info-block">
-                <span class="ev3-info-icon">🍽️</span>
-                <input class="ev3-info-input" id="e-portions" type="number" min="1" value="2">
-                <span class="ev3-info-lbl">portions</span>
-              </div>
-              <div class="ev3-info-block">
-                <span class="ev3-info-icon">🥄</span>
-                <input class="ev3-info-input" id="e-prep" type="number" min="0" value="0">
-                <span class="ev3-info-lbl">prépa (min)</span>
-              </div>
-              <div class="ev3-info-block">
-                <span class="ev3-info-icon">🔥</span>
-                <input class="ev3-info-input" id="e-cuisson" type="number" min="0" value="0">
-                <span class="ev3-info-lbl">cuisson (min)</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div class="ev3-desc-wrap">
-            <textarea class="ev3-desc-input" id="e-desc" placeholder="Description (optionnelle)…"
-              onfocus="this.style.borderBottomColor='var(--orange)'"
-              onblur="this.style.borderBottomColor='transparent'"></textarea>
-          </div>
-
-          <!-- Ingrédients -->
-          <div class="ev3-sec-ttl">Ingrédients</div>
-          <div class="ev3-ingr-area" id="e-ingrs"></div>
-          <div class="ev3-add-row" onclick="addIngr()">＋ Ajouter un ingrédient</div>
-
-          <!-- Étapes -->
-          <div class="ev3-sec-ttl" style="margin-top:8px">Préparation</div>
-          <div class="ev3-steps-area" id="e-steps"></div>
-          <div class="ev3-add-row" onclick="addStep()">＋ Ajouter une étape</div>
-
-          <!-- Source -->
-          <div class="ev3-sec-ttl" style="margin-top:8px">Source</div>
-          <div class="ev3-source-section">
-            <div class="ev3-source-row">
-              <span class="ev3-source-icon">📖</span>
-              <input class="ev3-source-input" id="e-source" placeholder="Blog, livre, URL…">
-            </div>
-          </div>
-
-          <div class="ev3-bottom-spacer"></div>
-        </div>
-      </div>
-
       <div style="height:90px"></div>
 
       <!-- ══ MODAL IMPORT RECETTE ══════════════════════════════════════════ -->
@@ -2401,34 +2298,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="m-hdmenu-item danger" onclick="mSelExit();mHideHdmenu()"><span>✕</span><span>Annuler la sélection</span></div>
       </div>
       <div class="m-tl" id="m-tl"></div>
-      <div class="m-modal" id="m-modal" onclick="if(event.target===this)mClose()">
-        <div class="m-sh" onclick="event.stopPropagation()">
-          <div class="m-hn"></div>
-          <div class="m-tt" id="m-tt">Planifier un repas</div>
-          <div class="m-dt" id="m-dt"></div>
-          <div class="m-tr">
-            <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
-            <button class="m-tb" data-t="d" onclick="mTyp(this)">☀️ Déjeuner</button>
-            <button class="m-tb on"  data-t="n" onclick="mTyp(this)">🌙 Dîner</button>
-            <button class="m-tb" data-t="g" onclick="mTyp(this)">🍪 Goûter</button>
-            <button class="m-tb" data-t="a" onclick="mTyp(this)">📌 Autre</button>
-          </div>
-          <div class="m-sr">
-            <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
-            <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
-          </div>
-          <div class="m-sg" id="m-sg"></div>
-          <div class="m-portrow">
-            <span class="m-portlbl">👥 Portions</span>
-            <div class="m-portctrl">
-              <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
-              <span class="m-portval" id="m-portval">2</span>
-              <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
-            </div>
-          </div>
-          <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
-        </div>
-      </div>
     </div>
 
     <!-- ══ PAGE PROFIL ══════════════════════════════════════════════════════ -->
@@ -2495,7 +2364,143 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
   </div><!-- /content -->
 
-  <!-- FAB SEARCH (recettes) -->
+  <!-- ══ OVERLAYS (enfants directs du frame — hors content pour éviter le stacking context iOS) ══ -->
+
+  <!-- Panel détail recette -->
+  <div class="panel detail" id="panel-detail">
+    <div class="panel-head">
+      <button class="p-back" onclick="closeDetail()">←</button>
+      <div class="p-title" id="detail-title"></div>
+      <button class="p-btn" onclick="openEdit(_currentId)">✏️ Modifier</button>
+      <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
+    </div>
+    <div class="detail-ctx" id="detail-ctx">
+      <div class="ctx-item" onclick="addToCourses(_currentId);detailMenuClose()"><span>🛒</span> Ajouter aux courses</div>
+      <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
+    </div>
+    <div class="p-scroll" id="detail-body"></div>
+  </div>
+
+  <!-- Panel édition recette -->
+  <div class="panel edit" id="panel-edit">
+    <div class="panel-head">
+      <button class="p-back" onclick="closeEdit()">←</button>
+      <div class="p-title" id="edit-title">Nouvelle recette</div>
+    </div>
+
+    <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
+    <button class="ev3-save-fab" onclick="saveRecette()">✓</button>
+
+    <div class="ev3-form" id="edit-form">
+
+      <!-- Étoiles + fav -->
+      <div class="ev3-stars-bar">
+        <span class="ev3-stars-lbl">Note</span>
+        <div class="ev3-stars" id="ev3-stars"></div>
+        <button class="ev3-fav-btn" id="ev3-fav-btn" onclick="ev3ToggleFav()">♡</button>
+      </div>
+
+      <!-- Hero photo -->
+      <div class="ev3-hero" id="ev3-hero"
+           onclick="ev3TriggerPhoto()"
+           ontouchstart="this.classList.add('touching')"
+           ontouchend="this.classList.remove('touching')">
+        <img id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
+        <div id="ev3-hero-placeholder" class="ev3-hero-placeholder"></div>
+        <div class="ev3-hero-overlay">
+          <span class="ev3-hero-overlay-icon">📷</span>
+          <span>Changer la photo</span>
+        </div>
+        <div class="ev3-hero-fabs" onclick="event.stopPropagation()">
+          <button class="ev3-hero-fab" id="ev3-clear-photo-btn" style="display:none" onclick="ev3ClearPhoto()">✕ Photo</button>
+        </div>
+      </div>
+      <input type="file" id="ev3-file-input" accept="image/*" style="display:none" onchange="ev3HandlePhotoFile(this)">
+      <input type="hidden" id="ev3-photo-hidden">
+
+      <!-- Méta -->
+      <div class="ev3-meta">
+        <input class="ev3-nom-input" id="e-nom" placeholder="Nom de la recette…">
+        <div class="ev3-tags-row" id="ev3-tags-row"></div>
+        <div class="ev3-infos">
+          <div class="ev3-info-block">
+            <span class="ev3-info-icon">🍽️</span>
+            <input class="ev3-info-input" id="e-portions" type="number" min="1" value="2">
+            <span class="ev3-info-lbl">portions</span>
+          </div>
+          <div class="ev3-info-block">
+            <span class="ev3-info-icon">🥄</span>
+            <input class="ev3-info-input" id="e-prep" type="number" min="0" value="0">
+            <span class="ev3-info-lbl">prépa (min)</span>
+          </div>
+          <div class="ev3-info-block">
+            <span class="ev3-info-icon">🔥</span>
+            <input class="ev3-info-input" id="e-cuisson" type="number" min="0" value="0">
+            <span class="ev3-info-lbl">cuisson (min)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="ev3-desc-wrap">
+        <textarea class="ev3-desc-input" id="e-desc" placeholder="Description (optionnelle)…"
+          onfocus="this.style.borderBottomColor='var(--orange)'"
+          onblur="this.style.borderBottomColor='transparent'"></textarea>
+      </div>
+
+      <!-- Ingrédients -->
+      <div class="ev3-sec-ttl">Ingrédients</div>
+      <div class="ev3-ingr-area" id="e-ingrs"></div>
+      <div class="ev3-add-row" onclick="addIngr()">＋ Ajouter un ingrédient</div>
+
+      <!-- Étapes -->
+      <div class="ev3-sec-ttl" style="margin-top:8px">Préparation</div>
+      <div class="ev3-steps-area" id="e-steps"></div>
+      <div class="ev3-add-row" onclick="addStep()">＋ Ajouter une étape</div>
+
+      <!-- Source -->
+      <div class="ev3-sec-ttl" style="margin-top:8px">Source</div>
+      <div class="ev3-source-section">
+        <div class="ev3-source-row">
+          <span class="ev3-source-icon">📖</span>
+          <input class="ev3-source-input" id="e-source" placeholder="Blog, livre, URL…">
+        </div>
+      </div>
+
+      <div class="ev3-bottom-spacer"></div>
+    </div>
+  </div>
+
+  <!-- Modal "Planifier un repas" (Menu) -->
+  <div class="m-modal" id="m-modal" onclick="if(event.target===this)mClose()">
+    <div class="m-sh" onclick="event.stopPropagation()">
+      <div class="m-hn"></div>
+      <div class="m-tt" id="m-tt">Planifier un repas</div>
+      <div class="m-dt" id="m-dt"></div>
+      <div class="m-tr">
+        <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
+        <button class="m-tb" data-t="d" onclick="mTyp(this)">☀️ Déjeuner</button>
+        <button class="m-tb on"  data-t="n" onclick="mTyp(this)">🌙 Dîner</button>
+        <button class="m-tb" data-t="g" onclick="mTyp(this)">🍪 Goûter</button>
+        <button class="m-tb" data-t="a" onclick="mTyp(this)">📌 Autre</button>
+      </div>
+      <div class="m-sr">
+        <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
+        <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
+      </div>
+      <div class="m-sg" id="m-sg"></div>
+      <div class="m-portrow">
+        <span class="m-portlbl">👥 Portions</span>
+        <div class="m-portctrl">
+          <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
+          <span class="m-portval" id="m-portval">2</span>
+          <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
+        </div>
+      </div>
+      <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
+    </div>
+  </div>
+
   <div class="fab-search" id="fab-search" onclick="toggleSearch()">
     <span>🔍</span>
     <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
