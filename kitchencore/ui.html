@@ -4312,7 +4312,7 @@ async function _mLoad(){
 function mSrt(k){ if(_md[k]) _md[k].sort((a,b)=>(MC[a.t]?.o??9)-(MC[b.t]?.o??9)); }
 
 // ── Build ──────────────────────────────────────────────────────────────────
-function mBuild(){
+function mBuild(scrollY){
   const tl=document.getElementById('m-tl'); if(!tl)return;
   const now=new Date(); now.setHours(0,0,0,0);
   let h='';
@@ -4369,7 +4369,7 @@ function mBuild(){
   }
   tl.innerHTML=h;
   const el=document.getElementById('mday-'+mdk(now));
-  if(el) setTimeout(()=>el.scrollIntoView({behavior:'instant',block:'start'}),30);
+  if(scrollY!==undefined){const pg=document.getElementById('page-menu');setTimeout(()=>{if(pg)pg.scrollTop=scrollY;},30);}else{if(el) setTimeout(()=>el.scrollIntoView({behavior:'instant',block:'start'}),30);}
 }
 
 async function mDel(k,x){
@@ -4488,17 +4488,17 @@ function mDS(e,k,x){ _mDg={k,x}; e.currentTarget.closest('.mcard').classList.add
 function mDE(){ mCl(); document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('mg')); _mDg=null; }
 function mZO(e,k){ e.preventDefault(); mCl(); const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mcard'); if(c&&c.id.startsWith('mc-'+k)){mBr(e.clientY,c);}else{document.getElementById('mz-'+k)?.classList.add('dz');} }
 function mZL(e){ if(!e.currentTarget.contains(e.relatedTarget))mCl(); }
-async function mZD(e,tk){ e.preventDefault();mCl();if(!_mDg)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mcard');if(c&&c.id.startsWith('mc-'+tk)){const p=c.id.split('-');const ti=parseInt(p[p.length-1]);mMv(_mDg.k,_mDg.x,tk,ti,mHf(e.clientY,c));}else{const it=_md[_mDg.k].splice(_mDg.x,1)[0];if(!_md[_mDg.k].length)delete _md[_mDg.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);if(it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild();} }
+async function mZD(e,tk){ e.preventDefault();mCl();if(!_mDg)return;const _sy=document.getElementById('page-menu')?.scrollTop;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mcard');if(c&&c.id.startsWith('mc-'+tk)){const p=c.id.split('-');const ti=parseInt(p[p.length-1]);mMv(_mDg.k,_mDg.x,tk,ti,mHf(e.clientY,c),_sy);}else{const it=_md[_mDg.k].splice(_mDg.x,1)[0];if(!_md[_mDg.k].length)delete _md[_mDg.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);if(it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild(_sy);} }
 function mHf(cy,c){const r=c.getBoundingClientRect();return cy<r.top+r.height/2?'b':'a';}
 function mBr(cy,c){mCl();const b=document.createElement('div');b.className='m-bar';b.id='_mb';const p=mHf(cy,c);if(p==='b')c.parentNode.insertBefore(b,c);else c.parentNode.insertBefore(b,c.nextSibling);}
 function mCl(){document.getElementById('_mb')?.remove();document.querySelectorAll('.dz').forEach(el=>el.classList.remove('dz'));}
-async function mMv(fk,fx,tk,tx,p){if(fk===tk&&fx===tx)return;const it=_md[fk].splice(fx,1)[0];if(!_md[fk].length)delete _md[fk];if(!_md[tk])_md[tk]=[];let at=tx;if(fk===tk&&fx<tx)at--;if(p==='a')at++;at=Math.max(0,Math.min(at,_md[tk].length));_md[tk].splice(at,0,it);mSrt(tk);if(fk!==tk&&it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild();}
+async function mMv(fk,fx,tk,tx,p,scrollY){if(fk===tk&&fx===tx)return;const it=_md[fk].splice(fx,1)[0];if(!_md[fk].length)delete _md[fk];if(!_md[tk])_md[tk]=[];let at=tx;if(fk===tk&&fx<tx)at--;if(p==='a')at++;at=Math.max(0,Math.min(at,_md[tk].length));_md[tk].splice(at,0,it);mSrt(tk);if(fk!==tk&&it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild(scrollY);}
 
 // ── Drag touch ──────────────────────────────────────────────────────────────
 let _mTc=null,_mTC=null,_mTD=null;
 function mTS(e,k,x){e.stopPropagation();_mTD={k,x};_mTc=e.currentTarget.closest('.mcard');const r=_mTc.getBoundingClientRect();_mTC=_mTc.cloneNode(true);Object.assign(_mTC.style,{position:'fixed',top:r.top+'px',left:r.left+'px',width:r.width+'px',opacity:'.85',pointerEvents:'none',zIndex:'999',boxShadow:'0 8px 24px rgba(0,0,0,.2)',transform:'scale(1.02)',borderRadius:'12px',transition:'none'});document.getElementById('app').appendChild(_mTC);_mTc.style.opacity='.3';}
 function mTM(e){if(!_mTC)return;e.preventDefault();const t=e.touches[0];const r=_mTc.getBoundingClientRect();_mTC.style.top=(t.clientY-r.height/2)+'px';_mTC.style.left=(t.clientX-r.width/2)+'px';_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.style.display='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){mBr(t.clientY,c);return;}const z=u?.closest('[id^="mz-"]');if(z)z.classList.add('dz');}
-async function mTE(e){if(!_mTC||!_mTD)return;const t=e.changedTouches[0];_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.remove();_mTC=null;if(_mTc)_mTc.style.opacity='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){const p=c.id.split('-');const tx=parseInt(p[p.length-1]);const tk=p.slice(1,p.length-1).join('-');mMv(_mTD.k,_mTD.x,tk,tx,mHf(t.clientY,c));_mTc=null;_mTD=null;return;}const z=u?.closest('[id^="mz-"]');if(z){const tk=z.id.replace('mz-','');const it=_md[_mTD.k].splice(_mTD.x,1)[0];if(!_md[_mTD.k].length)delete _md[_mTD.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);if(it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild();}_mTc=null;_mTD=null;}
+async function mTE(e){if(!_mTC||!_mTD)return;const _sy=document.getElementById('page-menu')?.scrollTop;const t=e.changedTouches[0];_mTC.style.display='none';const u=document.elementFromPoint(t.clientX,t.clientY);_mTC.remove();_mTC=null;if(_mTc)_mTc.style.opacity='';mCl();const c=u?.closest('.mcard');if(c&&c!==_mTc){const p=c.id.split('-');const tx=parseInt(p[p.length-1]);const tk=p.slice(1,p.length-1).join('-');mMv(_mTD.k,_mTD.x,tk,tx,mHf(t.clientY,c),_sy);_mTc=null;_mTD=null;return;}const z=u?.closest('[id^="mz-"]');if(z){const tk=z.id.replace('mz-','');const it=_md[_mTD.k].splice(_mTD.x,1)[0];if(!_md[_mTD.k].length)delete _md[_mTD.k];if(!_md[tk])_md[tk]=[];_md[tk].push(it);mSrt(tk);if(it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:tk})}).catch(()=>{});mBuild(_sy);}_mTc=null;_mTD=null;}
 
 
 // ── Menu : interactions cards (tap voir / long press sélection) ─────────────
