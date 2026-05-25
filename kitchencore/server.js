@@ -316,7 +316,10 @@ app.get('/api/ingredients/search', (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);
   res.json(db.prepare(
-    'SELECT id, nom, categorie, icone FROM ingredients WHERE nom LIKE ? ORDER BY nom LIMIT 10'
+    `SELECT i.id, i.nom, i.categorie, i.icone, r.nom AS rayon_nom
+     FROM ingredients i
+     LEFT JOIN rayons r ON r.id = i.rayon_id
+     WHERE i.nom LIKE ? ORDER BY i.nom LIMIT 8`
   ).all(`%${q}%`));
 });
 

@@ -730,6 +730,20 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                       width:0;transition:width .25s ease;padding:0; }
 .cl-fab-search-input.expanded{ width:160px; }
 .cl-fab-search-input::placeholder{ color:var(--grey-d); }
+/* Suggestions autocomplétion Courses */
+.cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
+  background:white;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);
+  z-index:21;min-width:220px;max-width:280px;overflow:hidden;
+  display:none;flex-direction:column;border:1px solid var(--grey); }
+.cl-suggest-list.visible{ display:flex; }
+.cl-suggest-item{ display:flex;align-items:center;gap:10px;padding:11px 14px;
+  cursor:pointer;border-bottom:1px solid var(--grey-l);transition:background .12s; }
+.cl-suggest-item:last-child{ border-bottom:none; }
+.cl-suggest-item:active{ background:var(--orange-l); }
+.cl-suggest-name{ font-size:.88rem;font-weight:700;flex:1;min-width:0; }
+.cl-suggest-name b{ color:var(--orange);font-weight:900; }
+.cl-suggest-rayon{ font-size:.68rem;color:var(--grey-d);font-weight:700;flex-shrink:0;white-space:nowrap; }
+.cl-suggest-empty{ padding:12px 14px;font-size:.82rem;color:var(--grey-d);font-weight:600;font-style:italic; }
 /* Recettes liées */
 .cl-rl-wrap   { margin:16px 14px 8px; }
 .cl-rl-title  { font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
@@ -2195,11 +2209,15 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </div>
       </div>
 
+      <!-- Suggestions autocomplétion -->
+      <div class="cl-suggest-list" id="cl-suggest-list"></div>
+
       <!-- fab-search courses -->
       <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
         <span>🔍</span>
-        <input class="cl-fab-search-input" id="cl-search-input" placeholder="Rechercher…"
-          onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)">
+        <input class="cl-fab-search-input" id="cl-search-input" placeholder="Ajouter un article…"
+          onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
+          onkeydown="if(event.key==='Escape')clToggleSearch()">
       </div>
 
     </div>
@@ -3390,10 +3408,11 @@ function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); fetch('/api/courses/items/'
 async function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){const q=Math.max(1,(i.qty||1)+d);i.qty=q;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty:q})}).catch(()=>{});clRender();} }
 function clToggleRayon(mKey, rayon){ const items=_cl.filter(i=>String(i.m)===String(mKey)&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
 
-// ── Ajout depuis recherche ────────────────────────────────────────────────────
+// ── Ajout depuis recherche (saisie libre) ─────────────────────────────────────
 async function clAddItem() {
   const inp = document.getElementById('cl-search-input');
   const v   = inp?.value.trim(); if(!v) return;
+  clHideSuggestions();
   const found = CL_CATALOG.find(c=>c.n.toLowerCase()===v.toLowerCase());
   const activeTab = document.querySelector('#cl-tabs .cl-tab.on');
   const tabM = activeTab?.dataset.m;
@@ -3410,13 +3429,14 @@ async function clAddItem() {
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
-// ── fab-search courses (copie toggleSearch) ────────────────────────────────────
+// ── fab-search courses ────────────────────────────────────────────────────────
 let _clSearchOpen = false;
+let _clSuggestTimer = null;
 function clToggleSearch() {
   const inp = document.getElementById('cl-search-input'); if(!inp) return;
   _clSearchOpen = !_clSearchOpen;
   if(_clSearchOpen){ inp.classList.add('expanded'); setTimeout(()=>inp.focus(),50); }
-  else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); inp.blur(); }
+  else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); clHideSuggestions(); inp.blur(); }
 }
 function clSearchFilter(val) {
   const q = val.trim().toLowerCase();
@@ -3428,6 +3448,50 @@ function clSearchFilter(val) {
     const vis=[...sec.querySelectorAll('.cl-item')].some(i=>i.style.display!=='none');
     sec.style.display=vis?'':'none';
   });
+  // Suggestions autocomplétion
+  clearTimeout(_clSuggestTimer);
+  if(q.length >= 2){ _clSuggestTimer = setTimeout(()=>clFetchSuggestions(q), 300); }
+  else { clHideSuggestions(); }
+}
+
+// ── Autocomplétion ingrédients ────────────────────────────────────────────────
+async function clFetchSuggestions(q) {
+  try {
+    const res = await fetch('/api/ingredients/search?q='+encodeURIComponent(q));
+    if(!res.ok) return;
+    clShowSuggestions(await res.json(), q);
+  } catch(e) { /* silencieux */ }
+}
+function clShowSuggestions(items, q) {
+  const list = document.getElementById('cl-suggest-list'); if(!list) return;
+  if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient trouvé</div>'; list.classList.add('visible'); return; }
+  const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  list.innerHTML = items.map(it=>{
+    const hl = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
+    const r  = it.rayon_nom||'';
+    return `<div class="cl-suggest-item" onclick="clPickSuggestion(${JSON.stringify(it.nom)},${JSON.stringify(r)})">
+      <div class="cl-suggest-name">${hl}</div>
+      ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
+    </div>`;
+  }).join('');
+  list.classList.add('visible');
+}
+function clHideSuggestions(){ document.getElementById('cl-suggest-list')?.classList.remove('visible'); }
+async function clPickSuggestion(nom, rayon) {
+  clHideSuggestions();
+  const inp = document.getElementById('cl-search-input'); if(!inp) return;
+  const activeTab = document.querySelector('#cl-tabs .cl-tab.on');
+  const tabM = activeTab?.dataset.m;
+  const defaultM = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
+  const item = {qty:1,done:false,origin:'manuel',n:nom,icone:null,m:defaultM,r:rayon||'Autre'};
+  try {
+    const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+    const {id} = await res.json();
+    _cl.unshift({...item,id:String(id)});
+    clRender();
+    inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
+    showToast('✓ '+nom+' ajouté','ok');
+  } catch(e){ showToast('Erreur réseau','error'); }
 }
 
 // ── FAB courses ───────────────────────────────────────────────────────────────
@@ -3518,6 +3582,12 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(_clLoad, 50);
       }
     });
+  });
+  // Ferme les suggestions si clic en dehors du pill ou du dropdown
+  document.addEventListener('click', e=>{
+    const pill = document.getElementById('cl-fab-search');
+    const sugg = document.getElementById('cl-suggest-list');
+    if(!pill?.contains(e.target) && !sugg?.contains(e.target)) clHideSuggestions();
   });
 });
 
