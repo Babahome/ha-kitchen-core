@@ -2196,6 +2196,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
         <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
         <div class="cl-ctx-item" onclick="clCtxUnit()"><span>✏️</span> Modifier l'unité</div>
+        <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span>🥕</span> Créer comme ingrédient</div>
         <div class="cl-ctx-item danger" onclick="clCtxDel()"><span>🗑</span> Supprimer</div>
       </div>
 
@@ -3527,6 +3528,15 @@ function clCloseCtx(){ document.getElementById('cl-ctx-menu')?.classList.remove(
 function clCtxLink()    { const i=_cl.find(x=>x.id===_clCtxId); if(i) window.open(clSearchURL(i),'_blank'); clCloseCtx(); }
 function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpenMmodal(id),100); }
 function clCtxDel()     { const id=_clCtxId; clCloseCtx(); clDel(id); }
+async function clCtxToIngredient() {
+  const item=_cl.find(x=>x.id===_clCtxId); clCloseCtx(); if(!item) return;
+  try {
+    const res=await fetch('/api/ingredients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:item.n})});
+    if(res.status===409){showToast('"'+item.n+'" est déjà un ingrédient','warn');return;}
+    if(!res.ok){showToast('Erreur création ingrédient','error');return;}
+    showToast('✓ "'+item.n+'" ajouté aux ingrédients','ok');
+  } catch(e){showToast('Erreur réseau','error');}
+}
 function clCtxUnit() {
   const item=_cl.find(i=>i.id===_clCtxId); if(!item) return;
   const units=['','pièce','pack','kg','g','L','cl','ml','bouteille','boîte','sachet'];
