@@ -809,14 +809,15 @@ app.delete('/api/menu/:id', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/courses', (_req, res) => {
   const items = db.prepare(`
-    SELECT ci.*, COALESCE(i.icone, ci.icone) AS resolved_icone,
+    SELECT ci.*, COALESCE(i.nom, ci.nom) AS resolved_nom,
+           COALESCE(i.icone, ci.icone) AS resolved_icone,
            COALESCE(rv.nom, ci.rayon) AS resolved_rayon
     FROM courses_items ci
     LEFT JOIN ingredients i ON i.id = ci.ingredient_id
     LEFT JOIN rayons rv ON rv.id = i.rayon_id
     ORDER BY ci.id DESC
   `).all().map(r => ({
-    id: r.id, n: r.nom, icone: r.resolved_icone||null, m: r.marchand, r: r.resolved_rayon||'Autre',
+    id: r.id, n: r.resolved_nom, icone: r.resolved_icone||null, m: r.marchand, r: r.resolved_rayon||'Autre',
     qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel',
     recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null
   }));
