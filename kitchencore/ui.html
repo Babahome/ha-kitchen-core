@@ -3469,7 +3469,7 @@ function clShowSuggestions(items, q) {
   list.innerHTML = items.map(it=>{
     const hl = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
     const r  = it.rayon_nom||'';
-    return `<div class="cl-suggest-item" onclick="clPickSuggestion(${JSON.stringify(it.nom)},${JSON.stringify(r)})">
+    return `<div class="cl-suggest-item" onclick='clPickSuggestion(${JSON.stringify(it.nom)},${JSON.stringify(r)})'>
       <div class="cl-suggest-name">${hl}</div>
       ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
     </div>`;
