@@ -12,11 +12,11 @@ Panels overlay (iOS Safari) : tout élément position:absolute;inset:0 (panel pl
 
 Design : Police Nunito, --orange: #E8671A, --orange-l: #FDF0E8, --grey-l: #F5F5F5. Bottom nav 4 onglets, header orange, cards blanches fond gris clair. FAB orange bas droite, fab-search pill blanche bas gauche.
 
-Pages — état v0.9.74
+Pages — état v0.9.84
 🏠 Stock : Grille produits par zone. Scanner BarcodeDetector. Non branché sur l'API.
 🍳 Recettes : Liste + filtres + recherche. Panels Détail (#panel-detail) et Édition (#panel-edit) enfants directs de .frame. Import Mealie (192.168.1.166:30111). Branché sur /api/recettes. saveRecette() est async et propage automatiquement les ingrédients en BDD.
 📅 Menu : Timeline −30j/+60j. Drag & drop. Branché API SQLite. Modal "Planifier un repas" (#m-modal) enfant direct de .frame.
-🛒 Courses : Onglets dynamiques depuis page Marchands. Branché API SQLite.
+🛒 Courses : Onglets dynamiques depuis page Marchands. Branché API SQLite. Menu ⋮ par item : "Créer comme ingrédient" lie l'item à un ingrédient officiel (nom/icone/rayon résolus dynamiquement via JOIN au chargement). courses_items.ingredient_id = FK vers ingredients.
 🧅 Ingrédients : Gestion catalogue, fusion, rayons. Branché sur /api/ingredients. Fonctionnalités v0.9.37 :
   - Onglets : Tous / Sans rayon / Sans image / Sans recette / Doublons
   - Recettes liées : usedIn calculé depuis la BDD via GET /api/ingredients/usedIn. Panels détail/édition affichent les noms via _rv.
@@ -42,4 +42,4 @@ Règle : dans une nouvelle conversation, Claude ajoute ici le sujet SANS toucher
 L'implémentation ne démarre que quand l'utilisateur dit explicitement "go" ou "commence".
 
 - [x] Menu drag & drop : tempo 250ms pour éviter les drags non voulus (touch uniquement) — v0.9.77
-- [ ] Courses : lors d'une saisie manuelle, retrouver automatiquement l'ingrédient correspondant dans le catalogue (autocomplétion ou suggestion)
+- [x] Courses : lors d'une saisie manuelle, retrouver automatiquement l'ingrédient correspondant dans le catalogue (autocomplétion ou suggestion) — v0.9.79
