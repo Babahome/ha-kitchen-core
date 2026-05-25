@@ -3531,10 +3531,23 @@ function clCtxDel()     { const id=_clCtxId; clCloseCtx(); clDel(id); }
 async function clCtxToIngredient() {
   const item=_cl.find(x=>x.id===_clCtxId); clCloseCtx(); if(!item) return;
   try {
+    let ing=null; let msg='✓ "'+item.n+'" ajouté aux ingrédients';
     const res=await fetch('/api/ingredients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:item.n})});
-    if(res.status===409){showToast('"'+item.n+'" est déjà un ingrédient','warn');return;}
-    if(!res.ok){showToast('Erreur création ingrédient','error');return;}
-    showToast('✓ "'+item.n+'" ajouté aux ingrédients','ok');
+    if(res.status===409){
+      // Ingrédient déjà existant → on le retrouve pour lier quand même
+      const found=await fetch('/api/ingredients/search?q='+encodeURIComponent(item.n));
+      if(found.ok){const list=await found.json(); ing=list.find(x=>x.nom.toLowerCase()===item.n.toLowerCase())||list[0]||null;}
+      if(!ing){showToast('"'+item.n+'" est déjà un ingrédient','warn');return;}
+      msg='"'+item.n+'" lié à l\'ingrédient existant';
+    } else if(!res.ok){showToast('Erreur création ingrédient','error');return;}
+    else { ing=await res.json(); }
+    // Lier l'item courses à l'ingrédient officiel
+    await fetch('/api/courses/items/'+item.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ingredientId:ing.id})}).catch(()=>{});
+    item.ingredientId=String(ing.id);
+    item.icone=ing.icone||item.icone;
+    item.r=ing.rayon_nom||item.r;
+    clRender();
+    showToast(msg,'ok');
   } catch(e){showToast('Erreur réseau','error');}
 }
 function clCtxUnit() {

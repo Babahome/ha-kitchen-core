@@ -162,8 +162,9 @@ db.exec(`
   ['recettes',    'source',        "TEXT DEFAULT ''"],
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
-  ['ingredients', 'rayon_id',      'INTEGER REFERENCES rayons(id)'],
-  ['menu',        'position',      'INTEGER DEFAULT 0'],
+  ['ingredients',    'rayon_id',      'INTEGER REFERENCES rayons(id)'],
+  ['menu',           'position',      'INTEGER DEFAULT 0'],
+  ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -807,9 +808,17 @@ app.delete('/api/menu/:id', (req, res) => {
 // COURSES
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/courses', (_req, res) => {
-  const items = db.prepare('SELECT * FROM courses_items ORDER BY id DESC').all().map(r => ({
-    id: r.id, n: r.nom, icone: r.icone||null, m: r.marchand, r: r.rayon||'Autre',
-    qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel', recipeId: r.recipe_id||null
+  const items = db.prepare(`
+    SELECT ci.*, COALESCE(i.icone, ci.icone) AS resolved_icone,
+           COALESCE(rv.nom, ci.rayon) AS resolved_rayon
+    FROM courses_items ci
+    LEFT JOIN ingredients i ON i.id = ci.ingredient_id
+    LEFT JOIN rayons rv ON rv.id = i.rayon_id
+    ORDER BY ci.id DESC
+  `).all().map(r => ({
+    id: r.id, n: r.nom, icone: r.resolved_icone||null, m: r.marchand, r: r.resolved_rayon||'Autre',
+    qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel',
+    recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null
   }));
   const recipes = db.prepare('SELECT * FROM courses_recipes').all().map(r => ({
     id: r.recipe_id, nom: r.nom, photo: r.photo||null, portions: r.portions
@@ -825,17 +834,18 @@ app.post('/api/courses/items', (req, res) => {
 });
 
 app.put('/api/courses/items/:id', (req, res) => {
-  const { n, icone, m, r, qty, unit, done, origin, recipeId } = req.body;
+  const { n, icone, m, r, qty, unit, done, origin, recipeId, ingredientId } = req.body;
   const fields = [], vals = [];
-  if (n        !== undefined) { fields.push('nom=?');      vals.push(n); }
-  if (icone    !== undefined) { fields.push('icone=?');    vals.push(icone); }
-  if (m        !== undefined) { fields.push('marchand=?'); vals.push(m); }
-  if (r        !== undefined) { fields.push('rayon=?');    vals.push(r); }
-  if (qty      !== undefined) { fields.push('qty=?');      vals.push(qty); }
-  if (unit     !== undefined) { fields.push('unite=?');    vals.push(unit); }
-  if (done     !== undefined) { fields.push('done=?');     vals.push(done?1:0); }
-  if (origin   !== undefined) { fields.push('origin=?');   vals.push(origin); }
-  if (recipeId !== undefined) { fields.push('recipe_id=?');vals.push(recipeId); }
+  if (n            !== undefined) { fields.push('nom=?');          vals.push(n); }
+  if (icone        !== undefined) { fields.push('icone=?');        vals.push(icone); }
+  if (m            !== undefined) { fields.push('marchand=?');     vals.push(m); }
+  if (r            !== undefined) { fields.push('rayon=?');        vals.push(r); }
+  if (qty          !== undefined) { fields.push('qty=?');          vals.push(qty); }
+  if (unit         !== undefined) { fields.push('unite=?');        vals.push(unit); }
+  if (done         !== undefined) { fields.push('done=?');         vals.push(done?1:0); }
+  if (origin       !== undefined) { fields.push('origin=?');       vals.push(origin); }
+  if (recipeId     !== undefined) { fields.push('recipe_id=?');    vals.push(recipeId); }
+  if (ingredientId !== undefined) { fields.push('ingredient_id=?');vals.push(ingredientId); }
   if (!fields.length) return res.json({ ok: true });
   vals.push(req.params.id);
   db.prepare(`UPDATE courses_items SET ${fields.join(',')} WHERE id=?`).run(...vals);
