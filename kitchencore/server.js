@@ -146,6 +146,10 @@ db.exec(`
     position    INTEGER DEFAULT 0,
     UNIQUE(marchand_id, rayon_id)
   );
+  CREATE TABLE IF NOT EXISTS tags (
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom TEXT NOT NULL UNIQUE
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -195,6 +199,24 @@ if (db.prepare('SELECT COUNT(*) as n FROM rayons').get().n === 0) {
 db.exec(`UPDATE ingredients SET rayon_id=(
   SELECT id FROM rayons WHERE LOWER(TRIM(nom))=LOWER(TRIM(ingredients.categorie)) LIMIT 1
 ) WHERE rayon_id IS NULL AND categorie IS NOT NULL AND categorie!=''`);
+
+// Seed tags : récupère les tags des recettes existantes + liste de base
+{
+  const n = db.prepare('SELECT COUNT(*) as n FROM tags').get().n;
+  if (n === 0) {
+    const base = ['soupe','tarte','onepot','diner','dessert','rapide','veggie','déjeuner','petit-déj'];
+    const all  = new Set(base);
+    try {
+      db.prepare("SELECT tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all()
+        .forEach(r => {
+          try { JSON.parse(r.tags||'[]').forEach(t => { if(t) all.add(t.trim().toLowerCase()); }); }
+          catch(_) {}
+        });
+    } catch(_) {}
+    const ins = db.prepare('INSERT OR IGNORE INTO tags(nom) VALUES(?)');
+    all.forEach(nom => { if(nom) ins.run(nom); });
+  }
+}
 
 // Seed unités de base si vide
 if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
@@ -1005,6 +1027,44 @@ app.put('/api/marchands/:id/rayons/order', (req, res) => {
   const upd = db.prepare('UPDATE marchand_rayons SET position=? WHERE marchand_id=? AND rayon_id=?');
   db.transaction(() => { order.forEach(({ rayon_id, position }) => upd.run(position, req.params.id, rayon_id)); })();
   res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAGS
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/tags', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM tags ORDER BY nom').all());
+});
+
+app.post('/api/tags', (req, res) => {
+  const nom = (req.body.nom || '').trim().toLowerCase();
+  if (!nom) return res.status(400).json({ error: 'nom requis' });
+  try {
+    const r = db.prepare('INSERT INTO tags(nom) VALUES(?)').run(nom);
+    res.status(201).json(db.prepare('SELECT * FROM tags WHERE id=?').get(r.lastInsertRowid));
+  } catch(e) {
+    const existing = db.prepare('SELECT * FROM tags WHERE nom=?').get(nom);
+    if (existing) return res.json(existing);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/tags/:id', (req, res) => {
+  const tag = db.prepare('SELECT * FROM tags WHERE id=?').get(req.params.id);
+  if (!tag) return res.status(404).json({ error: 'Tag introuvable' });
+  db.transaction(() => {
+    db.prepare("SELECT id, tags FROM recettes WHERE tags LIKE ?").all('%' + tag.nom + '%')
+      .forEach(r => {
+        try {
+          const arr = JSON.parse(r.tags || '[]');
+          const filtered = arr.filter(t => t !== tag.nom);
+          if (filtered.length !== arr.length)
+            db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify(filtered), r.id);
+        } catch(_) {}
+      });
+    db.prepare('DELETE FROM tags WHERE id=?').run(req.params.id);
+  })();
+  res.status(204).end();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

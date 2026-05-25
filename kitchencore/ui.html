@@ -1096,6 +1096,11 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-tags-row { display:flex; gap:6px; flex-wrap:wrap; padding:10px 0 12px; }
 .ev3-tag { background:var(--orange-l); color:var(--orange); border:1px solid rgba(232,103,26,.2); border-radius:99px; padding:3px 10px; font-size:.72rem; font-weight:700; cursor:pointer; font-family:var(--font); transition:all .15s; }
 .ev3-tag.off { background:white; color:var(--text2); border-color:var(--grey); }
+.ev3-tag-create-row { display:flex;align-items:center;gap:6px;width:100%;margin-top:6px; }
+.ev3-tag-create-input { flex:1;min-width:0;border:none;border-bottom:1.5px solid var(--orange);outline:none;font-family:var(--font);font-size:.8rem;padding:3px 4px;background:transparent; }
+.ev3-tag-create-btn { background:var(--orange);color:white;border:none;border-radius:99px;padding:4px 12px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--font);flex-shrink:0; }
+.rcard-tags { display:flex;gap:4px;flex-wrap:wrap;margin-top:4px; }
+.rcard-tag  { background:var(--orange-l);color:var(--orange);border-radius:99px;padding:2px 8px;font-size:.63rem;font-weight:700; }
 .ev3-infos { display:flex; border-top:1px solid var(--grey-l); border-bottom:1px solid var(--grey-l); }
 .ev3-info-block { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 4px; border-right:1px solid var(--grey-l); }
 .ev3-info-block:last-child { border-right:none; }
@@ -2271,15 +2276,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <!-- ══ PAGE RECETTES ═══════════════════════════════════════════════════ -->
     <div id="page-recettes" class="page" style="background:var(--grey-l)">
 
-      <div class="chips">
-        <div class="chip on" data-tag="tout"    onclick="setFilter(this,'tout')">🍽️ Tout</div>
-        <div class="chip" data-tag="soupe"      onclick="setFilter(this,'soupe')">🍲 Soupe</div>
-        <div class="chip" data-tag="tarte"      onclick="setFilter(this,'tarte')">🥧 Tarte</div>
-        <div class="chip" data-tag="onepot"     onclick="setFilter(this,'onepot')">🫕 One Pot</div>
-        <div class="chip" data-tag="diner"      onclick="setFilter(this,'diner')">🍽️ Dîner</div>
-        <div class="chip" data-tag="dessert"    onclick="setFilter(this,'dessert')">🍰 Dessert</div>
-        <div class="chip" data-tag="rapide"     onclick="setFilter(this,'rapide')">⚡ Rapide</div>
-        <div class="chip" data-tag="veggie"     onclick="setFilter(this,'veggie')">🥗 Végétarien</div>
+      <div id="rv-chips" class="chips">
+        <div class="chip on" onclick="setFilter(this,'tout')">🍽️ Tout</div>
       </div>
 
       <div class="sec-head">
@@ -3068,7 +3066,7 @@ function switchPage(tab, page, title) {
   // Build menu timeline
   if (page === 'menu' && typeof _mLoad === 'function') _mLoad();
   // Charger les recettes depuis l'API
-  if (page === 'recettes' && typeof loadRecettes === 'function') loadRecettes();
+  if (page === 'recettes' && typeof loadRecettes === 'function') { loadRecettes(); loadTags(); }
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
   if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
@@ -3800,7 +3798,7 @@ let _eSteps    = [];
 let _filter    = 'tout';
 let _searchOpen= false;
 
-const TAGS  = ['soupe','tarte','onepot','diner','dessert','rapide','veggie','déjeuner','petit-déj'];
+let _allTags = [];
 const UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
 const EMOJIS= ['🍽️','🫕','🍲','🥘','🍝','🥗','🍜','🍛','🍱','🥙','🌮','🥪','🍳','🧁','🍰','🥧','🍮','🍩','🎂','🫔','🥞','🧆','🫙'];
 
@@ -3816,6 +3814,22 @@ async function loadRecettes() {
     _rv = data.map(r => ({ ...r, desc: r.description || '' }));
     renderList();
   } catch(e) { showToast && showToast('Erreur chargement recettes', 'error'); }
+}
+
+async function loadTags() {
+  try {
+    _allTags = await fetch('/api/tags').then(r => r.json());
+    renderChips();
+    if (document.getElementById('panel-edit')?.classList.contains('open')) ev3RenderTags();
+  } catch(e) {}
+}
+
+function renderChips() {
+  const el = document.getElementById('rv-chips');
+  if (!el) return;
+  el.innerHTML =
+    `<div class="chip${_filter==='tout'?' on':''}" onclick="setFilter(this,'tout')">🍽️ Tout</div>` +
+    _allTags.map(t => `<div class="chip${_filter===t.nom?' on':''}" onclick="setFilter(this,'${ev3Esc(t.nom)}')">${t.nom}</div>`).join('');
 }
 function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
@@ -3838,6 +3852,9 @@ function renderList() {
   }
   el.innerHTML = filtered.map(r=>{
     const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
+    const tagsHtml = (r.tags||[]).length
+      ? `<div class="rcard-tags">${(r.tags||[]).map(t=>`<span class="rcard-tag">${t}</span>`).join('')}</div>`
+      : '';
     return `
     <div class="rcard" onclick="openDetail('${r.id}')">
       <div class="rcard-img">
@@ -3846,6 +3863,7 @@ function renderList() {
       </div>
       <div class="rcard-body">
         <div class="rcard-title">${r.nom}</div>
+        ${tagsHtml}
         <div class="rcard-desc">${r.desc||''}</div>
         <div class="rcard-foot">
           <div class="rcard-stars">${[1,2,3,4,5].map(i=>`<span class="rstar${i<=(r.note||0)?' on':''}">★</span>`).join('')}</div>
@@ -4166,13 +4184,35 @@ function ev3ClearPhoto() {
 
 // ── Tags v3 ──────────────────────────────────────────────────────────────────
 function ev3RenderTags() {
-  document.getElementById('ev3-tags-row').innerHTML = TAGS.map(t=>
-    `<button class="ev3-tag${_eSelTags.includes(t)?'':' off'}" onclick="ev3ToggleTag(this,'${t}')">${t}</button>`
-  ).join('');
+  document.getElementById('ev3-tags-row').innerHTML =
+    _allTags.map(t =>
+      `<button class="ev3-tag${_eSelTags.includes(t.nom)?'':' off'}" onclick="ev3ToggleTag(this,'${ev3Esc(t.nom)}')">${t.nom}</button>`
+    ).join('') +
+    `<div class="ev3-tag-create-row">
+      <input class="ev3-tag-create-input" id="ev3-tag-input" placeholder="Nouveau tag…"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();ev3CreateTag()}"
+        onclick="event.stopPropagation()">
+      <button class="ev3-tag-create-btn" onclick="ev3CreateTag()">+ Ajouter</button>
+    </div>`;
 }
 function ev3ToggleTag(btn, t) {
   _eSelTags = _eSelTags.includes(t) ? _eSelTags.filter(x=>x!==t) : [..._eSelTags, t];
   btn.classList.toggle('off', !_eSelTags.includes(t));
+}
+async function ev3CreateTag() {
+  const inp = document.getElementById('ev3-tag-input');
+  if (!inp) return;
+  const nom = inp.value.trim().toLowerCase();
+  if (!nom) return;
+  try {
+    const res = await fetch('/api/tags', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom}) });
+    const tag = await res.json();
+    if (!_allTags.find(t => t.id === tag.id)) _allTags.push(tag);
+    _allTags.sort((a,b) => a.nom.localeCompare(b.nom));
+    if (!_eSelTags.includes(tag.nom)) _eSelTags.push(tag.nom);
+    ev3RenderTags();
+    renderChips();
+  } catch(e) { showToast('Erreur création tag','error'); }
 }
 
 // ── Drag & drop générique ev3 ────────────────────────────────────────────────
@@ -5030,8 +5070,9 @@ async function mIngConfirm(){
 
 // Event delegation sur page-menu
 document.addEventListener('DOMContentLoaded', function(){
-  // Charger les recettes au démarrage (nécessaire pour page menu et autres)
+  // Charger les recettes et les tags au démarrage
   loadRecettes();
+  loadTags();
   _mLoad();
   const pageMenu = document.getElementById('page-menu');
   if(!pageMenu) return;
