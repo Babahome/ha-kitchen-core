@@ -1615,6 +1615,32 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-panel-btn-del:hover { background: #fce8e6; }
 
+  /* ── SAISON TIMELINE ── */
+  .ing-saison-bar { display:flex; gap:3px; height:36px; margin-bottom:5px; }
+  .ing-saison-seg {
+    flex:1; border-radius:6px; background:var(--grey-l); border:2px solid var(--grey);
+    cursor:pointer; position:relative; transition:background .12s,border-color .12s;
+    touch-action:none;
+  }
+  .ing-saison-seg.on { background:var(--orange); border-color:var(--orange-d); }
+  .ing-saison-seg.readonly { cursor:default; }
+  .ing-saison-seg.cur::after {
+    content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+    width:4px; height:4px; border-radius:50%; background:var(--orange-d);
+  }
+  .ing-saison-labels { display:flex; gap:3px; margin-bottom:8px; }
+  .ing-saison-lbl {
+    flex:1; text-align:center; font-size:8px; font-weight:800;
+    color:var(--grey-d); letter-spacing:.1px; padding-top:4px; user-select:none;
+  }
+  .ing-saison-lbl.on { color:var(--orange); font-weight:900; }
+  .ing-saison-lbl.cur { color:var(--orange-d); }
+  .ing-saison-summary {
+    text-align:center; font-size:12px; font-weight:700;
+    color:var(--grey-d); font-style:italic; min-height:18px; margin-top:2px;
+  }
+  .ing-saison-summary.active { color:var(--orange); font-style:normal; }
+
   /* ── MERGE / RAYON SHEETS ── */
   .frame > .ing-bottom-sheet .merge-preview {
     background: var(--grey-l); border-radius: 12px;
@@ -2769,6 +2795,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <button class="ing-pantry-toggle" id="ing-detailPantryBtn" onclick="ingPantryToggleDetail()">🏠 Toujours en cuisine</button>
       </div>
       <div class="ing-panel-section">
+        <span class="ing-panel-label">Saisonnalité</span>
+        <div class="ing-saison-bar" id="ing-detailSaisonBar"></div>
+        <div class="ing-saison-labels" id="ing-detailSaisonLabels"></div>
+        <div class="ing-saison-summary" id="ing-detailSaisonSummary">Saison non définie</div>
+      </div>
+      <div class="ing-panel-section">
         <span class="ing-panel-label">Utilisé dans</span>
         <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
       </div>
@@ -2799,6 +2831,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Rayon</label>
         <div class="ing-panel-rayon-grid" id="ing-rayonGrid"></div>
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Saisonnalité</label>
+        <div class="ing-saison-bar" id="ing-editSaisonBar"></div>
+        <div class="ing-saison-labels" id="ing-editSaisonLabels"></div>
+        <div class="ing-saison-summary" id="ing-editSaisonSummary">Saison non définie</div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Recettes liées</label>
@@ -5216,6 +5254,7 @@ async function _ingLoadData() {
         emoji:    iconeIsUrl ? '🥫' : (a.icone || '🥫'),
         rayon_id: a.rayon_id || null,
         imageUrl: iconeIsUrl ? a.icone : '',
+        saison:   a.saison || '[]',
         usedIn:   [],
         _dbId:    a.id,
       };
@@ -5510,6 +5549,104 @@ function _ingUpdateCardsSelection() {
 }
 
 // ─── Detail Panel ───
+// ─── Saison timeline ───
+const _ING_MOIS = [
+  {n:1,abbr:'Jan'},{n:2,abbr:'Fév'},{n:3,abbr:'Mar'},{n:4,abbr:'Avr'},
+  {n:5,abbr:'Mai'},{n:6,abbr:'Jun'},{n:7,abbr:'Jul'},{n:8,abbr:'Aoû'},
+  {n:9,abbr:'Sep'},{n:10,abbr:'Oct'},{n:11,abbr:'Nov'},{n:12,abbr:'Déc'},
+];
+const _ING_TODAY_M = new Date().getMonth() + 1;
+let _ingSaisonActive = new Set();
+let _ingSaisonDragging = false, _ingSaisonDragMode = null;
+
+function _ingSaisonSummaryText(active) {
+  const nb = active.size;
+  if (nb === 0) return { text:'Saison non définie', cls:'ing-saison-summary' };
+  if (nb === 12) return { text:"Disponible toute l'année", cls:'ing-saison-summary active' };
+  const sorted = [...active].sort((a,b) => a-b);
+  const ABBR = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const plages = []; let s = sorted[0], e = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === e+1) e = sorted[i];
+    else { plages.push([s,e]); s = e = sorted[i]; }
+  }
+  plages.push([s,e]);
+  return {
+    text: plages.map(([a,b]) => a===b ? ABBR[a] : ABBR[a]+' → '+ABBR[b]).join('  ·  '),
+    cls: 'ing-saison-summary active'
+  };
+}
+
+function _ingBuildSaisonBar(barId, labelsId, summaryId, active, editable) {
+  const bar = document.getElementById(barId);
+  const lbs = document.getElementById(labelsId);
+  if (!bar || !lbs) return;
+  bar.innerHTML = ''; lbs.innerHTML = '';
+  _ING_MOIS.forEach(m => {
+    const seg = document.createElement('div');
+    seg.className = 'ing-saison-seg' +
+      (active.has(m.n) ? ' on' : '') +
+      (m.n === _ING_TODAY_M ? ' cur' : '') +
+      (editable ? '' : ' readonly');
+    seg.dataset.month = m.n;
+    if (editable) {
+      seg.addEventListener('click', () => _ingSaisonToggle(m.n));
+      seg.addEventListener('touchstart', ev => {
+        ev.preventDefault();
+        _ingSaisonDragging = true;
+        _ingSaisonDragMode = _ingSaisonActive.has(m.n) ? 'remove' : 'add';
+        _ingSaisonApplyDrag(m.n);
+      }, { passive:false });
+      seg.addEventListener('touchmove', ev => {
+        if (!_ingSaisonDragging) return;
+        ev.preventDefault();
+        const t = ev.touches[0];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        if (el && el.dataset.month) _ingSaisonApplyDrag(parseInt(el.dataset.month));
+      }, { passive:false });
+    }
+    bar.appendChild(seg);
+    const lbl = document.createElement('div');
+    lbl.className = 'ing-saison-lbl' +
+      (active.has(m.n) ? ' on' : '') +
+      (m.n === _ING_TODAY_M ? ' cur' : '');
+    lbl.dataset.month = m.n;
+    lbl.textContent = m.abbr;
+    if (editable) lbl.onclick = () => _ingSaisonToggle(m.n);
+    lbs.appendChild(lbl);
+  });
+  _ingSaisonRefreshSummary(summaryId, active);
+}
+
+function _ingSaisonToggle(n) {
+  _ingSaisonActive.has(n) ? _ingSaisonActive.delete(n) : _ingSaisonActive.add(n);
+  _ingSaisonRefreshSeg(n);
+  _ingSaisonRefreshSummary('ing-editSaisonSummary', _ingSaisonActive);
+}
+
+function _ingSaisonApplyDrag(n) {
+  if (_ingSaisonDragMode === 'add')    _ingSaisonActive.add(n);
+  if (_ingSaisonDragMode === 'remove') _ingSaisonActive.delete(n);
+  _ingSaisonRefreshSeg(n);
+  _ingSaisonRefreshSummary('ing-editSaisonSummary', _ingSaisonActive);
+}
+
+function _ingSaisonRefreshSeg(n) {
+  const on = _ingSaisonActive.has(n);
+  document.querySelector(`#ing-editSaisonBar .ing-saison-seg[data-month="${n}"]`)?.classList.toggle('on', on);
+  document.querySelector(`#ing-editSaisonLabels .ing-saison-lbl[data-month="${n}"]`)?.classList.toggle('on', on);
+}
+
+function _ingSaisonRefreshSummary(summaryId, active) {
+  const el = document.getElementById(summaryId);
+  if (!el) return;
+  const { text, cls } = _ingSaisonSummaryText(active);
+  el.textContent = text;
+  el.className = cls;
+}
+
+document.addEventListener('touchend', () => { _ingSaisonDragging = false; _ingSaisonDragMode = null; });
+
 function _ingOpenDetailPanel(id) {
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
@@ -5546,6 +5683,10 @@ function _ingOpenDetailPanel(id) {
     pantryBtn.textContent = inPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
     pantryBtn.classList.toggle('on', inPantry);
   }
+
+  // Saisonnalité (lecture seule)
+  const detailSaison = (() => { try { return JSON.parse(ing.saison || '[]'); } catch(e) { return []; } })();
+  _ingBuildSaisonBar('ing-detailSaisonBar', 'ing-detailSaisonLabels', 'ing-detailSaisonSummary', new Set(detailSaison), false);
 
   document.getElementById('ing-detailPanel').classList.add('open');
 }
@@ -5632,6 +5773,11 @@ function _ingOpenEditPanel(id, e) {
     ? linked2.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
     : `<span style="color:var(--grey-d);font-size:14px">Aucune recette liée</span>`;
 
+  // Saisonnalité (éditable)
+  const editSaison = (() => { try { return JSON.parse(ing.saison || '[]'); } catch(e) { return []; } })();
+  _ingSaisonActive = new Set(editSaison);
+  _ingBuildSaisonBar('ing-editSaisonBar', 'ing-editSaisonLabels', 'ing-editSaisonSummary', _ingSaisonActive, true);
+
   document.getElementById('ing-editPanel').classList.add('open');
 }
 
@@ -5683,7 +5829,7 @@ async function _ingSaveIngredient() {
       _ingPendingPhotoFile = null;
     }
 
-    const body = { nom: newName, rayon_id: newRayon };
+    const body = { nom: newName, rayon_id: newRayon, saison: JSON.stringify([..._ingSaisonActive].sort((a,b)=>a-b)) };
     if (imageUrl) body.icone = imageUrl;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',

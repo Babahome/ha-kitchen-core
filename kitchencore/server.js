@@ -163,6 +163,7 @@ db.exec(`
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
   ['ingredients',    'rayon_id',      'INTEGER REFERENCES rayons(id)'],
+  ['ingredients',    'saison',        "TEXT DEFAULT '[]'"],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
 ].forEach(([table, col, def]) => {
@@ -254,7 +255,7 @@ app.post('/api/ingredients', (req, res) => {
 
 app.patch('/api/ingredients/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','categorie','rayon_id','seuil_alerte','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone','saison'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
