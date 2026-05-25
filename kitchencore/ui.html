@@ -744,6 +744,25 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-suggest-name b{ color:var(--orange);font-weight:900; }
 .cl-suggest-rayon{ font-size:.68rem;color:var(--grey-d);font-weight:700;flex-shrink:0;white-space:nowrap; }
 .cl-suggest-empty{ padding:12px 14px;font-size:.82rem;color:var(--grey-d);font-weight:600;font-style:italic; }
+/* Edit sheet quantité / unité */
+.cl-edit-modal{ position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:150;
+                display:none;flex-direction:column;justify-content:flex-end; }
+.cl-edit-modal.on{ display:flex; }
+.cl-edit-pm   { width:44px;height:44px;border-radius:50%;border:2px solid var(--grey);
+                background:white;display:grid;place-items:center;cursor:pointer;
+                font-size:1.4rem;font-weight:700;color:var(--text2);flex-shrink:0;
+                transition:all .12s;font-family:var(--font);line-height:1; }
+.cl-edit-pm:active{ background:var(--orange);border-color:var(--orange);color:white; }
+.unit-chip    { padding:5px 12px;border-radius:99px;font-size:.75rem;font-weight:700;
+                cursor:pointer;border:1.5px solid var(--grey);background:white;color:var(--text2);
+                transition:all .12s;user-select:none; }
+.unit-chip.sel{ border-color:var(--orange);background:var(--orange-l);color:var(--orange); }
+.unit-chip:active{ opacity:.7; }
+.edit-field-label{ font-size:.7rem;font-weight:800;color:var(--grey-d);
+                   text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px; }
+#cl-edit-qty::-webkit-outer-spin-button,
+#cl-edit-qty::-webkit-inner-spin-button{ -webkit-appearance:none;margin:0; }
+#cl-edit-qty{ -moz-appearance:textfield;appearance:textfield;min-width:0;width:100%; }
 /* Recettes liées */
 .cl-rl-wrap   { margin:16px 14px 8px; }
 .cl-rl-title  { font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
@@ -2195,7 +2214,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="cl-ctx-menu" id="cl-ctx-menu">
         <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
         <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
-        <div class="cl-ctx-item" onclick="clCtxUnit()"><span>✏️</span> Modifier l'unité</div>
+        <div class="cl-ctx-item" onclick="clCtxEdit()"><span>✏️</span> Modifier qté / unité</div>
         <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span>🥕</span> Créer comme ingrédient</div>
         <div class="cl-ctx-item danger" onclick="clCtxDel()"><span>🗑</span> Supprimer</div>
       </div>
@@ -2829,6 +2848,52 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
   </div>
   <!-- ══ /OVERLAYS PAGE INGRÉDIENTS ══════════════════════════════════════════ -->
+
+  <!-- ══ MODAL EDIT QTÉ/UNITÉ COURSES ════════════════════════════════════════ -->
+  <div class="cl-edit-modal" id="cl-edit-modal" onclick="if(event.target===this)clCloseEditModal()">
+    <div class="cl-msheet" onclick="event.stopPropagation()">
+      <div class="m-hn"></div>
+      <div style="font-size:1rem;font-weight:900;margin-bottom:2px">Quantité &amp; unité</div>
+      <div style="font-size:.8rem;color:var(--grey-d);margin-bottom:18px" id="cl-edit-modal-name"></div>
+
+      <!-- Quantité -->
+      <div class="edit-field-label">Quantité</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+        <button class="cl-edit-pm" onclick="clEditQtyStep(-1)">−</button>
+        <input id="cl-edit-qty" type="number" min="0.1" step="0.1"
+          style="border:2px solid var(--grey);border-radius:10px;padding:10px 12px;
+                 font-size:1.4rem;font-weight:900;font-family:var(--font);text-align:center;
+                 outline:none;color:var(--text);background:var(--grey-l);display:block;"
+          oninput="clEditQtyInput(this.value)"
+          onfocus="this.style.borderColor='var(--orange)'"
+          onblur="this.style.borderColor='var(--grey)'" />
+        <button class="cl-edit-pm" onclick="clEditQtyStep(1)">+</button>
+      </div>
+
+      <!-- Unité -->
+      <div class="edit-field-label">Unité <span style="font-weight:600;text-transform:none;letter-spacing:0">(optionnelle)</span></div>
+      <input id="cl-edit-unit" type="text" placeholder="ex: kg, L, pièce…"
+        style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
+               font-size:.95rem;font-weight:700;font-family:var(--font);
+               outline:none;color:var(--text);background:var(--grey-l);margin-bottom:10px;"
+        onfocus="this.style.borderColor='var(--orange)'"
+        onblur="this.style.borderColor='var(--grey)'"
+        oninput="clSyncUnitChips(this.value)" />
+
+      <!-- Chips suggestions -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:22px" id="cl-edit-unit-chips"></div>
+
+      <!-- Valider -->
+      <button onclick="clConfirmEdit()"
+        style="width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;
+               background:var(--orange);color:white;font-size:.95rem;font-weight:800;
+               font-family:var(--font);transition:opacity .15s;"
+        onmousedown="this.style.opacity='.8'" onmouseup="this.style.opacity='1'">
+        ✓ Valider
+      </button>
+    </div>
+  </div>
+  <!-- ══ /MODAL EDIT QTÉ/UNITÉ COURSES ════════════════════════════════════════ -->
 
 </div><!-- /frame -->
 
@@ -3550,14 +3615,76 @@ async function clCtxToIngredient() {
     showToast(msg,'ok');
   } catch(e){showToast('Erreur réseau','error');}
 }
-function clCtxUnit() {
-  const item=_cl.find(i=>i.id===_clCtxId); if(!item) return;
-  const units=['','pièce','pack','kg','g','L','cl','ml','bouteille','boîte','sachet'];
-  const cur=item.unit||'';
-  item.unit=units[(units.indexOf(cur)+1)%units.length];
-  fetch('/api/courses/items/'+item.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({unit:item.unit})}).catch(()=>{});
-  clRender(); clCloseCtx();
-  showToast(item.unit?'Unité : '+item.unit:'Unité supprimée','ok');
+const CL_UNIT_SUGGESTIONS = ['pièce','pack','kg','g','L','cl','ml','bouteille','boîte','sachet','tranche','portion'];
+let _clEditingId = null;
+let _clEditQty   = 1;
+
+function clCtxEdit() {
+  const item = _cl.find(i => i.id === _clCtxId); if (!item) return;
+  clCloseCtx();
+  _clEditingId = item.id;
+  _clEditQty   = item.qty || 1;
+  document.getElementById('cl-edit-modal-name').textContent = item.n;
+  const qtyInput = document.getElementById('cl-edit-qty');
+  qtyInput.value = _clEditQty;
+  const unitInput = document.getElementById('cl-edit-unit');
+  unitInput.value = item.unit || '';
+  clRenderUnitChips(item.unit || '');
+  document.getElementById('cl-edit-modal').classList.add('on');
+  setTimeout(() => qtyInput.focus(), 150);
+}
+
+function clRenderUnitChips(cur) {
+  document.getElementById('cl-edit-unit-chips').innerHTML =
+    CL_UNIT_SUGGESTIONS.map(u =>
+      `<span class="unit-chip${cur===u?' sel':''}" onclick="clEditPickUnit('${u}')">${u}</span>`
+    ).join('');
+}
+
+function clSyncUnitChips(val) { clRenderUnitChips(val.trim()); }
+
+function clEditQtyInput(val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 0) _clEditQty = v;
+}
+
+function clEditQtyStep(delta) {
+  const input = document.getElementById('cl-edit-qty');
+  const step  = _clEditQty < 1 ? 0.1 : 1;
+  _clEditQty  = Math.max(0.1, Math.round((_clEditQty + delta * step) * 10) / 10);
+  input.value = _clEditQty;
+  input.style.borderColor = 'var(--orange)';
+  setTimeout(() => input.style.borderColor = 'var(--grey)', 300);
+}
+
+function clEditPickUnit(u) {
+  const input  = document.getElementById('cl-edit-unit');
+  const isSame = input.value.trim() === u;
+  input.value  = isSame ? '' : u;
+  clRenderUnitChips(input.value);
+}
+
+function clConfirmEdit() {
+  const item = _cl.find(i => i.id === _clEditingId); if (!item) return;
+  const rawQty  = parseFloat(document.getElementById('cl-edit-qty').value);
+  const rawUnit = document.getElementById('cl-edit-unit').value.trim();
+  if (isNaN(rawQty) || rawQty <= 0) { showToast('Quantité invalide','warn'); return; }
+  item.qty  = Math.round(rawQty * 10) / 10;
+  item.unit = rawUnit;
+  fetch('/api/courses/items/' + item.id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({qty: item.qty, unit: item.unit})
+  }).catch(() => {});
+  clRender();
+  clCloseEditModal();
+  const label = item.qty + (item.unit ? ' ' + item.unit : '');
+  showToast(`✓ ${item.n} : ${label}`, 'ok');
+}
+
+function clCloseEditModal() {
+  document.getElementById('cl-edit-modal').classList.remove('on');
+  _clEditingId = null;
 }
 function clSearchURL(item) {
   const q=encodeURIComponent(item.n);
