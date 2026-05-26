@@ -2760,6 +2760,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
+  <!-- MENU ⋮ COURSES -->
+  <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span>🗑</span><span>Supprimer les cochés</span></div>
+  </div>
+
   <!-- MENU ⋮ INGRÉDIENTS (sélection multiple) -->
   <div class="m-hdmenu" id="ing-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="ing-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
@@ -3507,6 +3512,15 @@ function clTab(tab, m) {
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});clRender();} }
 function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); fetch('/api/courses/items/'+id,{method:'DELETE'}).catch(()=>{}); clRender(); }
+function clHideHdmenu(){ document.getElementById('cl-hdmenu')?.classList.remove('on'); }
+function clDeleteDone(){
+  const done = _cl.filter(i=>i.done);
+  if(!done.length){ showToast('Aucun élément coché','warn'); return; }
+  done.forEach(i=>{ fetch('/api/courses/items/'+i.id,{method:'DELETE'}).catch(()=>{}); });
+  _cl = _cl.filter(i=>!i.done);
+  clRender();
+  showToast(done.length+' élément'+(done.length>1?'s':'')+' supprimé'+(done.length>1?'s':''),'ok');
+}
 async function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){const q=Math.max(1,(i.qty||1)+d);i.qty=q;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({qty:q})}).catch(()=>{});clRender();} }
 function clToggleRayon(mKey, rayon){ const items=_cl.filter(i=>String(i.m)===String(mKey)&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
 
@@ -4865,6 +4879,11 @@ function mHeaderDotsClick(){
     if(m) m.classList.toggle('on');
     return;
   }
+  if(page === 'courses'){
+    const m = document.getElementById('cl-hdmenu');
+    if(m) m.classList.toggle('on');
+    return;
+  }
   if(_mSelMode){
     const m = document.getElementById('m-hdmenu');
     if(m) m.classList.toggle('on');
@@ -5147,9 +5166,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
     document.getElementById('ing-hdmenu')?.classList.remove('on');
+    clHideHdmenu();
   });
 });
 
