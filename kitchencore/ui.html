@@ -2413,6 +2413,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <button class="filter-chip active" onclick="ingSetFilter('tous', this)">Tout</button>
         </div>
 
+        <!-- Sort -->
+        <div class="filter-row" id="ing-sortRow" style="padding-top:0;gap:6px">
+          <button class="filter-chip active" id="ing-sort-alpha" onclick="ingSortBy('alpha', this)">A → Z</button>
+          <button class="filter-chip" id="ing-sort-recettes" onclick="ingSortBy('recettes', this)">⭐ Recettes</button>
+        </div>
+
         <!-- Grid -->
         <div class="ingredients-grid" id="ing-ingredientsGrid"></div>
       </div>
@@ -5285,6 +5291,7 @@ let _ingAll             = [];
 let _ingSelectedIds     = new Set();
 let _ingTab             = 'tous';
 let _ingFilter          = 'tous';
+let _ingSort            = 'alpha';
 let _ingSelectMode      = false;
 let _ingSearchQuery     = '';
 let _ingEditingId       = null;
@@ -5410,6 +5417,7 @@ function _ingRender() {
 
   document.getElementById('ing-statsRow').style.display = _ingTab === 'tous' ? 'flex' : 'none';
   document.getElementById('ing-filterRow').style.display = _ingTab === 'tous' ? 'flex' : 'none';
+  document.getElementById('ing-sortRow').style.display = _ingTab === 'doublons' ? 'none' : 'flex';
 
   if (items.length === 0) {
     grid.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Tout est nickel !</p><span>Aucun ingrédient dans cette catégorie.</span></div>`;
@@ -5529,7 +5537,19 @@ function _ingGetFilteredItems() {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
   }
-  return items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr'));
+  if (_ingSort === 'recettes') {
+    items.sort((a, b) => (b.usedIn?.length || 0) - (a.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr'));
+  } else {
+    items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr'));
+  }
+  return items;
+}
+
+function ingSortBy(sort, btn) {
+  _ingSort = sort;
+  document.querySelectorAll('#ing-sortRow .filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  _ingRender();
 }
 
 // ─── Tabs & Filters ───
