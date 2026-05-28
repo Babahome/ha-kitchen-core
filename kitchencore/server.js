@@ -170,6 +170,7 @@ db.exec(`
   ['ingredients',    'saison',        "TEXT DEFAULT '[]'"],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
+  ['marchands',      'search_url',    "TEXT DEFAULT ''"],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -978,7 +979,7 @@ app.post('/api/marchands', (req, res) => {
 
 app.patch('/api/marchands/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','emoji','image'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','emoji','image','search_url'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE marchands SET ${f.join(',')} WHERE id=?`).run(...v);

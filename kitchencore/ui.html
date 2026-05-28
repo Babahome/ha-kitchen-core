@@ -2673,6 +2673,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <label class="mch-form-label">Nom du marchand</label>
         <input class="mch-form-input" id="mch-nom-input" type="text" placeholder="Ex: Carrefour Magasin" maxlength="40">
       </div>
+      <div class="mch-form-group">
+        <label class="mch-form-label">URL de recherche en ligne</label>
+        <input class="mch-form-input" id="mch-url-input" type="url" placeholder="https://www.carrefour.fr/s?q={q}" style="font-size:.8rem">
+        <div style="font-size:.73rem;color:var(--text2);margin-top:4px;font-weight:600">Utilisez <code>{q}</code> comme emplacement du terme de recherche</div>
+      </div>
       <div class="mch-form-group" id="mch-template-group">
         <label class="mch-form-label">Préremplir les rayons</label>
         <select class="mch-form-input" id="mch-template-select">
@@ -3739,6 +3744,8 @@ function clCloseEditModal() {
 }
 function clSearchURL(item) {
   const q=encodeURIComponent(item.n);
+  const m=_clMarchands.find(x=>String(x.id)===String(item.m));
+  if(m?.search_url) return m.search_url.replace('{q}',q);
   if(item.m==='fourche') return 'https://lafourche.fr/search?q='+q;
   return 'https://www.carrefour.fr/s?q='+q;
 }
@@ -6429,14 +6436,17 @@ function _mchOpenModalMarchand(id) {
   document.getElementById('mch-modal-title').textContent = id ? 'Modifier le marchand' : 'Nouveau marchand';
   const tg = document.getElementById('mch-template-group');
   const ts = document.getElementById('mch-template-select');
+  const urlInp = document.getElementById('mch-url-input');
   if (id) {
     const m = _mchData.find(x => x.id === id);
     nomInp.value     = m.nom;
     _mchCurrentImage = m.image || null;
+    if (urlInp) urlInp.value = m.search_url || '';
     if (tg) tg.style.display = 'none';
   } else {
     nomInp.value     = '';
     _mchCurrentImage = null;
+    if (urlInp) urlInp.value = '';
     if (tg) tg.style.display = 'block';
     if (ts) ts.value = '';
   }
@@ -6453,10 +6463,11 @@ async function _mchSaveMarchand() {
   const nom = document.getElementById('mch-nom-input').value.trim();
   if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
   const image = _mchCurrentImage || null;
+  const search_url = (document.getElementById('mch-url-input')?.value || '').trim();
   const templateKey = document.getElementById('mch-template-select')?.value || '';
   try {
     if (_mchEditId) {
-      await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) });
+      await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image, search_url}) });
       showToast('Marchand modifié ✓', 'ok');
     } else {
       const created = await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) }).then(r => r.json());
