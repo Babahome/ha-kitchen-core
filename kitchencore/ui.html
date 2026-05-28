@@ -5545,7 +5545,7 @@ function _ingGetFilteredItems() {
   return items;
 }
 
-function ingSortBy(sort, btn) {
+function _ingSortBy(sort, btn) {
   _ingSort = sort;
   document.querySelectorAll('#ing-sortRow .filter-chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
@@ -6246,6 +6246,7 @@ window.ingOpenRayonSheet   = _ingOpenRayonSheet;
 window.ingCloseRayonSheet  = _ingCloseRayonSheet;
 window.ingApplyRayonSelected = _ingApplyRayonSelected;
 window.ingCreateFromSearch = _ingCreateFromSearch;
+window.ingSortBy           = _ingSortBy;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
 window.__ingPantryRefreshPanel = _ingPantryRefreshPanel;
