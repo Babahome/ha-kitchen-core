@@ -2393,6 +2393,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <button class="tab-btn" data-ing-tab="sans-rayon" onclick="ingSwitchTab('sans-rayon', this)">⚠️ Sans rayon</button>
         <button class="tab-btn" data-ing-tab="sans-image" onclick="ingSwitchTab('sans-image', this)">🖼 Sans image</button>
         <button class="tab-btn" data-ing-tab="sans-recette" onclick="ingSwitchTab('sans-recette', this)">📋 Sans recette</button>
+        <button class="tab-btn" data-ing-tab="sans-saison" onclick="ingSwitchTab('sans-saison', this)">🌿 Sans saison</button>
         <button class="tab-btn" data-ing-tab="doublons" onclick="ingSwitchTab('doublons', this)">🔀 Doublons potentiels</button>
       </div>
 
@@ -5733,6 +5734,7 @@ function _ingGetFilteredItems() {
   if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayon_id);
   if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
+  if (_ingTab === 'sans-saison') items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
   if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayon_id === _ingFilter);
   if (_ingSearchQuery) {
     const q = _ingNormalize(_ingSearchQuery);
