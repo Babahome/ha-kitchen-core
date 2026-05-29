@@ -1259,9 +1259,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-ok:active{opacity:.85}
 /* Sélecteur portions dans le sheet édition */
 .m-portrow { display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-bottom:8px; }
-.m-mode-row { display:flex;gap:8px;margin-bottom:12px; }
-.m-mode-btn { flex:1;padding:8px 0;border-radius:10px;border:2px solid var(--grey);background:white;font-family:var(--font);font-size:.82rem;font-weight:800;color:var(--text2);cursor:pointer;transition:all .15s; }
-.m-mode-btn.on { border-color:var(--orange);background:var(--orange-l);color:var(--orange); }
+.m-mode-sq { width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--grey-l);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;font-size:1.2rem;transition:all .15s; }
+.m-mode-sq.ing { background:var(--orange-l);border-color:var(--orange); }
 .m-portlbl { font-size:.88rem;font-weight:800;color:var(--text); }
 .m-portctrl { display:flex;align-items:center;gap:10px;background:var(--grey-l);border-radius:99px;padding:4px 6px; }
 .m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:white;color:var(--orange);font-size:1.1rem;font-weight:900;cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:0 1px 3px rgba(0,0,0,.1); }
@@ -2553,10 +2552,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="m-hn"></div>
       <div class="m-tt" id="m-tt">Planifier un repas</div>
       <div class="m-dt" id="m-dt"></div>
-      <div class="m-mode-row">
-        <button class="m-mode-btn on" id="m-mode-recipe" onclick="mSetMode('recipe')">📅 Recette</button>
-        <button class="m-mode-btn" id="m-mode-ing" onclick="mSetMode('ing')">🧅 Ingrédient</button>
-      </div>
       <div class="m-tr" id="m-tr">
         <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
         <button class="m-tb" data-t="d" onclick="mTyp(this)">☀️ Déjeuner</button>
@@ -2565,6 +2560,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <button class="m-tb" data-t="a" onclick="mTyp(this)">📌 Autre</button>
       </div>
       <div class="m-sr">
+        <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode">🍳</button>
         <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
         <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
       </div>
@@ -4748,12 +4744,12 @@ function mToday(){
 
 // ── Modal ──────────────────────────────────────────────────────────────────
 let _mMode = 'recipe';
+function mToggleMode(){ mSetMode(_mMode === 'recipe' ? 'ing' : 'recipe'); }
 function mSetMode(mode){
   _mMode = mode;
-  document.getElementById('m-mode-recipe').classList.toggle('on', mode==='recipe');
-  document.getElementById('m-mode-ing').classList.toggle('on', mode==='ing');
   const isIng = mode === 'ing';
-  document.getElementById('m-tr').style.display     = isIng ? 'none' : '';
+  const sq = document.getElementById('m-mode-sq');
+  if(sq){ sq.textContent = isIng ? '🥕' : '🍳'; sq.classList.toggle('ing', isIng); }
   document.getElementById('m-portrow').style.display = isIng ? 'none' : '';
   document.getElementById('m-rd').style.display      = isIng ? 'none' : '';
   document.getElementById('m-si').placeholder        = isIng ? 'Rechercher un ingrédient…' : 'Recette ou note libre…';
