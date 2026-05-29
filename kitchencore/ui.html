@@ -5618,7 +5618,7 @@ function _ingRender() {
   }
 
   document.getElementById('ing-statsRow').style.display = _ingTab === 'tous' ? 'flex' : 'none';
-  document.getElementById('ing-filterRow').style.display = _ingTab === 'tous' ? 'flex' : 'none';
+  document.getElementById('ing-filterRow').style.display = (_ingTab === 'tous' || _ingTab === 'sans-saison') ? 'flex' : 'none';
   document.getElementById('ing-sortRow').style.display = _ingTab === 'doublons' ? 'none' : 'flex';
 
   if (items.length === 0) {
@@ -5735,7 +5735,7 @@ function _ingGetFilteredItems() {
   if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
   if (_ingTab === 'sans-saison') items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
-  if (_ingTab === 'tous' && _ingFilter !== 'tous') items = items.filter(i => i.rayon_id === _ingFilter);
+  if ((_ingTab === 'tous' || _ingTab === 'sans-saison') && _ingFilter !== 'tous') items = items.filter(i => i.rayon_id === _ingFilter);
   if (_ingSearchQuery) {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
