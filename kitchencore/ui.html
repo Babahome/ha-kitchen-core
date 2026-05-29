@@ -1259,6 +1259,9 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-ok:active{opacity:.85}
 /* Sélecteur portions dans le sheet édition */
 .m-portrow { display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-bottom:8px; }
+.m-mode-row { display:flex;gap:8px;margin-bottom:12px; }
+.m-mode-btn { flex:1;padding:8px 0;border-radius:10px;border:2px solid var(--grey);background:white;font-family:var(--font);font-size:.82rem;font-weight:800;color:var(--text2);cursor:pointer;transition:all .15s; }
+.m-mode-btn.on { border-color:var(--orange);background:var(--orange-l);color:var(--orange); }
 .m-portlbl { font-size:.88rem;font-weight:800;color:var(--text); }
 .m-portctrl { display:flex;align-items:center;gap:10px;background:var(--grey-l);border-radius:99px;padding:4px 6px; }
 .m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:white;color:var(--orange);font-size:1.1rem;font-weight:900;cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:0 1px 3px rgba(0,0,0,.1); }
@@ -2550,7 +2553,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="m-hn"></div>
       <div class="m-tt" id="m-tt">Planifier un repas</div>
       <div class="m-dt" id="m-dt"></div>
-      <div class="m-tr">
+      <div class="m-mode-row">
+        <button class="m-mode-btn on" id="m-mode-recipe" onclick="mSetMode('recipe')">📅 Recette</button>
+        <button class="m-mode-btn" id="m-mode-ing" onclick="mSetMode('ing')">🧅 Ingrédient</button>
+      </div>
+      <div class="m-tr" id="m-tr">
         <button class="m-tb" data-t="p" onclick="mTyp(this)">🌅 Petit-déj</button>
         <button class="m-tb" data-t="d" onclick="mTyp(this)">☀️ Déjeuner</button>
         <button class="m-tb on"  data-t="n" onclick="mTyp(this)">🌙 Dîner</button>
@@ -2562,7 +2569,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
       </div>
       <div class="m-sg" id="m-sg"></div>
-      <div class="m-portrow">
+      <div class="m-portrow" id="m-portrow">
         <span class="m-portlbl">👥 Portions</span>
         <div class="m-portctrl">
           <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
@@ -3043,7 +3050,7 @@ const PAGE_CONFIG = {
   stock:    { title: 'Stock Cuisine', fab: true,  search: false, fabIcon: '+', dark: false },
   courses:  { title: 'Courses',       fab: true,  search: false, fabIcon: '+', dark: false },
   recettes: { title: 'Recettes',      fab: true,  search: true,  fabIcon: '+', dark: true  },
-  menu:     { title: 'Menu',          fab: true,  search: false, fabIcon: '+', dark: false },
+  menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
   marchands:   { title: '🏪 Marchands', fab: true,  search: false, fabIcon: '+', dark: false },
@@ -3119,7 +3126,6 @@ function fabAction() {
   const page = active.id.replace('page-', '');
   if (page === 'stock')     { if(typeof openScanner==='function') openScanner(); return; }
   if (page === 'courses')   { clFabAction(); return; }
-  if (page === 'menu')      { mFreeIngOpen(); return; }
   if (page === 'marchands') { _mchOpenModalMarchand(); return; }
   showToast('Bientôt disponible', 'warn');
 }
@@ -4741,6 +4747,23 @@ function mToday(){
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────
+let _mMode = 'recipe';
+function mSetMode(mode){
+  _mMode = mode;
+  document.getElementById('m-mode-recipe').classList.toggle('on', mode==='recipe');
+  document.getElementById('m-mode-ing').classList.toggle('on', mode==='ing');
+  const isIng = mode === 'ing';
+  document.getElementById('m-tr').style.display     = isIng ? 'none' : '';
+  document.getElementById('m-portrow').style.display = isIng ? 'none' : '';
+  document.getElementById('m-rd').style.display      = isIng ? 'none' : '';
+  document.getElementById('m-si').placeholder        = isIng ? 'Rechercher un ingrédient…' : 'Recette ou note libre…';
+  document.getElementById('m-tt').textContent        = isIng ? 'Ajouter un ingrédient' : 'Planifier un repas';
+  document.getElementById('m-ok').textContent        = isIng ? 'Ajouter aux courses' : 'Ajouter au menu';
+  document.getElementById('m-si').value = '';
+  document.getElementById('m-sg').className = 'm-sg';
+  _mP = null;
+  setTimeout(()=>document.getElementById('m-si').focus(), 100);
+}
 function mOpen(k,l){
   _mKey=k; _mP=null; _mEditIdx=null; _mPortions=2;
   document.getElementById('m-dt').textContent=l.replace('📍 ','');
@@ -4749,8 +4772,8 @@ function mOpen(k,l){
   document.querySelectorAll('.m-tb').forEach(b=>b.classList.remove('on'));
   document.querySelector('.m-tb[data-t="n"]').classList.add('on');
   _mT='n';
-  document.getElementById('m-tt').textContent='Planifier un repas';
-  document.getElementById('m-ok').textContent='Ajouter au menu';
+  _mMode='recipe';
+  mSetMode('recipe');
   _mPortRender();
   document.getElementById('m-modal').classList.add('on');
   setTimeout(()=>document.getElementById('m-si').focus(),200);
@@ -4778,10 +4801,11 @@ function mEdit(k,x){
 function mClose(){ document.getElementById('m-modal').classList.remove('on'); _mEditIdx=null; }
 function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
 function mSrch(v){
-  _mP=null; const q=v.trim().toLowerCase(); const w=document.getElementById('m-sg');
+  _mP=null; const q=v.trim(); const w=document.getElementById('m-sg');
   if(!q){w.className='m-sg';return;}
+  if(_mMode==='ing'){ mSrchIng(v,w); return; }
   const rvList=(typeof _rv!=='undefined')?_rv:[];
-  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q)).slice(0,5);
+  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q.toLowerCase())).slice(0,5);
   const mkThumb=r=>{
     const ini=r.nom.trim().substring(0,2).toUpperCase();
     return r.photo
@@ -4792,6 +4816,35 @@ function mSrch(v){
     ${mkThumb(r)}<span style="font-size:.87rem;font-weight:700;flex:1">${r.nom}</span><span style="font-size:.7rem;color:var(--grey-d)">recette</span></div>`).join('')
     +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\\'")}','📝')"><div class="m-si2-th"><span class="m-si2-emo">📝</span></div><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
   w.className='m-sg on';
+}
+let _mSrchIngTimer = null;
+async function mSrchIng(v, w){
+  clearTimeout(_mSrchIngTimer);
+  _mSrchIngTimer = setTimeout(async ()=>{
+    try{
+      const res = await fetch('/api/ingredients/search?q='+encodeURIComponent(v.trim()));
+      if(!res.ok){ w.className='m-sg'; return; }
+      const items = await res.json();
+      if(!items.length){ w.innerHTML='<div class="m-si2"><span style="font-size:.85rem;color:var(--grey-d);padding:4px 0">Aucun ingrédient trouvé</span></div>'; w.className='m-sg on'; return; }
+      w.innerHTML = items.slice(0,6).map(it=>{
+        const ini=(it.nom||'?').trim().slice(0,2).toUpperCase();
+        const isUrl=it.icone&&(it.icone.startsWith('http')||it.icone.startsWith('/'));
+        const thumb=isUrl
+          ?`<div class="m-si2-th"><img src="${it.icone}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+          :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
+        const nomE=it.nom.replace(/'/g,"\\'"); const rayonE=(it.rayon_nom||'Autre').replace(/'/g,"\\'"); const iconeE=(it.icone||'').replace(/'/g,"\\'");
+        return `<div class="m-si2" onclick="mPkIng('${nomE}','${rayonE}','${iconeE}')">
+          ${thumb}<span style="font-size:.87rem;font-weight:700;flex:1">${it.nom}</span>${it.rayon_nom?`<span style="font-size:.7rem;color:var(--grey-d)">${it.rayon_nom}</span>`:''}
+        </div>`;
+      }).join('');
+      w.className='m-sg on';
+    }catch(e){}
+  }, 250);
+}
+function mPkIng(nom, rayon, icone){
+  _mP = {n:nom, rayon, icone};
+  document.getElementById('m-si').value = nom;
+  document.getElementById('m-sg').className = 'm-sg';
 }
 function mPk(n,e){
   _mP={n,e};
@@ -4820,7 +4873,27 @@ function mRnd(){
 }
 async function mAdd(){
   const v=document.getElementById('m-si').value.trim();
-  if(!v){showToast('Entrez une recette ou une note','warn');return;}
+  if(!v){showToast(_mMode==='ing'?'Choisissez un ingrédient':'Entrez une recette ou une note','warn');return;}
+  // Mode ingrédient → ajouter aux courses directement
+  if(_mMode==='ing'){
+    const nom = _mP?.n || v;
+    const rayon = _mP?.rayon || 'Autre';
+    const icone = _mP?.icone || null;
+    const defaultM = (typeof _clMarchands!=='undefined'&&_clMarchands[0]) ? String(_clMarchands[0].id) : '0';
+    const item = {n:nom, icone, m:defaultM, r:rayon, qty:1, done:false, origin:'manuel'};
+    try{
+      const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+      const {id} = await res.json();
+      if(typeof _cl!=='undefined') _cl.push({...item, id:String(id)});
+      if(typeof clRender==='function') clRender();
+      showToast('✓ '+nom+' ajouté aux courses','ok');
+      // Vider pour en ajouter un autre sans fermer
+      document.getElementById('m-si').value='';
+      document.getElementById('m-sg').className='m-sg';
+      _mP=null;
+    }catch(e){showToast('Erreur réseau','error');}
+    return;
+  }
   const item={...(_mP||{n:v,e:'📝'}),t:_mT,portions:_mPortions};
   if(!_md[_mKey])_md[_mKey]=[];
   try{
