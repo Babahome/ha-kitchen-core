@@ -4826,8 +4826,8 @@ async function mSrchIng(v, w){
         const thumb=isUrl
           ?`<div class="m-si2-th"><img src="${it.icone}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
           :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
-        const nomE=it.nom.replace(/'/g,"\\'");
-        return `<div class="m-si2" onclick="mPkIng('${nomE}')">
+        const nomE=it.nom.replace(/'/g,"\\'"); const iconeE=(it.icone||'').replace(/'/g,"\\'");
+        return `<div class="m-si2" onclick="mPkIng('${nomE}','${iconeE}')">
           ${thumb}<span style="font-size:.87rem;font-weight:700;flex:1">${it.nom}</span>${it.rayon_nom?`<span style="font-size:.7rem;color:var(--grey-d)">${it.rayon_nom}</span>`:''}
         </div>`;
       }).join('');
@@ -4835,8 +4835,9 @@ async function mSrchIng(v, w){
     }catch(e){}
   }, 250);
 }
-function mPkIng(nom){
-  _mP = {n:nom, e:'🥕'};
+function mPkIng(nom, icone){
+  const isUrl = icone && (icone.startsWith('http')||icone.startsWith('/'));
+  _mP = {n:nom, e:'🥕', photo: isUrl ? icone : null};
   document.getElementById('m-si').value = nom;
   document.getElementById('m-sg').className = 'm-sg';
 }

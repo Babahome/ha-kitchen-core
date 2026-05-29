@@ -1,6 +1,6 @@
 name: "KitchenCore"
 description: "Gestion de stock alimentaire – Interface mobile avec scanner code-barres"
-version: "0.9.97"
+version: "0.9.98"
 slug: "kitchencore"
 init: false
 arch:
