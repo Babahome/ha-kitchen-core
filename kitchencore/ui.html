@@ -2807,6 +2807,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="m-hdmenu-item" id="ing-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
     <div class="m-hdmenu-item danger" id="ing-hd-delete" onclick="ingDeleteSelected();ingHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
     <div class="m-hdmenu-item" id="ing-hd-rayon" onclick="ingOpenRayonSheet();ingHideHdmenu()"><span>🛒</span><span>Changer le rayon</span></div>
+    <div class="m-hdmenu-item" id="ing-hd-saison" onclick="ingOpenSaisonSheet();ingHideHdmenu()"><span>🌿</span><span>Changer la saison</span></div>
     <div class="m-hdmenu-item" id="ing-hd-merge" onclick="ingOpenMergeSheet();ingHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
   </div>
 
@@ -2923,6 +2924,22 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="rayon-grid" id="ing-rayonSheetGrid"></div>
       <div style="height:12px"></div>
       <button class="btn-primary" onclick="ingApplyRayonSelected()">✓ Appliquer</button>
+    </div>
+  </div>
+  <!-- SHEET CHANGER SAISON (multi-sélection) -->
+  <div class="ing-bottom-sheet" id="ing-saisonSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">🌿 Changer la saison</span>
+      <button class="sheet-close" onclick="ingCloseSaisonSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Définir la saison pour les <strong id="ing-saisonSelCount">0</strong> ingrédients sélectionnés</p>
+      <div class="ing-saison-bar" id="ing-bulkSaisonBar"></div>
+      <div class="ing-saison-labels" id="ing-bulkSaisonLabels"></div>
+      <div class="ing-saison-summary" id="ing-bulkSaisonSummary">Saison non définie</div>
+      <div style="height:12px"></div>
+      <button class="btn-primary" onclick="ingApplySaisonSelected()">✓ Appliquer</button>
     </div>
   </div>
   <!-- ══ /OVERLAYS PAGE INGRÉDIENTS ══════════════════════════════════════════ -->
@@ -6296,6 +6313,102 @@ async function _ingApplyRayonSelected() {
   _ingToast(`Rayon mis à jour pour ${ok} ingrédient(s)`);
 }
 
+// ─── Changer saison multi-sélection ───
+let _ingBulkSaisonActive = new Set();
+let _ingBulkSaisonDragging = false, _ingBulkSaisonDragMode = null;
+
+function _ingBuildBulkSaisonBar() {
+  const bar = document.getElementById('ing-bulkSaisonBar');
+  const lbs = document.getElementById('ing-bulkSaisonLabels');
+  if (!bar || !lbs) return;
+  bar.innerHTML = ''; lbs.innerHTML = '';
+  _ING_MOIS.forEach(m => {
+    const seg = document.createElement('div');
+    seg.className = 'ing-saison-seg' +
+      (_ingBulkSaisonActive.has(m.n) ? ' on' : '') +
+      (m.n === _ING_TODAY_M ? ' cur' : '');
+    seg.dataset.month = m.n;
+    seg.addEventListener('click', () => _ingBulkSaisonToggle(m.n));
+    seg.addEventListener('touchstart', ev => {
+      ev.preventDefault();
+      _ingBulkSaisonDragging = true;
+      _ingBulkSaisonDragMode = _ingBulkSaisonActive.has(m.n) ? 'remove' : 'add';
+      _ingBulkSaisonApplyDrag(m.n);
+    }, { passive:false });
+    seg.addEventListener('touchmove', ev => {
+      if (!_ingBulkSaisonDragging) return;
+      ev.preventDefault();
+      const t = ev.touches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      if (el && el.dataset.month) _ingBulkSaisonApplyDrag(parseInt(el.dataset.month));
+    }, { passive:false });
+    bar.appendChild(seg);
+    const lbl = document.createElement('div');
+    lbl.className = 'ing-saison-lbl' +
+      (_ingBulkSaisonActive.has(m.n) ? ' on' : '') +
+      (m.n === _ING_TODAY_M ? ' cur' : '');
+    lbl.dataset.month = m.n;
+    lbl.textContent = m.abbr;
+    lbl.onclick = () => _ingBulkSaisonToggle(m.n);
+    lbs.appendChild(lbl);
+  });
+  _ingSaisonRefreshSummary('ing-bulkSaisonSummary', _ingBulkSaisonActive);
+}
+
+document.addEventListener('touchend', () => { _ingBulkSaisonDragging = false; _ingBulkSaisonDragMode = null; });
+
+function _ingBulkSaisonToggle(n) {
+  _ingBulkSaisonActive.has(n) ? _ingBulkSaisonActive.delete(n) : _ingBulkSaisonActive.add(n);
+  _ingBulkSaisonRefreshSeg(n);
+  _ingSaisonRefreshSummary('ing-bulkSaisonSummary', _ingBulkSaisonActive);
+}
+
+function _ingBulkSaisonApplyDrag(n) {
+  if (_ingBulkSaisonDragMode === 'add')    _ingBulkSaisonActive.add(n);
+  if (_ingBulkSaisonDragMode === 'remove') _ingBulkSaisonActive.delete(n);
+  _ingBulkSaisonRefreshSeg(n);
+  _ingSaisonRefreshSummary('ing-bulkSaisonSummary', _ingBulkSaisonActive);
+}
+
+function _ingBulkSaisonRefreshSeg(n) {
+  const on = _ingBulkSaisonActive.has(n);
+  document.querySelector(`#ing-bulkSaisonBar .ing-saison-seg[data-month="${n}"]`)?.classList.toggle('on', on);
+  document.querySelector(`#ing-bulkSaisonLabels .ing-saison-lbl[data-month="${n}"]`)?.classList.toggle('on', on);
+}
+
+function _ingOpenSaisonSheet() {
+  const n = _ingSelectedIds.size;
+  if (!n) return;
+  const el = document.getElementById('ing-saisonSelCount');
+  if (el) el.textContent = n;
+  _ingBulkSaisonActive = new Set();
+  _ingBuildBulkSaisonBar();
+  _ingShowSheet('ing-saisonSheet');
+}
+
+function _ingCloseSaisonSheet() { _ingHideSheet('ing-saisonSheet'); }
+
+async function _ingApplySaisonSelected() {
+  const ids = [..._ingSelectedIds];
+  const saisonJson = JSON.stringify([..._ingBulkSaisonActive].sort((a,b) => a-b));
+  let ok = 0;
+  for (const id of ids) {
+    const ing = _ingAll.find(i => i.id === id);
+    if (!ing) continue;
+    try {
+      await fetch('/api/ingredients/' + ing._dbId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saison: saisonJson })
+      });
+      ok++;
+    } catch(e) {}
+  }
+  await _ingLoadData();
+  _ingCloseSaisonSheet();
+  _ingToast(`Saison mise à jour pour ${ok} ingrédient(s)`);
+}
+
 // ─── Créer ingrédient depuis la recherche ───
 async function _ingCreateFromSearch() {
   const nom = _ingSearchQuery.trim();
@@ -6361,7 +6474,7 @@ function _ingHideSheet(id) {
 }
 
 function _ingCloseAllSheets() {
-  ['ing-mergeSheet','ing-rayonSheet'].forEach(id => {
+  ['ing-mergeSheet','ing-rayonSheet','ing-saisonSheet'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
   });
@@ -6429,6 +6542,9 @@ window.ingDeleteSelected   = _ingDeleteSelected;
 window.ingOpenRayonSheet   = _ingOpenRayonSheet;
 window.ingCloseRayonSheet  = _ingCloseRayonSheet;
 window.ingApplyRayonSelected = _ingApplyRayonSelected;
+window.ingOpenSaisonSheet  = _ingOpenSaisonSheet;
+window.ingCloseSaisonSheet = _ingCloseSaisonSheet;
+window.ingApplySaisonSelected = _ingApplySaisonSelected;
 window.ingCreateFromSearch = _ingCreateFromSearch;
 window.ingSortBy           = _ingSortBy;
 window.ingHideHdmenu          = _ingHideHdmenu;
