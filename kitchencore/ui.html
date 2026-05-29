@@ -1289,6 +1289,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-ing-pantry { font-size:1rem;opacity:.28;cursor:pointer;transition:opacity .15s;padding:6px;flex-shrink:0;line-height:1; }
 .m-ing-pantry.on { opacity:1; }
 .m-ing-foot   { padding:12px 20px 28px;border-top:1px solid var(--grey);display:flex;gap:8px;flex-shrink:0; }
+.m-free-ing-search-wrap { margin-top:10px; }
+.m-free-ing-input { width:100%;box-sizing:border-box;padding:9px 14px;border-radius:10px;border:1.5px solid var(--grey);font-family:var(--font);font-size:.88rem;font-weight:600;color:var(--text);background:var(--grey-l);outline:none; }
+.m-free-ing-input:focus { border-color:var(--orange); background:white; }
+.m-free-ing-empty { padding:24px 20px;text-align:center;color:var(--grey-d);font-size:.85rem; }
 .m-ing-tog    { flex:1;height:44px;border-radius:12px;border:2px solid var(--grey);background:white;font-family:var(--font);font-size:.82rem;font-weight:800;color:var(--text2);cursor:pointer; }
 .m-ing-ok     { flex:2;height:44px;border-radius:12px;border:none;background:var(--orange);color:white;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer; }
 .m-ing-ok:active,.m-ing-tog:active { opacity:.8; }
@@ -2617,6 +2621,24 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
   </div>
 
+  <!-- ══ MODAL AJOUT LIBRE INGRÉDIENT → COURSES (depuis Menu) ════════════ -->
+  <div class="m-ing-modal" id="m-free-ing-modal" onclick="if(event.target===this)mFreeIngClose()">
+    <div class="m-ing-sheet" onclick="event.stopPropagation()">
+      <div class="m-ing-handle"></div>
+      <div class="m-ing-head">
+        <div class="m-ing-title">Ajouter des ingrédients</div>
+        <div class="m-free-ing-search-wrap">
+          <input id="m-free-ing-input" class="m-free-ing-input" type="text" placeholder="Rechercher un ingrédient…" oninput="mFreeIngSearch(this.value)" onkeydown="if(event.key==='Enter')mFreeIngPickFirst()">
+        </div>
+      </div>
+      <div class="m-ing-list" id="m-free-ing-list"></div>
+      <div class="m-ing-foot">
+        <button class="m-ing-tog" onclick="mFreeIngClose()">Annuler</button>
+        <button class="m-ing-ok" id="m-free-ing-ok" onclick="mFreeIngConfirm()">Ajouter 0 article</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SCANNER MODAL ══════════════════════════════════════════════════════ -->
   <div class="scanner-modal" id="scanner-modal">
 
@@ -3021,7 +3043,7 @@ const PAGE_CONFIG = {
   stock:    { title: 'Stock Cuisine', fab: true,  search: false, fabIcon: '+', dark: false },
   courses:  { title: 'Courses',       fab: true,  search: false, fabIcon: '+', dark: false },
   recettes: { title: 'Recettes',      fab: true,  search: true,  fabIcon: '+', dark: true  },
-  menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
+  menu:     { title: 'Menu',          fab: true,  search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
   marchands:   { title: '🏪 Marchands', fab: true,  search: false, fabIcon: '+', dark: false },
@@ -3097,6 +3119,7 @@ function fabAction() {
   const page = active.id.replace('page-', '');
   if (page === 'stock')     { if(typeof openScanner==='function') openScanner(); return; }
   if (page === 'courses')   { clFabAction(); return; }
+  if (page === 'menu')      { mFreeIngOpen(); return; }
   if (page === 'marchands') { _mchOpenModalMarchand(); return; }
   showToast('Bientôt disponible', 'warn');
 }
@@ -5070,6 +5093,119 @@ function mIngUpdateCount(){
 function mIngClose(){
   document.getElementById('m-ing-modal').classList.remove('on');
   _mIngData = []; _mIngChecked.clear();
+}
+
+// ── Ajout libre d'ingrédients aux courses depuis Menu ─────────────────────────
+let _mFreeSelected = new Map(); // nom → {nom, rayon, icone}
+let _mFreeSearchTimer = null;
+
+function mFreeIngOpen(){
+  _mFreeSelected.clear();
+  document.getElementById('m-free-ing-input').value = '';
+  mFreeIngRenderList([]);
+  mFreeIngUpdateBtn();
+  document.getElementById('m-free-ing-modal').classList.add('on');
+  setTimeout(()=>document.getElementById('m-free-ing-input').focus(), 100);
+}
+
+function mFreeIngClose(){
+  document.getElementById('m-free-ing-modal').classList.remove('on');
+  _mFreeSelected.clear();
+}
+
+async function mFreeIngSearch(val){
+  clearTimeout(_mFreeSearchTimer);
+  const q = val.trim();
+  if(q.length < 1){ mFreeIngRenderList([]); return; }
+  _mFreeSearchTimer = setTimeout(async ()=>{
+    try{
+      const res = await fetch('/api/ingredients/search?q='+encodeURIComponent(q));
+      if(!res.ok) return;
+      mFreeIngRenderList(await res.json());
+    }catch(e){}
+  }, 250);
+}
+
+function mFreeIngRenderList(items){
+  const list = document.getElementById('m-free-ing-list'); if(!list) return;
+  // Toujours afficher les sélectionnés en haut
+  let html = '';
+  if(_mFreeSelected.size > 0){
+    html += '<div class="m-ing-recipe">Sélectionnés</div>';
+    for(const [nom, it] of _mFreeSelected){
+      const ini = nom.trim().slice(0,2).toUpperCase();
+      const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
+      const avatar = isUrl ? `<img src="${it.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.6rem;font-weight:800;color:var(--grey-d)\\'>${ini}</span>'">` : `<span style="font-size:.6rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
+      const nomJ = JSON.stringify(nom);
+      html += `<div class="m-ing-row">
+        <div class="m-ing-check on" onclick="mFreeIngToggle(${nomJ})">✓</div>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${avatar}</div>
+        <div class="m-ing-info"><span class="m-ing-nom">${nom}</span>${it.rayon?`<span class="m-ing-qty">${it.rayon}</span>`:''}</div>
+      </div>`;
+    }
+  }
+  // Résultats de recherche (non encore sélectionnés)
+  const filtered = items.filter(it=>!_mFreeSelected.has(it.nom));
+  if(filtered.length){
+    if(_mFreeSelected.size > 0) html += '<div class="m-ing-recipe">Résultats</div>';
+    filtered.forEach(it=>{
+      const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
+      const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
+      const avatar = isUrl ? `<img src="${it.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.6rem;font-weight:800;color:var(--grey-d)\\'>${ini}</span>'">` : `<span style="font-size:.6rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
+      const nomJ = JSON.stringify(it.nom); const rayonJ = JSON.stringify(it.rayon_nom||''); const iconeJ = JSON.stringify(it.icone||'');
+      html += `<div class="m-ing-row">
+        <div class="m-ing-check" onclick="mFreeIngToggle(${nomJ},${rayonJ},${iconeJ})">✓</div>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${avatar}</div>
+        <div class="m-ing-info"><span class="m-ing-nom">${it.nom}</span>${it.rayon_nom?`<span class="m-ing-qty">${it.rayon_nom}</span>`:''}</div>
+      </div>`;
+    });
+  } else if(!_mFreeSelected.size && document.getElementById('m-free-ing-input').value.trim().length >= 1){
+    html += '<div class="m-free-ing-empty">Aucun ingrédient trouvé</div>';
+  } else if(!_mFreeSelected.size){
+    html += '<div class="m-free-ing-empty">Tapez un nom pour rechercher</div>';
+  }
+  list.innerHTML = html;
+}
+
+function mFreeIngToggle(nom, rayon, icone){
+  if(_mFreeSelected.has(nom)){
+    _mFreeSelected.delete(nom);
+  } else {
+    _mFreeSelected.set(nom, {nom, rayon: rayon||'Autre', icone: icone||null});
+  }
+  // Re-render avec les derniers résultats de recherche (relancer la recherche courante)
+  const q = document.getElementById('m-free-ing-input').value.trim();
+  if(q.length >= 1) mFreeIngSearch(q); else mFreeIngRenderList([]);
+  mFreeIngUpdateBtn();
+}
+
+function mFreeIngPickFirst(){
+  const first = document.querySelector('#m-free-ing-list .m-ing-check:not(.on)');
+  if(first) first.click();
+}
+
+function mFreeIngUpdateBtn(){
+  const n = _mFreeSelected.size;
+  const btn = document.getElementById('m-free-ing-ok');
+  if(btn) btn.textContent = n===0 ? 'Ajouter 0 article' : 'Ajouter '+n+' article'+(n>1?'s':'');
+}
+
+async function mFreeIngConfirm(){
+  if(_mFreeSelected.size === 0){ showToast('Aucun ingrédient sélectionné','warn'); return; }
+  const defaultM = _clMarchands[0] ? String(_clMarchands[0].id) : '0';
+  let nbAdded = 0;
+  for(const [nom, it] of _mFreeSelected){
+    const item = {n:nom, icone:it.icone||null, m:defaultM, r:it.rayon||'Autre', qty:1, done:false, origin:'manuel'};
+    try{
+      const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
+      const {id} = await res.json();
+      if(typeof _cl !== 'undefined') _cl.push({...item, id:String(id)});
+      nbAdded++;
+    }catch(e){}
+  }
+  if(typeof clRender === 'function') clRender();
+  showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
+  mFreeIngClose();
 }
 
 async function mIngConfirm(){
