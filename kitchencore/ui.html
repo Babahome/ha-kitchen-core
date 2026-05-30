@@ -7179,32 +7179,24 @@ function _sgcRuleHtml(rule, idx) {
   </div>`;
 }
 
-window._sgcAddRule = function() {
-  _sgcRules.push({ id:_sgcNextId++, name:'Nouvelle règle', active:true, days:[...SGC_ALL_DAYS], meals:[...SGC_ALL_MEALS], conditions:[], _open:true });
-  _sgcRender();
-  setTimeout(()=>{ const cards=document.querySelectorAll('.sgc-card'); cards[cards.length-1]?.scrollIntoView({behavior:'smooth',block:'start'}); },50);
-};
-function _sgcDelRule(idx) {
-  if(!confirm(`Supprimer "${_sgcRules[idx].name}" ?`)) return;
-  _sgcRules.splice(idx,1); _sgcRender();
-}
-function _sgcToggleActive(idx) { _sgcRules[idx].active=!_sgcRules[idx].active; _sgcRender(); }
-function _sgcToggleOpen(idx)   { _sgcRules[idx]._open=_sgcRules[idx]._open===false; _sgcRender(); }
-function _sgcUpdateName(idx,v) { _sgcRules[idx].name=v; }
-function _sgcToggleDay(idx,d)  { const a=_sgcRules[idx].days||[]; const p=a.indexOf(d); p===-1?a.push(d):a.splice(p,1); _sgcRules[idx].days=a; _sgcRender(); }
-function _sgcToggleMeal(idx,m) { const a=_sgcRules[idx].meals||[]; const p=a.indexOf(m); p===-1?a.push(m):a.splice(p,1); _sgcRules[idx].meals=a; _sgcRender(); }
-function _sgcAddCond(idx)      { (_sgcRules[idx].conditions=_sgcRules[idx].conditions||[]).push({op:'ET',type:'tag_neq',val:_sgcTags[0]||'base'}); _sgcRender(); }
-function _sgcDelCond(idx,ci)   { _sgcRules[idx].conditions.splice(ci,1); _sgcRender(); }
-function _sgcToggleOp(idx,ci)  { const c=_sgcRules[idx].conditions[ci]; c.op=c.op==='ET'?'OU':'ET'; _sgcRender(); }
-function _sgcSetCondType(idx,ci,type){ const c=_sgcRules[idx].conditions[ci]; c.type=type; const info=SGC_COND_TYPES.find(t=>t.id===type); c.val=info?.valType==='days'?'7':(_sgcTags[0]||'base'); _sgcRender(); }
-function _sgcSetCondVal(idx,ci,v)    { _sgcRules[idx].conditions[ci].val=v; }
-
-async function _sgcSave() {
+window._sgcAddRule      = function() { _sgcRules.push({ id:_sgcNextId++, name:'Nouvelle règle', active:true, days:[...SGC_ALL_DAYS], meals:[...SGC_ALL_MEALS], conditions:[], _open:true }); _sgcRender(); setTimeout(()=>{ const cards=document.querySelectorAll('.sgc-card'); cards[cards.length-1]?.scrollIntoView({behavior:'smooth',block:'start'}); },50); };
+window._sgcDelRule      = function(idx) { if(!confirm(`Supprimer "${_sgcRules[idx].name}" ?`)) return; _sgcRules.splice(idx,1); _sgcRender(); };
+window._sgcToggleActive = function(idx) { _sgcRules[idx].active=!_sgcRules[idx].active; _sgcRender(); };
+window._sgcToggleOpen   = function(idx) { _sgcRules[idx]._open=_sgcRules[idx]._open===false; _sgcRender(); };
+window._sgcUpdateName   = function(idx,v) { _sgcRules[idx].name=v; };
+window._sgcToggleDay    = function(idx,d) { const a=_sgcRules[idx].days||[]; const p=a.indexOf(d); p===-1?a.push(d):a.splice(p,1); _sgcRules[idx].days=a; _sgcRender(); };
+window._sgcToggleMeal   = function(idx,m) { const a=_sgcRules[idx].meals||[]; const p=a.indexOf(m); p===-1?a.push(m):a.splice(p,1); _sgcRules[idx].meals=a; _sgcRender(); };
+window._sgcAddCond      = function(idx) { (_sgcRules[idx].conditions=_sgcRules[idx].conditions||[]).push({op:'ET',type:'tag_neq',val:_sgcTags[0]||'base'}); _sgcRender(); };
+window._sgcDelCond      = function(idx,ci) { _sgcRules[idx].conditions.splice(ci,1); _sgcRender(); };
+window._sgcToggleOp     = function(idx,ci) { const c=_sgcRules[idx].conditions[ci]; c.op=c.op==='ET'?'OU':'ET'; _sgcRender(); };
+window._sgcSetCondType  = function(idx,ci,type){ const c=_sgcRules[idx].conditions[ci]; c.type=type; const info=SGC_COND_TYPES.find(t=>t.id===type); c.val=info?.valType==='days'?'7':(_sgcTags[0]||'base'); _sgcRender(); };
+window._sgcSetCondVal   = function(idx,ci,v) { _sgcRules[idx].conditions[ci].val=v; };
+window._sgcSave         = async function() {
   try {
     await fetch('/api/suggestion-rules',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(_sgcRules)});
     showToast('Règles enregistrées ✓','ok');
   } catch(_) { showToast('Erreur lors de l\'enregistrement','err'); }
-}
+};
 })();
 
 </script>
