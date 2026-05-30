@@ -4041,9 +4041,11 @@ async function openDetail(id) {
   const ingrs = (r.ingredients||[]).map(i=>{
     const isSub = i.type === 'sous_recette';
     let photoHtml;
+    let subRecId = null;
     if (isSub) {
       const subRec = _rv.find(r => String(r.id) === String(i.sous_recette_id))
                   || _rv.find(r => r.nom.toLowerCase() === (i.nom||'').toLowerCase());
+      subRecId = subRec?.id || null;
       const subIni = (i.nom||'?').slice(0,2).toUpperCase();
       photoHtml = subRec?.photo
         ? `<div class="d-ingr-photo" style="background:#dbeafe"><img src="${subRec.photo}" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.6rem;font-weight:700;color:#1d4ed8\\'>${subIni}</span>'"></div>`
@@ -4058,12 +4060,14 @@ async function openDetail(id) {
     const qtyNum = parseFloat(i.qty);
     const qtyDisplay = (!isNaN(qtyNum) && qtyNum !== 0) ? String(i.qty) : '';
     const qtyTxt = [qtyDisplay, abbrevUnit(i.unite)].filter(Boolean).join(' ');
+    const rowClick = (isSub && subRecId) ? `onclick="window.open('?recipe=${subRecId}','_blank')" style="cursor:pointer"` : '';
+    const linkIcon = (isSub && subRecId) ? `<span style="font-size:.75rem;color:#1d4ed8;margin-left:.25rem">↗</span>` : '';
     return `
-    <div class="d-ingr-row">
+    <div class="d-ingr-row" ${rowClick}>
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${i.nom}</div>
+        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${i.nom}${linkIcon}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
@@ -5306,8 +5310,14 @@ async function mIngConfirm(){
 // Event delegation sur page-menu
 document.addEventListener('DOMContentLoaded', function(){
   // Charger les recettes et les tags au démarrage
-  loadRecettes();
-  loadTags();
+  const _urlRecipeId = new URLSearchParams(location.search).get('recipe');
+  if (_urlRecipeId) {
+    loadRecettes().then(() => { switchPage('recettes'); openDetail(_urlRecipeId); });
+    loadTags();
+  } else {
+    loadRecettes();
+    loadTags();
+  }
   _mLoad();
   const pageMenu = document.getElementById('page-menu');
   if(!pageMenu) return;
