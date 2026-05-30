@@ -5312,7 +5312,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Charger les recettes et les tags au démarrage
   const _urlRecipeId = new URLSearchParams(location.search).get('recipe');
   if (_urlRecipeId) {
-    loadRecettes().then(() => { switchPage('recettes'); openDetail(_urlRecipeId); });
+    loadRecettes().then(() => { switchPage(null, 'recettes'); openDetail(_urlRecipeId); });
     loadTags();
   } else {
     loadRecettes();
