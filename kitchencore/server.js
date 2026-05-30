@@ -150,6 +150,15 @@ db.exec(`
     id  INTEGER PRIMARY KEY AUTOINCREMENT,
     nom TEXT NOT NULL UNIQUE
   );
+  CREATE TABLE IF NOT EXISTS suggestion_rules (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL DEFAULT 'Règle',
+    active     INTEGER DEFAULT 1,
+    days       TEXT DEFAULT '[]',
+    meals      TEXT DEFAULT '[]',
+    conditions TEXT DEFAULT '[]',
+    position   INTEGER DEFAULT 0
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -1066,6 +1075,115 @@ app.delete('/api/tags/:id', (req, res) => {
     db.prepare('DELETE FROM tags WHERE id=?').run(req.params.id);
   })();
   res.status(204).end();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUGGESTION RULES
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/suggestion-rules', (_req, res) => {
+  const rows = db.prepare('SELECT * FROM suggestion_rules ORDER BY position, id').all();
+  rows.forEach(r => {
+    r.days       = JSON.parse(r.days       || '[]');
+    r.meals      = JSON.parse(r.meals      || '[]');
+    r.conditions = JSON.parse(r.conditions || '[]');
+    r.active     = !!r.active;
+  });
+  res.json(rows);
+});
+
+app.put('/api/suggestion-rules', (req, res) => {
+  const rules = req.body;
+  if (!Array.isArray(rules)) return res.status(400).json({ error: 'Array expected' });
+  db.transaction(() => {
+    db.prepare('DELETE FROM suggestion_rules').run();
+    const ins = db.prepare('INSERT INTO suggestion_rules(id,name,active,days,meals,conditions,position) VALUES(?,?,?,?,?,?,?)');
+    rules.forEach((r, i) => {
+      ins.run(r.id || null, r.name || 'Règle', r.active ? 1 : 0,
+        JSON.stringify(r.days  || []),
+        JSON.stringify(r.meals || []),
+        JSON.stringify(r.conditions || []), i);
+    });
+  })();
+  res.json({ ok: true });
+});
+
+// GET /api/suggestion?day=0-6&meal=p|d|n|g|a
+// day : 0=Lun … 6=Dim  (JS: (getDay()+6)%7)
+app.get('/api/suggestion', (req, res) => {
+  const dayParam  = parseInt(req.query.day);
+  const mealParam = req.query.meal || '';
+
+  // Saison courante
+  const month  = new Date().getMonth() + 1;
+  const season = month >= 3 && month <= 5 ? 'printemps'
+               : month >= 6 && month <= 8 ? 'été'
+               : month >= 9 && month <= 11 ? 'automne' : 'hiver';
+
+  // Règles actives applicables au jour + repas
+  const rules = db.prepare('SELECT * FROM suggestion_rules WHERE active=1').all().map(r => ({
+    days:       JSON.parse(r.days       || '[]'),
+    meals:      JSON.parse(r.meals      || '[]'),
+    conditions: JSON.parse(r.conditions || '[]'),
+  }));
+
+  const conds = [];
+  for (const rule of rules) {
+    if (rule.days.includes(dayParam) && rule.meals.includes(mealParam)) {
+      conds.push(...rule.conditions);
+    }
+  }
+
+  // Agréger les conditions
+  const tagNeqs = [], tagEqs = [];
+  let requireSeasonal = false, notRecentDays = null;
+  for (const c of conds) {
+    if (c.type === 'tag_neq')    tagNeqs.push(c.val);
+    else if (c.type === 'tag_eq')     tagEqs.push(c.val);
+    else if (c.type === 'seasonal')   requireSeasonal = true;
+    else if (c.type === 'not_recent') {
+      const d = parseInt(c.val) || 7;
+      notRecentDays = notRecentDays === null ? d : Math.max(notRecentDays, d);
+    }
+  }
+
+  let recipes = db.prepare('SELECT * FROM recettes').all();
+  recipes.forEach(r => { r.tags = JSON.parse(r.tags || '[]'); });
+
+  // tag_neq
+  if (tagNeqs.length) recipes = recipes.filter(r => !tagNeqs.some(t => r.tags.includes(t)));
+  // tag_eq
+  if (tagEqs.length)  recipes = recipes.filter(r => tagEqs.every(t => r.tags.includes(t)));
+
+  // not_recent : exclure les recettes servies dans les X derniers jours
+  if (notRecentDays !== null) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - notRecentDays);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const recentNames = new Set(
+      db.prepare('SELECT DISTINCT nom FROM menu WHERE date >= ?').all(cutoffStr).map(r => r.nom.toLowerCase())
+    );
+    recipes = recipes.filter(r => !recentNames.has(r.nom.toLowerCase()));
+  }
+
+  // seasonal : tous les ingrédients liés doivent être de saison
+  if (requireSeasonal) {
+    recipes = recipes.filter(r => {
+      const ings = db.prepare(`
+        SELECT i.saison FROM recette_ingredients ri
+        JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
+        WHERE ri.recette_id = ?
+      `).all(r.id);
+      if (!ings.length) return true;
+      return ings.every(ing => {
+        const saisons = JSON.parse(ing.saison || '[]');
+        return !saisons.length || saisons.includes(season);
+      });
+    });
+  }
+
+  if (!recipes.length) return res.json(null);
+  res.json(recipes[Math.floor(Math.random() * recipes.length)]);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

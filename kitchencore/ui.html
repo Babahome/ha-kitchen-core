@@ -1843,6 +1843,44 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 /* ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════════════ */
 
 /* ══ MARCHANDS ══════════════════════════════════════════════════════════════ */
+/* ══ PAGE SUGGESTION CONFIG ══════════════════════════════════════════════════ */
+#page-suggestion-config { background: var(--grey-l); }
+.sgc-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.sgc-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+.sgc-header.collapsed { border-bottom: none; }
+.sgc-toggle { width: 40px; height: 24px; border-radius: 12px; background: #ddd; position: relative; flex-shrink: 0; cursor: pointer; transition: background .2s; border: none; }
+.sgc-toggle.on { background: var(--orange); }
+.sgc-toggle::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.sgc-toggle.on::after { transform: translateX(16px); }
+.sgc-name-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sgc-name { font-weight: 700; font-size: .95rem; background: none; border: none; font-family: var(--font); color: var(--text); cursor: text; width: 100%; }
+.sgc-name:focus { outline: 2px solid var(--orange); border-radius: 4px; }
+.sgc-subtitle { font-size: .72rem; color: var(--text2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sgc-del { background: none; border: none; color: #ccc; font-size: 1.1rem; cursor: pointer; padding: 4px; }
+.sgc-del:hover { color: #e55; }
+.sgc-chevron { color: var(--text2); font-size: .85rem; transition: transform .2s; }
+.sgc-chevron.open { transform: rotate(180deg); }
+.sgc-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.sgc-body.hidden { display: none; }
+.sgc-label { font-size: .78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.sgc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sgc-chip { padding: 5px 10px; border-radius: 20px; font-size: .82rem; font-weight: 700; border: 2px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; transition: all .15s; font-family: var(--font); }
+.sgc-chip.on { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+.sgc-conds { display: flex; flex-direction: column; gap: 0; }
+.sgc-cond-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.sgc-op { min-width: 46px; padding: 4px 6px; border-radius: 6px; border: 2px solid #e0e0e0; background: #fff; font-size: .78rem; font-weight: 800; color: var(--orange); cursor: pointer; text-align: center; font-family: var(--font); }
+.sgc-type { flex: 1; padding: 6px 10px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; font-family: var(--font); font-size: .87rem; color: var(--text); }
+.sgc-val { width: 90px; padding: 6px 10px; border-radius: 8px; border: 1px solid #e0e0e0; font-family: var(--font); font-size: .87rem; color: var(--text); }
+.sgc-val.days { width: 64px; }
+.sgc-cdel { background: none; border: none; color: #ccc; font-size: 1rem; cursor: pointer; padding: 2px 4px; }
+.sgc-cdel:hover { color: #e55; }
+.sgc-add-cond { display: flex; align-items: center; gap: 6px; background: none; border: 2px dashed #ddd; border-radius: 8px; color: var(--text2); padding: 7px 12px; font-size: .85rem; font-weight: 700; cursor: pointer; font-family: var(--font); width: 100%; transition: all .15s; margin-top: 4px; }
+.sgc-add-cond:hover { border-color: var(--orange); color: var(--orange); }
+.sgc-save-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #eee; padding: 10px 16px; display: flex; gap: 10px; margin: 0 -16px; box-shadow: 0 -2px 8px rgba(0,0,0,.06); }
+.sgc-btn-save { flex: 1; background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: 1rem; font-weight: 800; cursor: pointer; font-family: var(--font); }
+.sgc-btn-cancel { background: var(--grey-l); color: #666; border: none; border-radius: 10px; padding: 13px 16px; font-size: .9rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
+.sgc-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
+.sgc-empty .e { font-size: 2.5rem; margin-bottom: 10px; }
 #page-marchands { background: var(--grey-l); }
 .mch-content { padding: 12px 12px 100px; }
 .mch-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
@@ -2438,6 +2476,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
     </div>
 
+    <!-- ══ PAGE SUGGESTION CONFIG ═══════════════════════════════════════════ -->
+    <div id="page-suggestion-config" class="page">
+      <div id="sgc-list" style="padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:80px"></div>
+    </div>
+
   </div><!-- /content -->
 
   <!-- ══ OVERLAYS (enfants directs du frame — hors content pour éviter le stacking context iOS) ══ -->
@@ -2774,6 +2817,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-sep"></div>
             <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Gérer les ingrédients</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Gérer les marchands</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item"><div class="d-icon">⚙️</div> Zones de rangement</div>
       <div class="drawer-item"><div class="d-icon">🔔</div> Alertes de stock</div>
@@ -3067,7 +3111,8 @@ const PAGE_CONFIG = {
   menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
-  marchands:   { title: '🏪 Marchands', fab: true,  search: false, fabIcon: '+', dark: false },
+  marchands:            { title: '🏪 Marchands',           fab: true,  search: false, fabIcon: '+', dark: false },
+  'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
 };
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
@@ -3130,7 +3175,8 @@ function switchPage(tab, page, title) {
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
   if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
-  if (page === 'marchands'   && typeof _mchLoad === 'function') _mchLoad();
+  if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
+  if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -3140,7 +3186,8 @@ function fabAction() {
   const page = active.id.replace('page-', '');
   if (page === 'stock')     { if(typeof openScanner==='function') openScanner(); return; }
   if (page === 'courses')   { clFabAction(); return; }
-  if (page === 'marchands') { _mchOpenModalMarchand(); return; }
+  if (page === 'marchands')           { _mchOpenModalMarchand(); return; }
+  if (page === 'suggestion-config')   { _sgcAddRule(); return; }
   showToast('Bientôt disponible', 'warn');
 }
 
@@ -4880,13 +4927,32 @@ function mPortDelta(d){
 function _mPortRender(){
   const el=document.getElementById('m-portval'); if(el) el.textContent=_mPortions;
 }
-function mRnd(){
-  const pool=(typeof _rv!=='undefined')?_rv:[];
-  if(!pool.length)return;
-  const r=pool[Math.floor(Math.random()*pool.length)]; mPk(r.nom,r.emoji||'🍽️');
+async function mRnd(){
   const b=document.getElementById('m-rd');
   b.style.transition='transform .4s ease'; b.style.transform='rotate(360deg)';
   setTimeout(()=>{b.style.transform='';},420);
+  try {
+    // Jour de la semaine 0=Lun…6=Dim
+    const dateStr = _mKey || new Date().toISOString().slice(0,10);
+    const jsDay   = new Date(dateStr).getDay();
+    const day     = (jsDay + 6) % 7;
+    const meal    = _mT || 'n';
+    const r = await fetch(`/api/suggestion?day=${day}&meal=${encodeURIComponent(meal)}`).then(x=>x.json());
+    if (!r) {
+      // Aucune recette éligible → fallback aléatoire total
+      const pool=(typeof _rv!=='undefined')?_rv:[];
+      if(!pool.length){showToast('Aucune recette disponible','warn');return;}
+      const rf=pool[Math.floor(Math.random()*pool.length)];
+      mPk(rf.nom,rf.emoji||'🍽️');
+      showToast('Aucune recette ne correspond aux règles — suggestion aléatoire','warn');
+    } else {
+      mPk(r.nom, r.emoji||'🍽️');
+    }
+  } catch(e) {
+    // Fallback si API indisponible
+    const pool=(typeof _rv!=='undefined')?_rv:[];
+    if(pool.length){ const rf=pool[Math.floor(Math.random()*pool.length)]; mPk(rf.nom,rf.emoji||'🍽️'); }
+  }
 }
 async function mAdd(){
   const v=document.getElementById('m-si').value.trim();
@@ -7004,6 +7070,142 @@ async function _mchCommitOrder(mId, list) {
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUGGESTION CONFIG
+// ══════════════════════════════════════════════════════════════════════════════
+(function(){
+const SGC_DAYS  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const SGC_MEALS = [
+  { id:'p', label:'🌅 Petit-déj' },
+  { id:'d', label:'☀️ Déjeuner' },
+  { id:'n', label:'🌙 Dîner' },
+  { id:'g', label:'🍪 Goûter' },
+  { id:'a', label:'📌 Autre' },
+];
+const SGC_ALL_DAYS  = [0,1,2,3,4,5,6];
+const SGC_ALL_MEALS = SGC_MEALS.map(m=>m.id);
+const SGC_COND_TYPES = [
+  { id:'tag_neq',    label:'Tag ≠',                       hasVal:true,  valType:'tag' },
+  { id:'tag_eq',     label:'Tag =',                       hasVal:true,  valType:'tag' },
+  { id:'seasonal',   label:'Tous ingrédients de saison',  hasVal:false },
+  { id:'not_recent', label:'Pas servi depuis moins de',   hasVal:true,  valType:'days' },
+];
+
+let _sgcRules = [], _sgcNextId = 1, _sgcTags = [];
+
+window._sgcLoad = async function() {
+  try { _sgcTags = (await fetch('/api/tags').then(r=>r.json())).map(t=>t.nom||t); } catch(_){}
+  try {
+    const data = await fetch('/api/suggestion-rules').then(r=>r.json());
+    _sgcRules = data;
+    _sgcNextId = (_sgcRules.reduce((m,r)=>Math.max(m,r.id||0),0))+1;
+  } catch(_) { _sgcRules = []; }
+  _sgcSortOnce();
+  _sgcRender();
+};
+
+function _sgcSortOnce() {
+  _sgcRules.sort((a,b)=>{
+    const ad=(a.days||[]).length, bd=(b.days||[]).length;
+    const am=(a.meals||[]).length, bm=(b.meals||[]).length;
+    if(ad!==bd) return bd-ad;
+    return bm-am;
+  });
+}
+
+function _sgcRender() {
+  const el = document.getElementById('sgc-list');
+  if (!el) return;
+  let html = '';
+  if (!_sgcRules.length) {
+    html = `<div class="sgc-empty"><div class="e">🎲</div><p>Aucune règle — suggestions entièrement aléatoires.</p></div>`;
+  } else {
+    _sgcRules.forEach((rule,idx) => { html += _sgcRuleHtml(rule,idx); });
+  }
+  html += `<div class="sgc-save-bar">
+    <button class="sgc-btn-cancel" onclick="_sgcLoad()">Annuler</button>
+    <button class="sgc-btn-save" onclick="_sgcSave()">Enregistrer</button>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function _sgcRuleHtml(rule, idx) {
+  const isOpen = rule._open !== false;
+  const dLabel  = (rule.days||[]).length  === SGC_ALL_DAYS.length  ? 'Tous les jours' : (rule.days||[]).slice().sort((a,b)=>a-b).map(i=>SGC_DAYS[i]).join(', ')||'Aucun jour';
+  const mLabel  = (rule.meals||[]).length === SGC_ALL_MEALS.length ? 'Tous les repas' : (rule.meals||[]).map(id=>SGC_MEALS.find(m=>m.id===id)?.label||id).join(', ')||'Aucun repas';
+
+  const daysHtml  = SGC_DAYS.map((d,i)=>`<button class="sgc-chip${(rule.days||[]).includes(i)?' on':''}" onclick="_sgcToggleDay(${idx},${i})">${d}</button>`).join('');
+  const mealsHtml = SGC_MEALS.map(m=>`<button class="sgc-chip${(rule.meals||[]).includes(m.id)?' on':''}" onclick="_sgcToggleMeal(${idx},'${m.id}')">${m.label}</button>`).join('');
+
+  const condsHtml = (rule.conditions||[]).length
+    ? (rule.conditions||[]).map((c,ci)=>{
+        const info = SGC_COND_TYPES.find(t=>t.id===c.type)||SGC_COND_TYPES[0];
+        const opBtn = ci===0
+          ? `<span style="min-width:46px;display:inline-block;text-align:center;font-size:.78rem;font-weight:800;color:var(--text2)">SI</span>`
+          : `<button class="sgc-op" onclick="_sgcToggleOp(${idx},${ci})">${c.op||'ET'}</button>`;
+        const typeEl = `<select class="sgc-type" onchange="_sgcSetCondType(${idx},${ci},this.value)">${SGC_COND_TYPES.map(t=>`<option value="${t.id}"${c.type===t.id?' selected':''}>${t.label}</option>`).join('')}</select>`;
+        let valEl = '';
+        if(info.hasVal){
+          if(info.valType==='tag'){
+            valEl=`<select class="sgc-val" onchange="_sgcSetCondVal(${idx},${ci},this.value)">${(_sgcTags.length?_sgcTags:['base','dessert']).map(t=>`<option value="${t}"${c.val===t?' selected':''}>${t}</option>`).join('')}</select>`;
+          } else {
+            valEl=`<input type="number" class="sgc-val days" min="1" max="365" value="${c.val||7}" onchange="_sgcSetCondVal(${idx},${ci},this.value)"><span style="font-size:.82rem;color:var(--text2);white-space:nowrap">jours</span>`;
+          }
+        }
+        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel" onclick="_sgcDelCond(${idx},${ci})">✕</button></div>`;
+      }).join('')
+    : `<div style="color:var(--text2);font-size:.85rem;padding:4px 0">Aucune condition.</div>`;
+
+  return `<div class="sgc-card">
+    <div class="sgc-header${isOpen?'':' collapsed'}" onclick="_sgcToggleOpen(${idx})">
+      <button class="sgc-toggle${rule.active?' on':''}" onclick="event.stopPropagation();_sgcToggleActive(${idx})"></button>
+      <div class="sgc-name-wrap" onclick="event.stopPropagation()">
+        <input class="sgc-name" value="${(rule.name||'').replace(/"/g,'&quot;')}" placeholder="Nom de la règle" onchange="_sgcUpdateName(${idx},this.value)">
+        <div class="sgc-subtitle">${dLabel} · ${mLabel}</div>
+      </div>
+      <button class="sgc-del" onclick="event.stopPropagation();_sgcDelRule(${idx})">✕</button>
+      <span class="sgc-chevron${isOpen?' open':''}">▼</span>
+    </div>
+    <div class="sgc-body${isOpen?'':' hidden'}">
+      <div><div class="sgc-label">Jours applicables</div><div class="sgc-chips">${daysHtml}</div></div>
+      <div><div class="sgc-label">Type de repas</div><div class="sgc-chips">${mealsHtml}</div></div>
+      <div>
+        <div class="sgc-label">Conditions</div>
+        <div class="sgc-conds">${condsHtml}</div>
+        <button class="sgc-add-cond" onclick="_sgcAddCond(${idx})">＋ Ajouter une condition</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+window._sgcAddRule = function() {
+  _sgcRules.push({ id:_sgcNextId++, name:'Nouvelle règle', active:true, days:[...SGC_ALL_DAYS], meals:[...SGC_ALL_MEALS], conditions:[], _open:true });
+  _sgcRender();
+  setTimeout(()=>{ const cards=document.querySelectorAll('.sgc-card'); cards[cards.length-1]?.scrollIntoView({behavior:'smooth',block:'start'}); },50);
+};
+function _sgcDelRule(idx) {
+  if(!confirm(`Supprimer "${_sgcRules[idx].name}" ?`)) return;
+  _sgcRules.splice(idx,1); _sgcRender();
+}
+function _sgcToggleActive(idx) { _sgcRules[idx].active=!_sgcRules[idx].active; _sgcRender(); }
+function _sgcToggleOpen(idx)   { _sgcRules[idx]._open=_sgcRules[idx]._open===false; _sgcRender(); }
+function _sgcUpdateName(idx,v) { _sgcRules[idx].name=v; }
+function _sgcToggleDay(idx,d)  { const a=_sgcRules[idx].days||[]; const p=a.indexOf(d); p===-1?a.push(d):a.splice(p,1); _sgcRules[idx].days=a; _sgcRender(); }
+function _sgcToggleMeal(idx,m) { const a=_sgcRules[idx].meals||[]; const p=a.indexOf(m); p===-1?a.push(m):a.splice(p,1); _sgcRules[idx].meals=a; _sgcRender(); }
+function _sgcAddCond(idx)      { (_sgcRules[idx].conditions=_sgcRules[idx].conditions||[]).push({op:'ET',type:'tag_neq',val:_sgcTags[0]||'base'}); _sgcRender(); }
+function _sgcDelCond(idx,ci)   { _sgcRules[idx].conditions.splice(ci,1); _sgcRender(); }
+function _sgcToggleOp(idx,ci)  { const c=_sgcRules[idx].conditions[ci]; c.op=c.op==='ET'?'OU':'ET'; _sgcRender(); }
+function _sgcSetCondType(idx,ci,type){ const c=_sgcRules[idx].conditions[ci]; c.type=type; const info=SGC_COND_TYPES.find(t=>t.id===type); c.val=info?.valType==='days'?'7':(_sgcTags[0]||'base'); _sgcRender(); }
+function _sgcSetCondVal(idx,ci,v)    { _sgcRules[idx].conditions[ci].val=v; }
+
+async function _sgcSave() {
+  try {
+    await fetch('/api/suggestion-rules',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(_sgcRules)});
+    showToast('Règles enregistrées ✓','ok');
+  } catch(_) { showToast('Erreur lors de l\'enregistrement','err'); }
+}
+})();
 
 </script>
 </body>
