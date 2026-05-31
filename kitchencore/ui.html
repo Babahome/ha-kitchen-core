@@ -4434,7 +4434,7 @@ function renderIngrs() {
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
              ${ingThumb}
              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">
+               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_evIngs.find(ig=>ig.nom.toLowerCase()===this.value.toLowerCase().trim());_eIngr[${x}].ingredient_id=_m?_m.id:null;}).call(this)">
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
              </div>`
         }
@@ -5637,11 +5637,8 @@ async function _ingLoadData() {
       if (uiRes.ok) usedInMap = await uiRes.json();
     } catch(_) {}
     _ingAll.forEach(ing => {
-      const normName = _ingNormalize(ing.name);
-      const ids = Object.entries(usedInMap)
-        .filter(([nom]) => _ingNormalize(nom) === normName)
-        .flatMap(([, recipeIds]) => recipeIds);
-      ing.usedIn = [...new Set(ids)];
+      const recipeIds = usedInMap[ing._dbId] || [];
+      ing.usedIn = [...new Set(recipeIds)];
     });
   } catch(e) {
     _ingToast('Erreur chargement ingrédients');

@@ -174,7 +174,8 @@ db.exec(`
   ['ingredients', 'created_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recettes',    'source',        "TEXT DEFAULT ''"],
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
-  ['recette_ingredients', 'note',  "TEXT DEFAULT ''"],
+  ['recette_ingredients', 'note',          "TEXT DEFAULT ''"],
+  ['recette_ingredients', 'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['ingredients',    'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['ingredients',    'saison',        "TEXT DEFAULT '[]'"],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
@@ -183,6 +184,19 @@ db.exec(`
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
+
+// Migration : peupler recette_ingredients.ingredient_id depuis les noms existants
+try {
+  db.exec(`
+    UPDATE recette_ingredients
+    SET ingredient_id = (
+      SELECT i.id FROM ingredients i
+      WHERE LOWER(TRIM(i.nom)) = LOWER(TRIM(recette_ingredients.nom))
+      LIMIT 1
+    )
+    WHERE ingredient_id IS NULL AND nom IS NOT NULL AND nom != '' AND type != 'sous_recette'
+  `);
+} catch(_) {}
 
 // Détecte si l'ancienne colonne aliment_id existe (DB créée avant v0.9)
 // On ne copie PAS aliment_id → ingredient_id car les deux tables sont différentes (aliments ≠ ingredients)
@@ -333,12 +347,14 @@ app.post('/api/ingredients/merge', (req, res) => {
     const kept = db.prepare('SELECT nom FROM ingredients WHERE id=?').get(keep_id);
     db.prepare('UPDATE ingredients SET nom=? WHERE id=?').run(name, keep_id);
     if (kept && kept.nom !== name) {
-      db.prepare('UPDATE recette_ingredients SET nom=? WHERE nom=?').run(name, kept.nom);
+      db.prepare('UPDATE recette_ingredients SET nom=?, ingredient_id=? WHERE nom=?').run(name, keep_id, kept.nom);
     }
+    // Aussi mettre à jour les lignes déjà liées à keep_id (au cas où le nom change)
+    db.prepare('UPDATE recette_ingredients SET nom=? WHERE ingredient_id=?').run(name, keep_id);
     for (const id of merge_ids) {
       const ing = db.prepare('SELECT nom FROM ingredients WHERE id=?').get(id);
       if (!ing) continue;
-      db.prepare('UPDATE recette_ingredients SET nom=? WHERE nom=?').run(name, ing.nom);
+      db.prepare('UPDATE recette_ingredients SET nom=?, ingredient_id=? WHERE nom=? OR ingredient_id=?').run(name, keep_id, ing.nom, id);
       try { db.prepare('UPDATE produits SET ingredient_id=? WHERE ingredient_id=?').run(keep_id, id); } catch(_) {}
       db.prepare('DELETE FROM ingredients WHERE id=?').run(id);
     }
@@ -548,9 +564,11 @@ function getRecette(id) {
   r.tags        = JSON.parse(r.tags || '[]');
   r.favori      = !!r.favori;
   r.ingredients = db.prepare(`
-    SELECT ri.*, i.icone as ingredient_icone
+    SELECT ri.*, COALESCE(i1.icone, i2.icone) as ingredient_icone,
+           COALESCE(ri.ingredient_id, i2.id) as ingredient_id
     FROM recette_ingredients ri
-    LEFT JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
+    LEFT JOIN ingredients i1 ON i1.id = ri.ingredient_id
+    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(id);
   r.etapes      = db.prepare('SELECT * FROM recette_etapes WHERE recette_id=? ORDER BY position').all(id);
@@ -561,10 +579,13 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
   depth = depth || 0;
   if (depth > 3) return [];
   const ingredients = db.prepare(`
-    SELECT ri.*, i.icone as ingredient_icone, r.nom as rayon_nom
+    SELECT ri.*, COALESCE(i1.icone, i2.icone) as ingredient_icone,
+           COALESCE(r1.nom, r2.nom) as rayon_nom
     FROM recette_ingredients ri
-    LEFT JOIN ingredients i ON LOWER(TRIM(i.nom)) = LOWER(TRIM(ri.nom))
-    LEFT JOIN rayons r ON r.id = i.rayon_id
+    LEFT JOIN ingredients i1 ON i1.id = ri.ingredient_id
+    LEFT JOIN rayons r1 ON r1.id = i1.rayon_id
+    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
+    LEFT JOIN rayons r2 ON r2.id = i2.rayon_id
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(recetteId);
   const result = [];
@@ -588,14 +609,19 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
 
 function saveIngredients(recetteId, ingredients) {
   db.prepare('DELETE FROM recette_ingredients WHERE recette_id=?').run(recetteId);
-  const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id,note) VALUES(?,?,?,?,?,?,?,?)');
+  const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id,note,ingredient_id) VALUES(?,?,?,?,?,?,?,?,?)');
   const autoAdd = db.prepare('INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)');
+  const findIng = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1');
   (ingredients || []).forEach((ing, i) => {
-    // Auto-ajout transparent dans la table ingredients (sauf sous-recettes)
+    let ingredient_id = ing.ingredient_id ? parseInt(ing.ingredient_id) : null;
     if (ing.type !== 'sous_recette' && ing.nom?.trim()) {
       autoAdd.run(ing.nom.trim(), 'Autre', 1, '🥫');
+      if (!ingredient_id) {
+        const found = findIng.get(ing.nom.trim());
+        if (found) ingredient_id = found.id;
+      }
     }
-    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null, ing.note||'');
+    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null, ing.note||'', ingredient_id||null);
   });
 }
 
@@ -743,13 +769,18 @@ app.get('/api/recettes', (_req, res) => {
 });
 
 app.get('/api/ingredients/usedIn', (_req, res) => {
-  const rows = db.prepare(
-    "SELECT nom, recette_id FROM recette_ingredients WHERE nom IS NOT NULL AND nom != '' AND type != 'sous_recette'"
-  ).all();
+  // Résolution fiable : ingredient_id en priorité, fallback sur le nom
+  const rows = db.prepare(`
+    SELECT COALESCE(ri.ingredient_id, i2.id) as ing_id, ri.recette_id
+    FROM recette_ingredients ri
+    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
+    WHERE ri.nom IS NOT NULL AND ri.nom != '' AND ri.type != 'sous_recette'
+      AND COALESCE(ri.ingredient_id, i2.id) IS NOT NULL
+  `).all();
   const map = {};
-  rows.forEach(({ nom, recette_id }) => {
-    if (!map[nom]) map[nom] = [];
-    if (!map[nom].includes(recette_id)) map[nom].push(recette_id);
+  rows.forEach(({ ing_id, recette_id }) => {
+    if (!map[ing_id]) map[ing_id] = [];
+    if (!map[ing_id].includes(recette_id)) map[ing_id].push(recette_id);
   });
   res.json(map);
 });
