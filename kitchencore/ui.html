@@ -3908,6 +3908,7 @@ if(localStorage.getItem('kc_rv_v') !== '2') {
   localStorage.setItem('kc_rv_v','2');
 }
 let _rv = [];
+let _evIngs = [];
 let _currentId = null;
 let _ctxId     = null;
 let _editId    = null;
@@ -4184,6 +4185,9 @@ async function openEdit(id) {
       r = { ...r, ...full };
     } catch(e) {}
   }
+  if (!_evIngs.length) {
+    try { _evIngs = await fetch('/api/ingredients').then(res=>res.json()); } catch(e) {}
+  }
   _eIngr    = r ? JSON.parse(JSON.stringify(r.ingredients||[])) : [{nom:'',qty:'',unite:'',type:'ingredient'}];
   _eSteps   = r ? JSON.parse(JSON.stringify(r.etapes||[]))      : [{titre:'',texte:'',timer:0}];
   _eNote    = r?.note||0;
@@ -4418,7 +4422,7 @@ function renderIngrs() {
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
              ${ingThumb}
              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-               <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">
+               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value">
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
              </div>`
         }
@@ -4426,7 +4430,8 @@ function renderIngrs() {
       </div>`;
     }).join('') +
     `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>` +
-    `<datalist id="ev3-recettes-dl">${_rv.map(r=>`<option value="${ev3Esc(r.nom)}">`).join('')}</datalist>`;
+    `<datalist id="ev3-recettes-dl">${_rv.map(r=>`<option value="${ev3Esc(r.nom)}">`).join('')}</datalist>` +
+    `<datalist id="ev3-ings-dl">${_evIngs.map(i=>`<option value="${ev3Esc(i.nom)}">`).join('')}</datalist>`;
   ev3BindDrag('e-ingrs', _eIngr, renderIngrs, '.ev3-drag-handle');
 }
 function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',note:'',type:'ingredient'}); renderIngrs(); }
