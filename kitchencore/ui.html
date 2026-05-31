@@ -3560,6 +3560,7 @@ async function saveNewProduit() {
     closeNewProduit();
     closeScanner();
   } catch(e) {
+    console.error('[saveNewProduit]', e.message);
     showToast('Erreur : ' + e.message, 'error');
   }
 }

@@ -426,6 +426,7 @@ app.post('/api/produits', (req, res) => {
     db.prepare('INSERT INTO stocks(produit_id,zone) VALUES(?,?)').run(i.lastInsertRowid, zone);
     res.status(201).json(db.prepare('SELECT * FROM produits WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
+    console.error('[POST /api/produits]', e.message);
     res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Code-barres déjà utilisé' : e.message });
   }
 });
