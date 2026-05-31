@@ -3232,7 +3232,8 @@ async function openScanner() {
     const first = await navigator.mediaDevices.getUserMedia({ video: true });
     first.getTracks().forEach(t => t.stop());
 
-    _videoDevices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const all = await navigator.mediaDevices.enumerateDevices();
+    _videoDevices = all.filter(d => d.kind === 'videoinput');
 
     // Sur mobile : mettre la caméra arrière en premier
     const envIdx = _videoDevices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
