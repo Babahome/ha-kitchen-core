@@ -1941,6 +1941,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 /* ══ /MARCHANDS ═════════════════════════════════════════════════════════════ */
 
 </style>
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 </head>
 <body>
 
@@ -3212,113 +3213,65 @@ function closeRecetteMenu() { closeCtx && closeCtx(); }
 // ════════════════════════════════════════════════════════════════════════════
 // SCANNER CODE-BARRES
 // ════════════════════════════════════════════════════════════════════════════
-let _stream = null;
-let _detector = null;
-let _scanLoop = null;
+let _zxing = null;       // instance ZXing BrowserMultiFormatReader
 let _torchOn = false;
-let _lastCode = null;
-let _facingMode = 'environment';
 let _videoDevices = [];
 let _videoDeviceIndex = 0;
 
-// Produits fictifs pour la démo (remplacés par /api/produits/barcode/:code en prod)
-const DEMO_PRODUCTS = {
-  '3451030003445': { nom: 'Lait Lactel demi-écrémé 1L', zone: 'Frigo', contenance: '1L' },
-  '3017620422003': { nom: 'Nutella 400g', zone: 'Placard cuisine', contenance: '400g' },
-  '3228021180014': { nom: 'Évian 1,5L x6', zone: 'Étagère vrac', contenance: '1,5L' },
-  '3175680011480': { nom: 'Jambon supérieur x4 tranches', zone: 'Frigo', contenance: '160g' },
-  '3560070976478': { nom: 'Pain de mie complet Jacquet', zone: 'Placard cuisine', contenance: '550g' },
-};
-
 async function openScanner() {
-  const modal = document.getElementById('scanner-modal');
-  modal.classList.add('open');
+  document.getElementById('scanner-modal').classList.add('open');
   resetScan();
 
-  if ('BarcodeDetector' in window) {
-    _detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'qr_code'] });
+  if (!window.ZXing) {
+    document.querySelector('.scanner-hint').textContent = '⚠️ Librairie scanner non chargée — saisir le code manuellement';
+    return;
   }
 
   try {
-    // Premier stream pour déclencher la permission, puis énumérer
+    // Déclencher la permission caméra, puis lister les appareils
     const first = await navigator.mediaDevices.getUserMedia({ video: true });
     first.getTracks().forEach(t => t.stop());
 
-    const all = await navigator.mediaDevices.enumerateDevices();
-    _videoDevices = all.filter(d => d.kind === 'videoinput');
+    _videoDevices = await ZXing.BrowserCodeReader.listVideoInputDevices();
 
     // Sur mobile : mettre la caméra arrière en premier
-    const envIdx = _videoDevices.findIndex(d => /back|rear|environment/i.test(d.label));
+    const envIdx = _videoDevices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
     if (envIdx > 0) { const e = _videoDevices.splice(envIdx, 1); _videoDevices.unshift(e[0]); }
     _videoDeviceIndex = 0;
 
-    // Masquer le bouton flip s'il n'y a qu'une caméra
     document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
 
-    await _startStream();
-  } catch (err) {
+    await _startZxing();
+  } catch(err) {
     document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
-    console.warn('Scanner camera error:', err.message);
+    console.warn('Scanner error:', err.message);
   }
 }
 
-async function _startStream() {
-  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
-  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+async function _startZxing() {
+  // Arrêter l'instance précédente proprement
+  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 
-  const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId;
-  const constraints = deviceId
-    ? { video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } }
-    : { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } };
-
-  _stream = await navigator.mediaDevices.getUserMedia(constraints);
+  _zxing = new ZXing.BrowserMultiFormatReader();
+  const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId || undefined;
   const video = document.getElementById('scanner-video');
-  video.srcObject = _stream;
-  await video.play();
 
-  if (_detector) startDetectionLoop();
-  else document.querySelector('.scanner-hint').textContent = 'Caméra active — saisir le code manuellement ci-dessous';
-}
-
-function startDetectionLoop() {
-  const video = document.getElementById('scanner-video');
-  const detect = async () => {
-    if (!_detector || video.readyState < 2) {
-      _scanLoop = requestAnimationFrame(detect);
-      return;
-    }
-    try {
-      const codes = await _detector.detect(video);
-      if (codes.length > 0) {
-        const code = codes[0].rawValue;
-        if (code !== _lastCode) {
-          _lastCode = code;
-          onCodeDetected(code);
-          return;
-        }
-      }
-    } catch(e) { console.warn('BarcodeDetector:', e.message); }
-    _scanLoop = requestAnimationFrame(detect);
-  };
-  _scanLoop = requestAnimationFrame(detect);
+  // decodeFromVideoDevice gère le stream ET la boucle de détection
+  _zxing.decodeFromVideoDevice(deviceId, video, (result, err) => {
+    if (result) onCodeDetected(result.getText());
+    // err est normal quand aucun code n'est dans le cadre — on l'ignore
+  });
 }
 
 function onCodeDetected(code) {
-  // Vibration feedback
   if (navigator.vibrate) navigator.vibrate(80);
+  // Arrêter la détection (on attend l'action utilisateur)
+  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 
-  // Chercher dans les démos ou afficher le code brut
-  const product = DEMO_PRODUCTS[code];
-  document.getElementById('result-name').textContent = product ? product.nom : 'Produit inconnu';
-  document.getElementById('result-sub').textContent  = product
-    ? `Zone : ${product.zone} · ${product.contenance}`
-    : `Code : ${code} — à associer dans le catalogue`;
-
+  document.getElementById('result-name').textContent = `Code : ${code}`;
+  document.getElementById('result-sub').textContent  = 'Recherche dans le catalogue…';
   document.getElementById('manual-barcode').value = code;
   document.getElementById('scanner-result').classList.add('show');
-
-  // Arrêter la détection
-  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
 }
 
 function confirmManual() {
@@ -3328,29 +3281,29 @@ function confirmManual() {
 }
 
 function resetScan() {
-  _lastCode = null;
   document.getElementById('scanner-result').classList.remove('show');
   document.getElementById('manual-barcode').value = '';
   document.getElementById('result-name').textContent = '—';
   document.getElementById('result-sub').textContent = '—';
-  // Relancer la détection
-  if (_detector && _stream) startDetectionLoop();
+  // Relancer la détection si scanner ouvert
+  if (document.getElementById('scanner-modal').classList.contains('open') && _videoDevices.length) {
+    _startZxing();
+  }
 }
 
 function addToStock() {
-  const name = document.getElementById('result-name').textContent;
-  showToast('✓ ' + name + ' ajouté au stock', 'ok');
+  const code = document.getElementById('manual-barcode').value;
+  showToast('✓ Code détecté : ' + code, 'ok');
   closeScanner();
 }
 
 function closeScanner() {
-  // Arrêter caméra
-  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
-  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
-  resetScan();
+  document.getElementById('scanner-result').classList.remove('show');
+  document.getElementById('manual-barcode').value = '';
 }
 
 async function flipCamera() {
@@ -3358,17 +3311,19 @@ async function flipCamera() {
   _videoDeviceIndex = (_videoDeviceIndex + 1) % _videoDevices.length;
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
-  try {
-    await _startStream();
-  } catch(err) {
+  try { await _startZxing(); }
+  catch(err) {
     showToast('Caméra non disponible', 'warn');
     _videoDeviceIndex = (_videoDeviceIndex - 1 + _videoDevices.length) % _videoDevices.length;
   }
 }
 
 async function toggleTorch() {
-  if (!_stream) return;
-  const track = _stream.getVideoTracks()[0];
+  // La torche passe par le stream vidéo actif dans la balise <video>
+  const video = document.getElementById('scanner-video');
+  const stream = video.srcObject;
+  if (!stream) return;
+  const track = stream.getVideoTracks()[0];
   if (!track || !track.getCapabilities().torch) {
     showToast('Torche non supportée sur cet appareil', 'warn'); return;
   }
