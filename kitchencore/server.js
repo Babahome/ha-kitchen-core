@@ -35,7 +35,7 @@ db.exec(`
   );
   CREATE TABLE IF NOT EXISTS produits (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id),
+    ingredient_id INTEGER REFERENCES ingredients(id),
     nom           TEXT NOT NULL,
     marque        TEXT,
     code_barres   TEXT UNIQUE,
@@ -390,7 +390,7 @@ app.get('/api/produits', (_req, res) => {
     SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte,
            s.packs_pleins, s.unites_ouvert, s.zone,
            ((COALESCE(s.packs_pleins,0)*p.contenance)+COALESCE(s.unites_ouvert,0)) AS total_unites
-    FROM produits p JOIN ingredients a ON a.id=${jc}
+    FROM produits p LEFT JOIN ingredients a ON a.id=${jc}
     LEFT JOIN stocks s ON s.produit_id=p.id
     ORDER BY s.zone,a.nom,p.nom
   `).all());
@@ -401,7 +401,7 @@ app.get('/api/produits/barcode/:code', (req, res) => {
     const joinCol = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
     const row = db.prepare(`
       SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
-      FROM produits p JOIN ingredients a ON a.id=${joinCol} LEFT JOIN stocks s ON s.produit_id=p.id
+      FROM produits p LEFT JOIN ingredients a ON a.id=${joinCol} LEFT JOIN stocks s ON s.produit_id=p.id
       WHERE p.code_barres=?
     `).get(req.params.code);
     if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
@@ -413,12 +413,12 @@ app.get('/api/produits/barcode/:code', (req, res) => {
 });
 
 app.post('/api/produits', (req, res) => {
-  const { ingredient_id, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo' } = req.body;
-  if (!ingredient_id || !nom) return res.status(400).json({ error: 'ingredient_id et nom requis' });
+  const { ingredient_id=null, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo' } = req.body;
+  if (!nom) return res.status(400).json({ error: 'nom requis' });
   try {
     let i;
     if (HAS_ALIMENT_ID) {
-      // Ancienne DB : aliment_id a une FK sur aliments(id) — on désactive les FK le temps de l'insert
+      // Ancienne DB : aliment_id NOT NULL avec FK sur aliments — on désactive les FK le temps de l'insert
       db.pragma('foreign_keys = OFF');
       try {
         i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
@@ -456,7 +456,7 @@ app.get('/api/stocks', (_req, res) => {
     SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
            a.nom AS ingredient_nom, a.icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
-    FROM stocks s JOIN produits p ON p.id=s.produit_id JOIN ingredients a ON a.id=${jc}
+    FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=${jc}
     ORDER BY s.zone,a.nom
   `).all());
 });
@@ -521,7 +521,7 @@ app.get('/api/mouvements', (_req, res) => {
   const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT m.*, p.nom AS produit_nom, a.icone
-    FROM mouvements m JOIN produits p ON p.id=m.produit_id JOIN ingredients a ON a.id=${jc}
+    FROM mouvements m JOIN produits p ON p.id=m.produit_id LEFT JOIN ingredients a ON a.id=${jc}
     ORDER BY m.created_at DESC LIMIT 100
   `).all());
 });

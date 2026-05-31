@@ -3519,28 +3519,8 @@ async function saveNewProduit() {
 
   const ingId = document.getElementById('pnp-ing-id').value;
 
-  // Si pas d'ingrédient sélectionné → on crée un ingrédient générique avec le même nom
-  let ingredient_id = ingId ? parseInt(ingId) : null;
-  if (!ingredient_id) {
-    const ri = await fetch('/api/ingredients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nom })
-    });
-    if (ri.ok) {
-      ingredient_id = (await ri.json()).id;
-    } else if (ri.status === 409) {
-      // Ingrédient déjà existant (essai précédent) → on le récupère par nom
-      const all = await fetch('/api/ingredients');
-      const list = all.ok ? await all.json() : [];
-      const found = list.find(i => i.nom.toLowerCase() === nom.toLowerCase());
-      if (found) { ingredient_id = found.id; }
-      else { showToast('Erreur : ingrédient introuvable', 'error'); return; }
-    } else {
-      showToast('Erreur création ingrédient', 'error'); return;
-    }
-    _pnpIngredients = []; // reset cache
-  }
+  // ingredient_id est optionnel — un produit n'est pas forcément lié à un ingrédient
+  const ingredient_id = ingId ? parseInt(ingId) : null;
 
   const body = {
     ingredient_id,
