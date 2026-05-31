@@ -192,6 +192,9 @@ if (hasAlimentId) {
 }
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
+// Détecte si l'ancienne colonne aliment_id existe encore (DB créée avant renommage)
+const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
+
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='marchands_rayons'").get()) {
   db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
   db.exec(`INSERT OR IGNORE INTO marchand_rayons(marchand_id,rayon_id,position)
@@ -382,12 +385,12 @@ app.post('/api/ingredients/auto-add', (req, res) => {
 // PRODUITS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/produits', (_req, res) => {
-  // FIX #1 — aliments → ingredients, aliment_id → ingredient_id
+  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte,
            s.packs_pleins, s.unites_ouvert, s.zone,
            ((COALESCE(s.packs_pleins,0)*p.contenance)+COALESCE(s.unites_ouvert,0)) AS total_unites
-    FROM produits p JOIN ingredients a ON a.id=p.ingredient_id
+    FROM produits p JOIN ingredients a ON a.id=${jc}
     LEFT JOIN stocks s ON s.produit_id=p.id
     ORDER BY s.zone,a.nom,p.nom
   `).all());
@@ -395,9 +398,10 @@ app.get('/api/produits', (_req, res) => {
 
 app.get('/api/produits/barcode/:code', (req, res) => {
   try {
+    const joinCol = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
     const row = db.prepare(`
       SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
-      FROM produits p JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
+      FROM produits p JOIN ingredients a ON a.id=${joinCol} LEFT JOIN stocks s ON s.produit_id=p.id
       WHERE p.code_barres=?
     `).get(req.params.code);
     if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
@@ -412,7 +416,13 @@ app.post('/api/produits', (req, res) => {
   const { ingredient_id, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo' } = req.body;
   if (!ingredient_id || !nom) return res.status(400).json({ error: 'ingredient_id et nom requis' });
   try {
-    const i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+    let i;
+    if (HAS_ALIMENT_ID) {
+      // Ancienne DB : remplir aussi aliment_id pour respecter la contrainte NOT NULL
+      i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+    } else {
+      i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+    }
     db.prepare('INSERT INTO stocks(produit_id,zone) VALUES(?,?)').run(i.lastInsertRowid, zone);
     res.status(201).json(db.prepare('SELECT * FROM produits WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
@@ -435,12 +445,12 @@ app.patch('/api/produits/:id', (req, res) => {
 // STOCKS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
-  // FIX #3 — aliments → ingredients, aliment_id → ingredient_id
+  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
            a.nom AS ingredient_nom, a.icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
-    FROM stocks s JOIN produits p ON p.id=s.produit_id JOIN ingredients a ON a.id=p.ingredient_id
+    FROM stocks s JOIN produits p ON p.id=s.produit_id JOIN ingredients a ON a.id=${jc}
     ORDER BY s.zone,a.nom
   `).all());
 });
@@ -502,10 +512,10 @@ app.post('/api/iot/scan', (req, res) => {
 // MOUVEMENTS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/mouvements', (_req, res) => {
-  // FIX #4 — aliments → ingredients, aliment_id → ingredient_id
+  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT m.*, p.nom AS produit_nom, a.icone
-    FROM mouvements m JOIN produits p ON p.id=m.produit_id JOIN ingredients a ON a.id=p.ingredient_id
+    FROM mouvements m JOIN produits p ON p.id=m.produit_id JOIN ingredients a ON a.id=${jc}
     ORDER BY m.created_at DESC LIMIT 100
   `).all());
 });
