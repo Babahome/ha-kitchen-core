@@ -3166,93 +3166,130 @@ function closeRecetteMenu() { closeCtx && closeCtx(); }
 // ════════════════════════════════════════════════════════════════════════════
 // SCANNER CODE-BARRES
 // ════════════════════════════════════════════════════════════════════════════
-let _zxing = null;       // instance ZXing BrowserMultiFormatReader
+let _zxing = null;
+let _nativeDetector = null; // BarcodeDetector natif (si dispo)
+let _rafId = null;          // boucle requestAnimationFrame pour natif
+let _nativeStream = null;   // MediaStream géré manuellement pour natif
 let _torchOn = false;
 let _videoDevices = [];
 let _videoDeviceIndex = 0;
-let _scanDone = false;   // empêche les doubles détections
-let _lastCode = null;    // dernier code vu (confirmation)
-let _confirmCount = 0;   // nb de lectures consécutives du même code
-const _CONFIRM_NEEDED = 2; // lectures identiques requises avant validation
+let _scanDone = false;
+let _lastCode = null;       // pour double confirmation ZXing
+let _confirmCount = 0;
+const _CONFIRM_NEEDED = 2;  // lectures ZXing requises (fallback uniquement)
+
+function _stopScanner() {
+  if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+  _nativeDetector = null;
+  if (_nativeStream) { _nativeStream.getTracks().forEach(t => t.stop()); _nativeStream = null; }
+  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
+}
 
 async function openScanner() {
   document.getElementById('scanner-modal').classList.add('open');
   resetScan();
 
-  if (!window.ZXing) {
-    document.querySelector('.scanner-hint').textContent = '⚠️ Librairie scanner non chargée — saisir le code manuellement';
-    return;
-  }
-
   try {
-    // Déclencher la permission caméra, puis lister les appareils
     const first = await navigator.mediaDevices.getUserMedia({ video: true });
     first.getTracks().forEach(t => t.stop());
 
     const all = await navigator.mediaDevices.enumerateDevices();
     _videoDevices = all.filter(d => d.kind === 'videoinput');
 
-    // Sur mobile : mettre la caméra arrière en premier
     const envIdx = _videoDevices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
     if (envIdx > 0) { const e = _videoDevices.splice(envIdx, 1); _videoDevices.unshift(e[0]); }
     _videoDeviceIndex = 0;
 
     document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
 
-    await _startZxing();
+    await _startScanner();
   } catch(err) {
     document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
     console.warn('Scanner error:', err.message);
   }
 }
 
-async function _startZxing() {
-  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
+async function _startScanner() {
+  _stopScanner();
+  _scanDone = false;
+  _lastCode = null;
+  _confirmCount = 0;
 
-  // Restreindre aux formats EAN/UPC si disponible dans cette version de ZXing
+  const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId;
+  const video = document.getElementById('scanner-video');
+
+  // ── Priorité 1 : BarcodeDetector natif (Android Chrome, HTTPS requis) ──
+  if ('BarcodeDetector' in window) {
+    try {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+      const formats = wanted.filter(f => supported.includes(f));
+
+      _nativeDetector = new BarcodeDetector({ formats: formats.length ? formats : supported });
+
+      const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } };
+      _nativeStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = _nativeStream;
+      await video.play();
+
+      document.querySelector('.scanner-hint').textContent = 'Placez le code-barres dans le cadre';
+
+      const loop = async () => {
+        if (_scanDone || !_nativeDetector) return;
+        if (video.readyState >= 2) {
+          try {
+            const results = await _nativeDetector.detect(video);
+            if (results.length && !_scanDone) {
+              _scanDone = true;
+              onCodeDetected(results[0].rawValue);
+              return;
+            }
+          } catch(_) {}
+        }
+        _rafId = requestAnimationFrame(loop);
+      };
+      _rafId = requestAnimationFrame(loop);
+      return; // natif actif, on s'arrête là
+    } catch(e) {
+      console.warn('BarcodeDetector indisponible, fallback ZXing:', e.message);
+      _stopScanner();
+    }
+  }
+
+  // ── Fallback : ZXing avec double confirmation ──
+  if (!window.ZXing) {
+    document.querySelector('.scanner-hint').textContent = '⚠️ Scanner non disponible — saisir le code manuellement';
+    return;
+  }
+
   let hints;
   try {
     if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
       hints = new Map();
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
       ]);
     }
-  } catch(_) { hints = undefined; }
+  } catch(_) {}
 
   _zxing = new ZXing.BrowserMultiFormatReader(hints);
-  const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId || undefined;
-  const video = document.getElementById('scanner-video');
   const frame = document.querySelector('.scanner-frame');
 
-  _scanDone = false;
-  _lastCode = null;
-  _confirmCount = 0;
-
-  _zxing.decodeFromVideoDevice(deviceId, video, (result, err) => {
-    if (_scanDone) return;
-    if (!result) { return; } // err normale quand pas de code dans le cadre
-
+  _zxing.decodeFromVideoDevice(deviceId, video, (result) => {
+    if (_scanDone || !result) return;
     const code = result.getText();
     if (code === _lastCode) {
       _confirmCount++;
-      if (_confirmCount === 1) {
-        // Feedback visuel : cadre vire au vert pour indiquer "presque"
-        frame && frame.classList.add('confirming');
-      }
+      if (_confirmCount === 1) frame?.classList.add('confirming');
       if (_confirmCount >= _CONFIRM_NEEDED) {
         _scanDone = true;
-        frame && frame.classList.remove('confirming');
+        frame?.classList.remove('confirming');
         onCodeDetected(code);
       }
     } else {
-      // Nouveau code différent — réinitialiser la confirmation
-      _lastCode = code;
-      _confirmCount = 1;
-      frame && frame.classList.remove('confirming');
+      _lastCode = code; _confirmCount = 1;
+      frame?.classList.remove('confirming');
     }
   });
 }
@@ -3261,7 +3298,7 @@ let _scanProduct = null; // produit trouvé par l'API, ou null
 
 async function onCodeDetected(code) {
   if (navigator.vibrate) navigator.vibrate(80);
-  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
+  _stopScanner();
 
   document.getElementById('manual-barcode').value = code;
   document.getElementById('result-title').textContent = 'Recherche…';
@@ -3317,7 +3354,7 @@ function resetScan() {
   document.getElementById('result-name').textContent = '—';
   document.getElementById('result-sub').textContent = '—';
   if (document.getElementById('scanner-modal').classList.contains('open') && _videoDevices.length) {
-    _startZxing();
+    _startScanner();
   }
 }
 
@@ -3340,7 +3377,7 @@ async function addToStock() {
 }
 
 function closeScanner() {
-  if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
+  _stopScanner();
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
@@ -3353,7 +3390,7 @@ async function flipCamera() {
   _videoDeviceIndex = (_videoDeviceIndex + 1) % _videoDevices.length;
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
-  try { await _startZxing(); }
+  try { await _startScanner(); }
   catch(err) {
     showToast('Caméra non disponible', 'warn');
     _videoDeviceIndex = (_videoDeviceIndex - 1 + _videoDevices.length) % _videoDevices.length;
