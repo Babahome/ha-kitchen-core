@@ -3209,14 +3209,19 @@ async function openScanner() {
 async function _startZxing() {
   if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 
-  // Restreindre aux formats produits alimentaires uniquement (EAN/UPC)
-  const hints = new Map();
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-    ZXing.BarcodeFormat.EAN_13,
-    ZXing.BarcodeFormat.EAN_8,
-    ZXing.BarcodeFormat.UPC_A,
-    ZXing.BarcodeFormat.UPC_E,
-  ]);
+  // Restreindre aux formats EAN/UPC si disponible dans cette version de ZXing
+  let hints;
+  try {
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E,
+      ]);
+    }
+  } catch(_) { hints = undefined; }
 
   _zxing = new ZXing.BrowserMultiFormatReader(hints);
   const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId || undefined;
