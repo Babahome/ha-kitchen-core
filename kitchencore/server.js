@@ -188,7 +188,13 @@ db.exec(`
 try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
 const hasAlimentId = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 if (hasAlimentId) {
-  db.exec(`UPDATE produits SET ingredient_id = aliment_id WHERE ingredient_id IS NULL AND aliment_id IS NOT NULL`);
+  // Les IDs aliment_id référencent aliments(id) pas ingredients(id) — désactiver FK pour la copie
+  db.pragma('foreign_keys = OFF');
+  try {
+    db.exec(`UPDATE produits SET ingredient_id = aliment_id WHERE ingredient_id IS NULL AND aliment_id IS NOT NULL`);
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
 }
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
