@@ -1940,6 +1940,45 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .mch-btn-danger { flex: 1; padding: 11px; border-radius: 10px; border: 2px solid var(--red); background: white; color: var(--red); font-family: var(--font); font-size: .9rem; font-weight: 800; cursor: pointer; }
 /* ══ /MARCHANDS ═════════════════════════════════════════════════════════════ */
 
+/* ══ PANEL CRÉATION PRODUIT ═════════════════════════════════════════════════ */
+#panel-new-produit {
+  position: absolute; inset: 0; background: white;
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .3s ease;
+  z-index: 200;
+}
+#panel-new-produit.open { transform: translateX(0); }
+.pnp-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; height: 56px; background: var(--orange); color: white; flex-shrink: 0;
+}
+.pnp-back { font-size: 1.3rem; cursor: pointer; padding: 6px; }
+.pnp-title { flex: 1; font-size: 1rem; font-weight: 800; }
+.pnp-save { font-size: .9rem; font-weight: 800; padding: 6px 14px;
+  background: rgba(255,255,255,.2); border-radius: 20px; cursor: pointer; }
+.pnp-body { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+.pnp-field { display: flex; flex-direction: column; gap: 5px; }
+.pnp-label { font-size: .78rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .05em; }
+.pnp-input {
+  border: 1.5px solid #e0e0e0; border-radius: 10px;
+  padding: 11px 13px; font-family: var(--font); font-size: .95rem;
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.pnp-input:focus { border-color: var(--orange); }
+.pnp-input[readonly] { background: #f5f5f5; color: #999; }
+.pnp-zone-row { display: flex; gap: 8px; }
+.pnp-zone-btn {
+  flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid #e0e0e0;
+  background: white; font-family: var(--font); font-size: .82rem; font-weight: 700;
+  cursor: pointer; text-align: center;
+}
+.pnp-zone-btn.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+.pnp-suggest { background: white; border: 1.5px solid #e0e0e0; border-top: none;
+  border-radius: 0 0 10px 10px; max-height: 160px; overflow-y: auto; }
+.pnp-suggest-item { padding: 10px 13px; font-size: .9rem; cursor: pointer; }
+.pnp-suggest-item:hover, .pnp-suggest-item:active { background: var(--orange-l); }
+/* ══ /PANEL CRÉATION PRODUIT ════════════════════════════════════════════════ */
+
 </style>
 <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 </head>
@@ -3037,6 +3076,44 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   </div>
   <!-- ══ /MODAL EDIT QTÉ/UNITÉ COURSES ════════════════════════════════════════ -->
 
+  <!-- ══ PANEL CRÉATION PRODUIT ════════════════════════════════════════════ -->
+  <div id="panel-new-produit">
+    <div class="pnp-header">
+      <div class="pnp-back" onclick="closeNewProduit()">←</div>
+      <div class="pnp-title">Nouveau produit</div>
+      <div class="pnp-save" onclick="saveNewProduit()">Enregistrer</div>
+    </div>
+    <div class="pnp-body">
+      <div class="pnp-field">
+        <div class="pnp-label">Code-barres</div>
+        <input class="pnp-input" id="pnp-code" readonly>
+      </div>
+      <div class="pnp-field">
+        <div class="pnp-label">Nom du produit *</div>
+        <input class="pnp-input" id="pnp-nom" placeholder="ex: Lait demi-écrémé Lactel 1L">
+      </div>
+      <div class="pnp-field">
+        <div class="pnp-label">Marque (optionnel)</div>
+        <input class="pnp-input" id="pnp-marque" placeholder="ex: Lactel">
+      </div>
+      <div class="pnp-field">
+        <div class="pnp-label">Zone de stockage</div>
+        <div class="pnp-zone-row">
+          <div class="pnp-zone-btn active" onclick="pnpZone(this,'Frigo')">🧊 Frigo</div>
+          <div class="pnp-zone-btn" onclick="pnpZone(this,'Freezer')">❄️ Freezer</div>
+          <div class="pnp-zone-btn" onclick="pnpZone(this,'Placard')">🚪 Placard</div>
+        </div>
+      </div>
+      <div class="pnp-field">
+        <div class="pnp-label">Ingrédient associé (optionnel)</div>
+        <input class="pnp-input" id="pnp-ing-search" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="pnpSearchIng(this.value)">
+        <div class="pnp-suggest" id="pnp-suggest" style="display:none"></div>
+        <input type="hidden" id="pnp-ing-id">
+      </div>
+    </div>
+  </div>
+  <!-- ══ /PANEL CRÉATION PRODUIT ══════════════════════════════════════════ -->
+
 </div><!-- /frame -->
 
 <script>
@@ -3295,7 +3372,7 @@ async function onCodeDetected(code) {
       document.getElementById('result-name').textContent = `Code : ${code}`;
       document.getElementById('result-sub').textContent  = 'Ce produit n\'est pas encore dans le catalogue';
       document.getElementById('result-action-btn').textContent = '+ Créer le produit';
-      document.getElementById('result-action-btn').onclick = () => showToast('Création produit bientôt disponible', 'warn');
+      document.getElementById('result-action-btn').onclick = () => openNewProduit(code);
     } else {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || `Erreur serveur ${res.status}`);
@@ -3381,7 +3458,111 @@ async function toggleTorch() {
   document.getElementById('torch-btn').classList.toggle('on', _torchOn);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// PANEL CRÉATION PRODUIT
+// ════════════════════════════════════════════════════════════════════════════
+let _pnpZone = 'Frigo';
+let _pnpIngredients = [];
 
+function openNewProduit(code) {
+  document.getElementById('pnp-code').value = code || '';
+  document.getElementById('pnp-nom').value = '';
+  document.getElementById('pnp-marque').value = '';
+  document.getElementById('pnp-ing-search').value = '';
+  document.getElementById('pnp-ing-id').value = '';
+  document.getElementById('pnp-suggest').style.display = 'none';
+  // Reset zone → Frigo
+  _pnpZone = 'Frigo';
+  document.querySelectorAll('.pnp-zone-btn').forEach(b => b.classList.toggle('active', b.textContent.includes('Frigo')));
+  document.getElementById('panel-new-produit').classList.add('open');
+  setTimeout(() => document.getElementById('pnp-nom').focus(), 350);
+}
+
+function closeNewProduit() {
+  document.getElementById('panel-new-produit').classList.remove('open');
+}
+
+function pnpZone(btn, zone) {
+  _pnpZone = zone;
+  document.querySelectorAll('.pnp-zone-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function pnpSearchIng(q) {
+  const box = document.getElementById('pnp-suggest');
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  if (!_pnpIngredients.length) {
+    const r = await fetch('/api/ingredients');
+    _pnpIngredients = r.ok ? await r.json() : [];
+  }
+  const q2 = q.toLowerCase();
+  const matches = _pnpIngredients.filter(i => i.nom.toLowerCase().includes(q2)).slice(0, 6);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map(i =>
+    `<div class="pnp-suggest-item" onclick="pnpPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
+      ${i.icone && i.icone.startsWith('http') ? `<img src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">` : ''}${i.nom}
+    </div>`
+  ).join('');
+  box.style.display = 'block';
+}
+
+function pnpPickIng(id, nom) {
+  document.getElementById('pnp-ing-id').value = id;
+  document.getElementById('pnp-ing-search').value = nom;
+  document.getElementById('pnp-suggest').style.display = 'none';
+}
+
+async function saveNewProduit() {
+  const nom = document.getElementById('pnp-nom').value.trim();
+  const code = document.getElementById('pnp-code').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
+
+  const ingId = document.getElementById('pnp-ing-id').value;
+
+  // Si pas d'ingrédient sélectionné → on crée un ingrédient générique avec le même nom
+  let ingredient_id = ingId ? parseInt(ingId) : null;
+  if (!ingredient_id) {
+    const ri = await fetch('/api/ingredients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom })
+    });
+    if (!ri.ok) { showToast('Erreur création ingrédient', 'error'); return; }
+    ingredient_id = (await ri.json()).id;
+    _pnpIngredients = []; // reset cache
+  }
+
+  const body = {
+    ingredient_id,
+    nom,
+    marque: document.getElementById('pnp-marque').value.trim() || null,
+    code_barres: code || null,
+    zone: _pnpZone,
+    contenance: 1,
+    unite: 'unité'
+  };
+
+  try {
+    const rp = await fetch('/api/produits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!rp.ok) { const e = await rp.json(); throw new Error(e.error || rp.status); }
+    const produit = await rp.json();
+    // Ajouter 1 unité au stock
+    await fetch(`/api/stocks/${produit.id}/ajouter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packs_pleins: 1 })
+    });
+    showToast(`✓ ${nom} ajouté au stock`, 'ok');
+    closeNewProduit();
+    closeScanner();
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // COURSES v2
