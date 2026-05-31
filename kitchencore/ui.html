@@ -3283,7 +3283,10 @@ async function _startStream() {
 function startDetectionLoop() {
   const video = document.getElementById('scanner-video');
   const detect = async () => {
-    if (!_detector || !video.readyState === 4) return;
+    if (!_detector || video.readyState < 2) {
+      _scanLoop = requestAnimationFrame(detect);
+      return;
+    }
     try {
       const codes = await _detector.detect(video);
       if (codes.length > 0) {
@@ -3291,10 +3294,10 @@ function startDetectionLoop() {
         if (code !== _lastCode) {
           _lastCode = code;
           onCodeDetected(code);
-          return; // pause loop pendant affichage résultat
+          return;
         }
       }
-    } catch(_) {}
+    } catch(e) { console.warn('BarcodeDetector:', e.message); }
     _scanLoop = requestAnimationFrame(detect);
   };
   _scanLoop = requestAnimationFrame(detect);
