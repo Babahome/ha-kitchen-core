@@ -519,6 +519,10 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .scanner-frame::after   { top: 0;    right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
 .scanner-frame .corner-br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
 .scanner-frame .corner-bl { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.scanner-frame.confirming::before,
+.scanner-frame.confirming::after,
+.scanner-frame.confirming .corner-br,
+.scanner-frame.confirming .corner-bl { border-color: #4CAF50; transition: border-color .15s; }
 
 /* Laser animé */
 .scanner-laser {
@@ -3167,6 +3171,9 @@ let _torchOn = false;
 let _videoDevices = [];
 let _videoDeviceIndex = 0;
 let _scanDone = false;   // empêche les doubles détections
+let _lastCode = null;    // dernier code vu (confirmation)
+let _confirmCount = 0;   // nb de lectures consécutives du même code
+const _CONFIRM_NEEDED = 2; // lectures identiques requises avant validation
 
 async function openScanner() {
   document.getElementById('scanner-modal').classList.add('open');
@@ -3200,18 +3207,48 @@ async function openScanner() {
 }
 
 async function _startZxing() {
-  // Arrêter l'instance précédente proprement
   if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 
-  _zxing = new ZXing.BrowserMultiFormatReader();
+  // Restreindre aux formats produits alimentaires uniquement (EAN/UPC)
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.EAN_8,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.UPC_E,
+  ]);
+
+  _zxing = new ZXing.BrowserMultiFormatReader(hints);
   const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId || undefined;
   const video = document.getElementById('scanner-video');
+  const frame = document.querySelector('.scanner-frame');
 
   _scanDone = false;
-  // decodeFromVideoDevice gère le stream ET la boucle de détection
+  _lastCode = null;
+  _confirmCount = 0;
+
   _zxing.decodeFromVideoDevice(deviceId, video, (result, err) => {
-    if (result && !_scanDone) { _scanDone = true; onCodeDetected(result.getText()); }
-    // err est normal quand aucun code n'est dans le cadre — on l'ignore
+    if (_scanDone) return;
+    if (!result) { return; } // err normale quand pas de code dans le cadre
+
+    const code = result.getText();
+    if (code === _lastCode) {
+      _confirmCount++;
+      if (_confirmCount === 1) {
+        // Feedback visuel : cadre vire au vert pour indiquer "presque"
+        frame && frame.classList.add('confirming');
+      }
+      if (_confirmCount >= _CONFIRM_NEEDED) {
+        _scanDone = true;
+        frame && frame.classList.remove('confirming');
+        onCodeDetected(code);
+      }
+    } else {
+      // Nouveau code différent — réinitialiser la confirmation
+      _lastCode = code;
+      _confirmCount = 1;
+      frame && frame.classList.remove('confirming');
+    }
   });
 }
 
@@ -3267,11 +3304,13 @@ function confirmManual() {
 
 function resetScan() {
   _scanProduct = null;
+  _lastCode = null;
+  _confirmCount = 0;
+  document.querySelector('.scanner-frame')?.classList.remove('confirming');
   document.getElementById('scanner-result').classList.remove('show');
   document.getElementById('manual-barcode').value = '';
   document.getElementById('result-name').textContent = '—';
   document.getElementById('result-sub').textContent = '—';
-  // Relancer la détection si scanner ouvert
   if (document.getElementById('scanner-modal').classList.contains('open') && _videoDevices.length) {
     _startZxing();
   }
