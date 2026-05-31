@@ -2693,6 +2693,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="scanner-header">
       <div class="scanner-close" onclick="closeScanner()">✕</div>
       <div class="scanner-title">Scanner un produit</div>
+      <div class="scanner-torch" id="flip-btn" onclick="flipCamera()" title="Changer de caméra">🔄</div>
       <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()">🔦</div>
     </div>
 
@@ -3216,6 +3217,7 @@ let _detector = null;
 let _scanLoop = null;
 let _torchOn = false;
 let _lastCode = null;
+let _facingMode = 'environment';
 
 // Produits fictifs pour la démo (remplacés par /api/produits/barcode/:code en prod)
 const DEMO_PRODUCTS = {
@@ -3239,7 +3241,7 @@ async function openScanner() {
   // Démarrer la caméra
   try {
     _stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: _facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     const video = document.getElementById('scanner-video');
     video.srcObject = _stream;
@@ -3326,6 +3328,26 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   resetScan();
+}
+
+async function flipCamera() {
+  _facingMode = _facingMode === 'environment' ? 'user' : 'environment';
+  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+  _torchOn = false;
+  document.getElementById('torch-btn').classList.remove('on');
+  try {
+    _stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: _facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('scanner-video');
+    video.srcObject = _stream;
+    await video.play();
+    if (_detector) startDetectionLoop();
+  } catch(err) {
+    showToast('Caméra non disponible', 'warn');
+    _facingMode = _facingMode === 'environment' ? 'user' : 'environment'; // rollback
+  }
 }
 
 async function toggleTorch() {
