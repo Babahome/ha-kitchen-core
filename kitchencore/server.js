@@ -207,11 +207,13 @@ const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='marchands_rayons'").get()) {
-  db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
-  db.exec(`INSERT OR IGNORE INTO marchand_rayons(marchand_id,rayon_id,position)
-    SELECT mr.marchand_id,r.id,mr.position FROM marchands_rayons mr
-    JOIN rayons r ON LOWER(TRIM(r.nom))=LOWER(TRIM(mr.nom))`);
-  db.exec(`DROP TABLE marchands_rayons`);
+  try {
+    db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
+    db.exec(`INSERT OR IGNORE INTO marchand_rayons(marchand_id,rayon_id,position)
+      SELECT mr.marchand_id,r.id,mr.position FROM marchands_rayons mr
+      JOIN rayons r ON LOWER(TRIM(r.nom))=LOWER(TRIM(mr.nom))`);
+    db.exec(`DROP TABLE marchands_rayons`);
+  } catch(e) { console.warn('[Migration marchands_rayons]', e.message); }
 }
 
 // Seed rayons par défaut si la table est vide
@@ -1249,4 +1251,4 @@ app.get('/api/suggestion', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // START
 // ══════════════════════════════════════════════════════════════════════════════
-app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.9 démarré sur http://0.0.0.0:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.10.34 démarré sur http://0.0.0.0:${PORT}`));
