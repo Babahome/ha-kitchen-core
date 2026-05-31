@@ -184,22 +184,13 @@ db.exec(`
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
 
-// Migration : produits.aliment_id → produits.ingredient_id
+// Détecte si l'ancienne colonne aliment_id existe (DB créée avant v0.9)
+// On ne copie PAS aliment_id → ingredient_id car les deux tables sont différentes (aliments ≠ ingredients)
+// Les anciens produits gardent ingredient_id=NULL et s'affichent via leur propre colonne `nom`
 try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
-const hasAlimentId = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
-if (hasAlimentId) {
-  // Les IDs aliment_id référencent aliments(id) pas ingredients(id) — désactiver FK pour la copie
-  db.pragma('foreign_keys = OFF');
-  try {
-    db.exec(`UPDATE produits SET ingredient_id = aliment_id WHERE ingredient_id IS NULL AND aliment_id IS NOT NULL`);
-  } finally {
-    db.pragma('foreign_keys = ON');
-  }
-}
+const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
-// Détecte si l'ancienne colonne aliment_id existe encore (DB créée avant renommage)
-const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='marchands_rayons'").get()) {
   db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
@@ -391,23 +382,21 @@ app.post('/api/ingredients/auto-add', (req, res) => {
 // PRODUITS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/produits', (_req, res) => {
-  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte,
            s.packs_pleins, s.unites_ouvert, s.zone,
            ((COALESCE(s.packs_pleins,0)*p.contenance)+COALESCE(s.unites_ouvert,0)) AS total_unites
-    FROM produits p LEFT JOIN ingredients a ON a.id=${jc}
+    FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id
     LEFT JOIN stocks s ON s.produit_id=p.id
-    ORDER BY s.zone,a.nom,p.nom
+    ORDER BY s.zone,p.nom
   `).all());
 });
 
 app.get('/api/produits/barcode/:code', (req, res) => {
   try {
-    const joinCol = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
     const row = db.prepare(`
       SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
-      FROM produits p LEFT JOIN ingredients a ON a.id=${joinCol} LEFT JOIN stocks s ON s.produit_id=p.id
+      FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
       WHERE p.code_barres=?
     `).get(req.params.code);
     if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
@@ -458,13 +447,12 @@ app.patch('/api/produits/:id', (req, res) => {
 // STOCKS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
-  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
            a.nom AS ingredient_nom, a.icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
-    FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=${jc}
-    ORDER BY s.zone,a.nom
+    FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
+    ORDER BY s.zone, p.nom
   `).all());
 });
 
@@ -525,10 +513,9 @@ app.post('/api/iot/scan', (req, res) => {
 // MOUVEMENTS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/mouvements', (_req, res) => {
-  const jc = HAS_ALIMENT_ID ? 'COALESCE(p.ingredient_id, p.aliment_id)' : 'p.ingredient_id';
   res.json(db.prepare(`
     SELECT m.*, p.nom AS produit_nom, a.icone
-    FROM mouvements m JOIN produits p ON p.id=m.produit_id LEFT JOIN ingredients a ON a.id=${jc}
+    FROM mouvements m JOIN produits p ON p.id=m.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY m.created_at DESC LIMIT 100
   `).all());
 });
