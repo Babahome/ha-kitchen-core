@@ -421,7 +421,8 @@ app.post('/api/produits', (req, res) => {
       // Ancienne DB : aliment_id NOT NULL avec FK sur aliments — on désactive les FK le temps de l'insert
       db.pragma('foreign_keys = OFF');
       try {
-        i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+        // aliment_id est NOT NULL dans l'ancienne DB — on met 0 comme placeholder si pas d'ingrédient
+        i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id || 0, nom.trim(), marque||null, code_barres||null, contenance, unite);
       } finally {
         db.pragma('foreign_keys = ON');
       }
