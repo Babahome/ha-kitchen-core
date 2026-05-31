@@ -3217,6 +3217,7 @@ let _zxing = null;       // instance ZXing BrowserMultiFormatReader
 let _torchOn = false;
 let _videoDevices = [];
 let _videoDeviceIndex = 0;
+let _scanDone = false;   // empêche les doubles détections
 
 async function openScanner() {
   document.getElementById('scanner-modal').classList.add('open');
@@ -3257,9 +3258,10 @@ async function _startZxing() {
   const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId || undefined;
   const video = document.getElementById('scanner-video');
 
+  _scanDone = false;
   // decodeFromVideoDevice gère le stream ET la boucle de détection
   _zxing.decodeFromVideoDevice(deviceId, video, (result, err) => {
-    if (result) onCodeDetected(result.getText());
+    if (result && !_scanDone) { _scanDone = true; onCodeDetected(result.getText()); }
     // err est normal quand aucun code n'est dans le cadre — on l'ignore
   });
 }
@@ -3315,6 +3317,7 @@ function confirmManual() {
 }
 
 function resetScan() {
+  _scanProduct = null;
   document.getElementById('scanner-result').classList.remove('show');
   document.getElementById('manual-barcode').value = '';
   document.getElementById('result-name').textContent = '—';

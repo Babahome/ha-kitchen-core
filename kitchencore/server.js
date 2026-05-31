@@ -184,6 +184,13 @@ db.exec(`
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
 
+// Migration : produits.aliment_id → produits.ingredient_id
+try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
+const hasAlimentId = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
+if (hasAlimentId) {
+  db.exec(`UPDATE produits SET ingredient_id = aliment_id WHERE ingredient_id IS NULL AND aliment_id IS NOT NULL`);
+}
+
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='marchands_rayons'").get()) {
   db.exec(`INSERT OR IGNORE INTO rayons(nom,emoji) SELECT DISTINCT nom,emoji FROM marchands_rayons`);
