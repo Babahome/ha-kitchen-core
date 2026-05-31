@@ -5402,6 +5402,7 @@ document.addEventListener('DOMContentLoaded', function(){
     loadTags();
   }
   _mLoad();
+  if (typeof _stockLoad === 'function') _stockLoad();
   const pageMenu = document.getElementById('page-menu');
   if(!pageMenu) return;
 
