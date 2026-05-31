@@ -10,7 +10,7 @@ const path     = require('path');
 const fs       = require('fs');
 
 const app  = express();
-const PORT = 8080;
+const PORT = parseInt(process.env.INGRESS_PORT || process.env.PORT || '8080', 10);
 
 const DATA_DIR   = process.env.DATA_PATH || '/data';
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
