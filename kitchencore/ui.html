@@ -6233,7 +6233,9 @@ async function _ingDeleteIngredient() {
 }
 
 function _ingTriggerImageUpload() {
-  document.getElementById('ing-imageFileInput').click();
+  const input = document.getElementById('ing-imageFileInput');
+  input.value = '';
+  input.click();
 }
 
 function _ingHandleImageFile(input) {
