@@ -2720,12 +2720,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
     <!-- Résultat -->
     <div class="scanner-result" id="scanner-result">
-      <div class="scanner-result-title">Produit détecté</div>
+      <div class="scanner-result-title" id="result-title">Produit détecté</div>
       <div class="scanner-result-name" id="result-name">—</div>
       <div class="scanner-result-sub"  id="result-sub">—</div>
       <div class="scanner-result-row">
         <button class="scanner-result-btn ghost" onclick="resetScan()">↩ Rescanner</button>
-        <button class="scanner-result-btn primary" onclick="addToStock()">+ Ajouter au stock</button>
+        <button class="scanner-result-btn primary" id="result-action-btn" onclick="addToStock()">+ Ajouter au stock</button>
       </div>
     </div>
 
@@ -3264,15 +3264,43 @@ async function _startZxing() {
   });
 }
 
-function onCodeDetected(code) {
+let _scanProduct = null; // produit trouvé par l'API, ou null
+
+async function onCodeDetected(code) {
   if (navigator.vibrate) navigator.vibrate(80);
-  // Arrêter la détection (on attend l'action utilisateur)
   if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 
-  document.getElementById('result-name').textContent = `Code : ${code}`;
-  document.getElementById('result-sub').textContent  = 'Recherche dans le catalogue…';
   document.getElementById('manual-barcode').value = code;
+  document.getElementById('result-title').textContent = 'Recherche…';
+  document.getElementById('result-name').textContent = code;
+  document.getElementById('result-sub').textContent = 'Interrogation du catalogue…';
+  document.getElementById('result-action-btn').textContent = '…';
+  document.getElementById('result-action-btn').onclick = null;
   document.getElementById('scanner-result').classList.add('show');
+
+  try {
+    const res = await fetch(`/api/produits/barcode/${encodeURIComponent(code)}`);
+    if (res.ok) {
+      _scanProduct = await res.json();
+      document.getElementById('result-title').textContent = 'Produit trouvé ✓';
+      document.getElementById('result-name').textContent = _scanProduct.nom + (_scanProduct.marque ? ` — ${_scanProduct.marque}` : '');
+      document.getElementById('result-sub').textContent  = `Zone : ${_scanProduct.zone || '?'} · Stock : ${(_scanProduct.packs_pleins||0) + (_scanProduct.unites_ouvert||0)}`;
+      document.getElementById('result-action-btn').textContent = '+ Ajouter au stock';
+      document.getElementById('result-action-btn').onclick = addToStock;
+    } else {
+      _scanProduct = null;
+      document.getElementById('result-title').textContent = 'Produit inconnu';
+      document.getElementById('result-name').textContent = `Code : ${code}`;
+      document.getElementById('result-sub').textContent  = 'Ce produit n\'est pas encore dans le catalogue';
+      document.getElementById('result-action-btn').textContent = '+ Créer le produit';
+      document.getElementById('result-action-btn').onclick = () => showToast('Création produit bientôt disponible', 'warn');
+    }
+  } catch(e) {
+    document.getElementById('result-title').textContent = 'Erreur réseau';
+    document.getElementById('result-sub').textContent = e.message;
+    document.getElementById('result-action-btn').textContent = 'Réessayer';
+    document.getElementById('result-action-btn').onclick = () => onCodeDetected(code);
+  }
 }
 
 function confirmManual() {
@@ -3292,10 +3320,22 @@ function resetScan() {
   }
 }
 
-function addToStock() {
-  const code = document.getElementById('manual-barcode').value;
-  showToast('✓ Code détecté : ' + code, 'ok');
-  closeScanner();
+async function addToStock() {
+  if (!_scanProduct) return;
+  try {
+    const res = await fetch(`/api/stocks/${_scanProduct.id}/ajouter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packs_pleins: 1 })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const s = await res.json();
+    const total = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+    showToast(`✓ ${_scanProduct.nom} — stock : ${total}`, 'ok');
+    closeScanner();
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
 }
 
 function closeScanner() {
