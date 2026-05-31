@@ -270,7 +270,13 @@ app.options('*', (_req, res) => res.sendStatus(204));
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 const HTML = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
-app.get('/',       (_req, res) => res.send(HTML));
+app.get('/', (req, res) => {
+  const base = req.headers['x-ingress-path'] || '';
+  if (!base) return res.send(HTML);
+  // Injecter le chemin ingress HA pour que fetch('/api/...') soit redirigé correctement
+  const patched = HTML.replace('</head>', `<script>window._haIngressPath=${JSON.stringify(base)};</script></head>`);
+  res.send(patched);
+});
 app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.9.0' }));
 
 // ══════════════════════════════════════════════════════════════════════════════

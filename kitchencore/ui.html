@@ -2844,6 +2844,17 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 </div><!-- /frame -->
 
 <script>
+// Patch fetch pour fonctionner via l'ingress HA (préfixe toutes les URLs absolues)
+(function() {
+  const base = window._haIngressPath || '';
+  if (!base) return;
+  const orig = window.fetch.bind(window);
+  window.fetch = (url, opts) => orig(
+    typeof url === 'string' && url.startsWith('/') ? base + url : url,
+    opts
+  );
+})();
+
 // ── Drawer ───────────────────────────────────────────────────────────────────
 function toggleDrawer() {
   document.getElementById('drawer').classList.toggle('open');
