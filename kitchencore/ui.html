@@ -188,6 +188,15 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   transition: transform .15s;
 }
 .prod-card:active { transform: scale(.97); }
+.prod-card.selected { outline: 2px solid var(--orange); }
+.stock-checkbox {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #ccc; background: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 700; color: white;
+}
+.stock-checkbox.checked { background: var(--orange); border-color: var(--orange); }
 
 .prod-img {
   width: 100%; aspect-ratio: 1;
@@ -2591,6 +2600,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
+  <!-- MENU ⋮ STOCK -->
+  <div class="m-hdmenu" id="stock-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item danger" id="stock-hd-delete" onclick="stockDeleteSelected();stockHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
+  </div>
+
   <!-- MENU ⋮ COURSES -->
   <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span>🗑</span><span>Supprimer les cochés</span></div>
@@ -2850,8 +2865,10 @@ const STOCK_ZONES = [
   { key: 'Freezer', emoji: '❄️' },
   { key: 'Placard', emoji: '🚪' },
 ];
-let _stockFilter = 'all';
-let _stockItems  = [];
+let _stockFilter     = 'all';
+let _stockItems      = [];
+let _stockSelectMode = false;
+let _stockSelectedIds = new Set();
 
 async function _stockLoad() {
   try {
@@ -2912,16 +2929,22 @@ function _stockCard(s) {
   const imgHtml = s.icone && s.icone.startsWith('http')
     ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#bbb">${initiales}</div>`;
-  return `<div class="prod-card" data-id="${s.produit_id}">
+  const sel = _stockSelectedIds.has(s.produit_id);
+  const cbHtml = _stockSelectMode
+    ? `<div class="stock-checkbox${sel ? ' checked' : ''}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`
+    : '';
+  const clickAttr = _stockSelectMode ? `onclick="stockToggleCard(${s.produit_id},event)"` : '';
+  return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" ${clickAttr}>
+    ${cbHtml}
     <div class="prod-img-placeholder" style="overflow:hidden">${imgHtml}</div>
     <div class="prod-status ${statusClass}">${statusEmoji}</div>
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       <div class="prod-controls">
         <div class="prod-qty">
-          <div class="qty-btn" onclick="stockChangeQty(${s.produit_id},-1,this)">−</div>
+          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
           <div><div class="qty-val">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
-          <div class="qty-btn" onclick="stockChangeQty(${s.produit_id},1,this)">+</div>
+          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `stockChangeQty(${s.produit_id},1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>+</div>
         </div>
       </div>
     </div>
@@ -2947,6 +2970,53 @@ async function stockChangeQty(id, delta, btn) {
     if (delta < 0 && qty - 1 === 0) showToast('Stock vide', 'warn');
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
+
+function stockToggleSelectMode() {
+  _stockSelectMode = !_stockSelectMode;
+  if (!_stockSelectMode) _stockSelectedIds.clear();
+  _stockUpdateSelectUI();
+  _stockRender();
+  const m = document.getElementById('stock-hdmenu');
+  if (_stockSelectMode && m) m.classList.add('on');
+}
+
+function stockHideHdmenu() {
+  document.getElementById('stock-hdmenu')?.classList.remove('on');
+}
+
+function _stockUpdateSelectUI() {
+  const n = _stockSelectedIds.size;
+  const label = document.getElementById('stock-hd-sel-label');
+  if (label) label.textContent = `${n} sélectionné(s)`;
+  const delBtn = document.getElementById('stock-hd-delete');
+  if (delBtn) delBtn.style.display = n > 0 ? '' : 'none';
+}
+
+function stockToggleCard(id, e) {
+  if (e) e.stopPropagation();
+  if (_stockSelectedIds.has(id)) _stockSelectedIds.delete(id);
+  else _stockSelectedIds.add(id);
+  _stockUpdateSelectUI();
+  _stockRender();
+}
+
+async function stockDeleteSelected() {
+  const ids = [..._stockSelectedIds];
+  if (!ids.length) return;
+  if (!confirm(`Supprimer ${ids.length} produit(s) définitivement ?`)) return;
+  try {
+    await Promise.all(ids.map(id => fetch(`/api/produits/${id}`, { method: 'DELETE' })));
+    _stockSelectMode = false;
+    _stockSelectedIds.clear();
+    await _stockLoad();
+    showToast(`${ids.length} produit(s) supprimé(s)`);
+  } catch(e) { showToast('Erreur suppression', 'error'); }
+}
+
+window.stockToggleSelectMode = stockToggleSelectMode;
+window.stockHideHdmenu       = stockHideHdmenu;
+window.stockToggleCard       = stockToggleCard;
+window.stockDeleteSelected   = stockDeleteSelected;
 
 function stockFilterZone(pill, zone) {
   document.querySelectorAll('#page-stock .filter-pill').forEach(p => p.classList.remove('active'));
@@ -3053,6 +3123,11 @@ function switchPage(tab, page, title) {
   if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
   if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
   if (page === 'stock'              && typeof _stockLoad  === 'function') _stockLoad();
+  if (page !== 'stock') {
+    _stockSelectMode = false;
+    _stockSelectedIds.clear();
+    stockHideHdmenu();
+  }
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -5067,6 +5142,10 @@ function mHeaderDotsClick(){
   if(page === 'ingredients'){
     const m = document.getElementById('ing-hdmenu');
     if(m) m.classList.toggle('on');
+    return;
+  }
+  if(page === 'stock'){
+    stockToggleSelectMode();
     return;
   }
   if(page === 'courses'){

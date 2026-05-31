@@ -459,6 +459,14 @@ app.patch('/api/produits/:id', (req, res) => {
   } catch(e) { res.status(409).json({ error: 'Code-barres déjà utilisé' }); }
 });
 
+app.delete('/api/produits/:id', (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM mouvements WHERE produit_id=?').run(id);
+  db.prepare('DELETE FROM stocks WHERE produit_id=?').run(id);
+  db.prepare('DELETE FROM produits WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
 // ══════════════════════════════════════════════════════════════════════════════
 // STOCKS
 // ══════════════════════════════════════════════════════════════════════════════
