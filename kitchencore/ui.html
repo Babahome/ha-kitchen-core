@@ -3287,19 +3287,24 @@ async function onCodeDetected(code) {
       document.getElementById('result-sub').textContent  = `Zone : ${_scanProduct.zone || '?'} · Stock : ${(_scanProduct.packs_pleins||0) + (_scanProduct.unites_ouvert||0)}`;
       document.getElementById('result-action-btn').textContent = '+ Ajouter au stock';
       document.getElementById('result-action-btn').onclick = addToStock;
-    } else {
+    } else if (res.status === 404) {
       _scanProduct = null;
       document.getElementById('result-title').textContent = 'Produit inconnu';
       document.getElementById('result-name').textContent = `Code : ${code}`;
       document.getElementById('result-sub').textContent  = 'Ce produit n\'est pas encore dans le catalogue';
       document.getElementById('result-action-btn').textContent = '+ Créer le produit';
       document.getElementById('result-action-btn').onclick = () => showToast('Création produit bientôt disponible', 'warn');
+    } else {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Erreur serveur ${res.status}`);
     }
   } catch(e) {
-    document.getElementById('result-title').textContent = 'Erreur réseau';
-    document.getElementById('result-sub').textContent = e.message;
+    document.getElementById('result-title').textContent = 'Erreur';
+    document.getElementById('result-name').textContent = e.message;
+    document.getElementById('result-sub').textContent = 'Consulte la console pour le détail';
     document.getElementById('result-action-btn').textContent = 'Réessayer';
     document.getElementById('result-action-btn').onclick = () => onCodeDetected(code);
+    console.error('barcode lookup error:', e.message);
   }
 }
 

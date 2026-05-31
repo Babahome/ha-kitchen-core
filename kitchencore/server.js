@@ -387,14 +387,18 @@ app.get('/api/produits', (_req, res) => {
 });
 
 app.get('/api/produits/barcode/:code', (req, res) => {
-  // FIX #2 — aliments → ingredients, aliment_id → ingredient_id
-  const row = db.prepare(`
-    SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
-    FROM produits p JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
-    WHERE p.code_barres=?
-  `).get(req.params.code);
-  if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
-  res.json(row);
+  try {
+    const row = db.prepare(`
+      SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
+      FROM produits p JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
+      WHERE p.code_barres=?
+    `).get(req.params.code);
+    if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
+    res.json(row);
+  } catch(e) {
+    console.error('[/api/produits/barcode]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/produits', (req, res) => {
