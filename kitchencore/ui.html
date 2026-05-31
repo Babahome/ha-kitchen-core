@@ -3218,6 +3218,8 @@ let _scanLoop = null;
 let _torchOn = false;
 let _lastCode = null;
 let _facingMode = 'environment';
+let _videoDevices = [];
+let _videoDeviceIndex = 0;
 
 // Produits fictifs pour la démo (remplacés par /api/produits/barcode/:code en prod)
 const DEMO_PRODUCTS = {
@@ -3233,31 +3235,49 @@ async function openScanner() {
   modal.classList.add('open');
   resetScan();
 
-  // Init BarcodeDetector (Chrome Android natif)
   if ('BarcodeDetector' in window) {
     _detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'qr_code'] });
   }
 
-  // Démarrer la caméra
   try {
-    _stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: _facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    const video = document.getElementById('scanner-video');
-    video.srcObject = _stream;
-    await video.play();
+    // Premier stream pour déclencher la permission, puis énumérer
+    const first = await navigator.mediaDevices.getUserMedia({ video: true });
+    first.getTracks().forEach(t => t.stop());
 
-    if (_detector) {
-      startDetectionLoop();
-    } else {
-      // Fallback : afficher message + saisie manuelle uniquement
-      document.querySelector('.scanner-hint').textContent = 'Caméra active — saisir le code manuellement ci-dessous';
-    }
+    const all = await navigator.mediaDevices.enumerateDevices();
+    _videoDevices = all.filter(d => d.kind === 'videoinput');
+
+    // Sur mobile : mettre la caméra arrière en premier
+    const envIdx = _videoDevices.findIndex(d => /back|rear|environment/i.test(d.label));
+    if (envIdx > 0) { const e = _videoDevices.splice(envIdx, 1); _videoDevices.unshift(e[0]); }
+    _videoDeviceIndex = 0;
+
+    // Masquer le bouton flip s'il n'y a qu'une caméra
+    document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
+
+    await _startStream();
   } catch (err) {
-    // Pas de caméra ou refus permission → mode saisie manuelle
     document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
     console.warn('Scanner camera error:', err.message);
   }
+}
+
+async function _startStream() {
+  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+
+  const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId;
+  const constraints = deviceId
+    ? { video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    : { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } };
+
+  _stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const video = document.getElementById('scanner-video');
+  video.srcObject = _stream;
+  await video.play();
+
+  if (_detector) startDetectionLoop();
+  else document.querySelector('.scanner-hint').textContent = 'Caméra active — saisir le code manuellement ci-dessous';
 }
 
 function startDetectionLoop() {
@@ -3331,22 +3351,15 @@ function closeScanner() {
 }
 
 async function flipCamera() {
-  _facingMode = _facingMode === 'environment' ? 'user' : 'environment';
-  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
-  if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+  if (_videoDevices.length < 2) return;
+  _videoDeviceIndex = (_videoDeviceIndex + 1) % _videoDevices.length;
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
   try {
-    _stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: _facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    const video = document.getElementById('scanner-video');
-    video.srcObject = _stream;
-    await video.play();
-    if (_detector) startDetectionLoop();
+    await _startStream();
   } catch(err) {
     showToast('Caméra non disponible', 'warn');
-    _facingMode = _facingMode === 'environment' ? 'user' : 'environment'; // rollback
+    _videoDeviceIndex = (_videoDeviceIndex - 1 + _videoDevices.length) % _videoDevices.length;
   }
 }
 
