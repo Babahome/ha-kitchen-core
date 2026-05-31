@@ -3527,8 +3527,18 @@ async function saveNewProduit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nom })
     });
-    if (!ri.ok) { showToast('Erreur création ingrédient', 'error'); return; }
-    ingredient_id = (await ri.json()).id;
+    if (ri.ok) {
+      ingredient_id = (await ri.json()).id;
+    } else if (ri.status === 409) {
+      // Ingrédient déjà existant (essai précédent) → on le récupère par nom
+      const all = await fetch('/api/ingredients');
+      const list = all.ok ? await all.json() : [];
+      const found = list.find(i => i.nom.toLowerCase() === nom.toLowerCase());
+      if (found) { ingredient_id = found.id; }
+      else { showToast('Erreur : ingrédient introuvable', 'error'); return; }
+    } else {
+      showToast('Erreur création ingrédient', 'error'); return;
+    }
     _pnpIngredients = []; // reset cache
   }
 

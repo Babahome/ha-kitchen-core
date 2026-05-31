@@ -418,8 +418,13 @@ app.post('/api/produits', (req, res) => {
   try {
     let i;
     if (HAS_ALIMENT_ID) {
-      // Ancienne DB : remplir aussi aliment_id pour respecter la contrainte NOT NULL
-      i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+      // Ancienne DB : aliment_id a une FK sur aliments(id) — on désactive les FK le temps de l'insert
+      db.pragma('foreign_keys = OFF');
+      try {
+        i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+      } finally {
+        db.pragma('foreign_keys = ON');
+      }
     } else {
       i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
     }
