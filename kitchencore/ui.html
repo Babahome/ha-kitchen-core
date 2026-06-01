@@ -732,6 +732,20 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-mopt-ico  { font-size:1.4rem;flex-shrink:0; }
 .cl-mopt-name { font-size:.9rem;font-weight:800; }
 .cl-mopt-desc { font-size:.72rem;color:var(--grey-d);margin-top:1px; }
+/* barre sélection courses */
+.cl-sel-bar   { position:absolute;bottom:calc(var(--bottom-h) + 10px);left:10px;right:10px;
+                background:white;border-radius:16px;padding:10px 14px;
+                display:none;align-items:center;gap:8px;
+                box-shadow:0 4px 20px rgba(0,0,0,.18);z-index:25;border:1px solid var(--grey); }
+.cl-sel-bar.on{ display:flex; }
+.cl-sel-count { font-size:.82rem;font-weight:800;flex:1;color:var(--text); }
+.cl-sel-btn   { background:var(--orange);color:white;border:none;border-radius:10px;
+                padding:7px 12px;font-size:.8rem;font-weight:800;font-family:var(--font);cursor:pointer; }
+.cl-sel-cancel{ background:var(--grey-l);color:var(--text2); }
+.cl-item.sel-checked { outline:2px solid var(--orange);outline-offset:-2px; }
+.cl-sel-chk   { width:22px;height:22px;border-radius:6px;border:2px solid var(--grey);
+                flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer; }
+.cl-sel-chk.on{ background:var(--orange);border-color:var(--orange);color:white;font-size:.75rem;font-weight:900; }
 /* fab-search courses */
 .cl-fab-search{ position:absolute;bottom:calc(var(--bottom-h) + 16px);left:16px;
                 height:46px;border-radius:23px;background:white;color:var(--text2);
@@ -2069,6 +2083,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <!-- Suggestions autocomplétion -->
       <div class="cl-suggest-list" id="cl-suggest-list"></div>
 
+      <!-- Barre sélection multiple -->
+      <div class="cl-sel-bar" id="cl-sel-bar">
+        <span class="cl-sel-count" id="cl-sel-count">0 sélectionné</span>
+        <button class="cl-sel-btn" onclick="clSelChangeMarchand()">Changer de marchand</button>
+        <button class="cl-sel-btn cl-sel-cancel" onclick="clExitSelMode()">Annuler</button>
+      </div>
+
       <!-- fab-search courses -->
       <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
         <span>🔍</span>
@@ -2612,6 +2633,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
   <!-- MENU ⋮ COURSES -->
   <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" onclick="clEnterSelMode();clHideHdmenu()"><span>☑️</span><span>Sélectionner</span></div>
     <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span>🗑</span><span>Supprimer les cochés</span></div>
   </div>
 
@@ -3143,6 +3165,7 @@ function switchPage(tab, page, title) {
     _stockSelectedIds.clear();
     stockHideHdmenu();
   }
+  if (page !== 'courses' && typeof clExitSelMode === 'function') clExitSelMode();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -3662,8 +3685,12 @@ function clItemHTML(item) {
   const icoContent = (icone && (icone.startsWith('http') || icone.startsWith('/')))
     ? `<img src="${icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.7rem;font-weight:800;color:var(--grey-d)\\'>${ini}</span>'">`
     : `<span style="font-size:.7rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
-  return `<div class="cl-item${item.done?' done':''}" id="cli-${item.id}">
-    <div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?'✓':''}</div>
+  const isSel = _clSelected.has(item.id);
+  return `<div class="cl-item${item.done?' done':''}${isSel?' sel-checked':''}" id="cli-${item.id}" ${_clSelMode?`onclick="clToggleSel('${item.id}')"`:''}>
+    ${_clSelMode
+      ? `<div class="cl-sel-chk${isSel?' on':''}" onclick="clToggleSel('${item.id}')">${isSel?'✓':''}</div>`
+      : `<div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?'✓':''}</div>`
+    }
     <div class="cl-emoji">${icoContent}</div>
     <div class="cl-body">
       <div class="cl-name">${item.n}</div>
@@ -4023,6 +4050,70 @@ function clSearchURL(item) {
   if(m?.search_url) return m.search_url.replace('{q}',q);
   if(item.m==='fourche') return 'https://lafourche.fr/search?q='+q;
   return 'https://www.carrefour.fr/s?q='+q;
+}
+
+// ── Multiselection ────────────────────────────────────────────────────────────
+let _clSelMode = false;
+const _clSelected = new Set();
+
+function clEnterSelMode() {
+  _clSelMode = true;
+  _clSelected.clear();
+  clRender();
+  clUpdateSelBar();
+}
+function clExitSelMode() {
+  _clSelMode = false;
+  _clSelected.clear();
+  clRender();
+  document.getElementById('cl-sel-bar')?.classList.remove('on');
+}
+function clToggleSel(id) {
+  if (_clSelected.has(id)) _clSelected.delete(id);
+  else _clSelected.add(id);
+  clUpdateSelBar();
+  const el = document.getElementById('cli-'+id);
+  if (el) {
+    const chk = el.querySelector('.cl-sel-chk');
+    if (chk) { const on = _clSelected.has(id); chk.classList.toggle('on', on); chk.textContent = on ? '✓' : ''; }
+    el.classList.toggle('sel-checked', _clSelected.has(id));
+  }
+}
+function clUpdateSelBar() {
+  const bar = document.getElementById('cl-sel-bar');
+  const cnt = document.getElementById('cl-sel-count');
+  if (!bar) return;
+  const n = _clSelected.size;
+  if (cnt) cnt.textContent = n + ' sélectionné' + (n > 1 ? 's' : '');
+  bar.classList.toggle('on', _clSelMode);
+}
+function clSelChangeMarchand() {
+  if (!_clSelected.size) { showToast('Sélectionnez au moins un article','warn'); return; }
+  clOpenMmodalBulk();
+}
+function clOpenMmodalBulk() {
+  document.getElementById('cl-msheet-sub').textContent = _clSelected.size + ' article' + (_clSelected.size>1?'s':'') + ' sélectionné' + (_clSelected.size>1?'s':'');
+  document.getElementById('cl-mopts').innerHTML = _clMarchands.map(m => {
+    const k = String(m.id);
+    const logoHTML = m.image
+      ? `<img src="${m.image}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
+      : `<div style="width:28px;height:28px;border-radius:50%;background:var(--grey-l);display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:900;color:var(--orange)">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
+    return `<div class="cl-mopt" onclick="clSetMarchandBulk('${k}')">
+      <div class="cl-mopt-ico">${logoHTML}</div>
+      <div><div class="cl-mopt-name">${m.nom}</div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('cl-mmodal').classList.add('on');
+}
+function clSetMarchandBulk(m) {
+  _clSelected.forEach(id => {
+    const i = _cl.find(x => x.id === id);
+    if (i) { i.m = m; fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({m})}).catch(()=>{}); }
+  });
+  clCloseMmodal();
+  const n = _clSelected.size;
+  clExitSelMode();
+  showToast('✓ ' + n + ' article' + (n>1?'s':'') + ' déplacé' + (n>1?'s':''), 'ok');
 }
 
 // ── Modal marchand ────────────────────────────────────────────────────────────
