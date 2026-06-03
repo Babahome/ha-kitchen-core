@@ -173,6 +173,7 @@ db.exec(`
   ['ingredients', 'icone',         "TEXT DEFAULT '🥫'"],
   ['ingredients', 'created_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recettes',    'source',        "TEXT DEFAULT ''"],
+  ['recettes',    'remarque',      "TEXT DEFAULT ''"],
   ['recettes',    'updated_at',    "TEXT DEFAULT (datetime('now'))"],
   ['recette_ingredients', 'note',          "TEXT DEFAULT ''"],
   ['recette_ingredients', 'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
@@ -810,10 +811,10 @@ app.get('/api/recettes/:id', (req, res) => {
 app.post('/api/recettes', (req, res) => {
   const { nom, emoji='🍽️', photo='', description='', portions=2,
           temps_prep=0, temps_cuisson=0, tags=[], favori=false,
-          note=0, source='', ingredients=[], etapes=[] } = req.body;
+          note=0, source='', remarque='', ingredients=[], etapes=[] } = req.body;
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
-  const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
-  const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(tags), favori?1:0, note, source);
+  const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source,remarque) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
+  const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(tags), favori?1:0, note, source, remarque);
   saveIngredients(info.lastInsertRowid, ingredients);
   saveEtapes(info.lastInsertRowid, etapes);
   res.status(201).json(getRecette(info.lastInsertRowid));
@@ -823,7 +824,7 @@ app.patch('/api/recettes/:id', (req, res) => {
   const id = req.params.id;
   if (!db.prepare('SELECT id FROM recettes WHERE id=?').get(id)) return res.status(404).json({ error: 'Introuvable' });
   const sets=[], vals=[];
-  ['nom','emoji','photo','description','portions','temps_prep','temps_cuisson','favori','note','source'].forEach(k => {
+  ['nom','emoji','photo','description','portions','temps_prep','temps_cuisson','favori','note','source','remarque'].forEach(k => {
     if (req.body[k] !== undefined) { sets.push(k+'=?'); vals.push(k==='favori'?(req.body[k]?1:0):req.body[k]); }
   });
   if (req.body.tags !== undefined) { sets.push('tags=?'); vals.push(JSON.stringify(req.body.tags)); }

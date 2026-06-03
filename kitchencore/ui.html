@@ -2368,6 +2368,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </div>
       </div>
 
+      <!-- Remarques -->
+      <div class="ev3-sec-ttl" style="margin-top:8px">Remarques</div>
+      <div class="ev3-desc-wrap">
+        <textarea class="ev3-desc-input" id="e-remarque" placeholder="Notes personnelles, astuces, variantes…"
+          onfocus="this.style.borderBottomColor='var(--orange)'"
+          onblur="this.style.borderBottomColor='transparent'"></textarea>
+      </div>
+
       <div class="ev3-bottom-spacer"></div>
     </div>
   </div>
@@ -4419,6 +4427,7 @@ async function openDetail(id) {
     </div>
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
     ${steps?`<div class="d-sec"><div class="d-sec-ttl">Préparation</div>${steps}</div>`:''}
+    ${r.remarque?`<div class="d-sec"><div class="d-sec-ttl">Remarques</div><div style="font-size:.88rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;padding:0 4px">${r.remarque.replace(/</g,'&lt;')}</div></div>`:''}
     <div style="height:30px"></div>
   `;
   document.getElementById('panel-detail').classList.add('open');
@@ -4488,6 +4497,7 @@ function buildFormV3(r) {
   document.getElementById('e-prep').value     = r?.temps_prep||0;
   document.getElementById('e-cuisson').value  = r?.temps_cuisson||0;
   document.getElementById('e-source').value   = r?.source||'';
+  document.getElementById('e-remarque').value = r?.remarque||'';
 
   // Photo + placeholder initiales
   const heroImg  = document.getElementById('ev3-hero-img');
@@ -4747,6 +4757,7 @@ async function saveRecette() {
     temps_prep:   parseInt(document.getElementById('e-prep')?.value)||0,
     temps_cuisson:parseInt(document.getElementById('e-cuisson')?.value)||0,
     source:       document.getElementById('e-source')?.value.trim()||'',
+    remarque:     document.getElementById('e-remarque')?.value.trim()||'',
     tags:         _eSelTags,
     note:         _eNote,
     favori:       _eFavori,
