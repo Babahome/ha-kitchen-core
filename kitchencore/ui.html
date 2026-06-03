@@ -1061,6 +1061,8 @@ textarea.einput{ resize:none;min-height:60px; }
 .step-box.drag-over { border-top:2px solid var(--orange); }
 .ingr-row.dragging  { opacity:.4; }
 .step-box.dragging  { opacity:.4; }
+.zs-card.drag-over  { border-top:3px solid var(--orange); }
+.zs-card.dragging   { opacity:.4; }
 
 /* ══ PANEL EDIT v3 ══════════════════════════════════════════════════════════ */
 /* Le scroll du form */
@@ -3127,11 +3129,12 @@ function _zsRender() {
   if (_zsZones.length === 0) {
     html += `<div style="color:#aaa;padding:20px 0;text-align:center">Aucune zone définie</div>`;
   } else {
-    _zsZones.forEach(z => {
-      html += `<div class="zs-card" style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-        <div class="zs-emoji" onclick="zsEditEmoji(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="font-size:1.6rem;cursor:pointer;min-width:36px;text-align:center" title="Changer l'emoji">${z.emoji}</div>
+    _zsZones.forEach((z, i) => {
+      html += `<div class="zs-card" data-idx="${i}" style="background:white;border-radius:12px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:opacity .15s">
+        <div class="zs-drag-handle" style="color:var(--grey-d);font-size:1rem;cursor:grab;padding:0 2px;touch-action:none;user-select:none;line-height:1">⠿</div>
+        <div class="zs-emoji" onclick="zsEditEmoji(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="font-size:1.5rem;cursor:pointer;min-width:34px;text-align:center" title="Changer l'emoji">${z.emoji}</div>
         <div style="flex:1;font-weight:700;font-size:.95rem">${z.nom}</div>
-        <button onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="border:none;background:var(--grey-l);border-radius:8px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--text)">✏️ Renommer</button>
+        <button onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="border:none;background:var(--grey-l);border-radius:8px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--text)">✏️</button>
         <button onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}') " style="border:none;background:#fff0f0;border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--red)">🗑</button>
       </div>`;
     });
@@ -3145,6 +3148,24 @@ function _zsRender() {
     </div>
   </div>`;
   el.innerHTML = html;
+
+  // Bind drag & drop (réutilise la fonction générique des recettes)
+  if (typeof ev3BindDrag === 'function') {
+    ev3BindDrag('zs-list', _zsZones, _zsSaveAndRender, '.zs-drag-handle');
+  }
+}
+
+function _zsSaveAndRender() {
+  _zsRender();
+  // Sauvegarder le nouvel ordre en BDD
+  _zsZones.forEach((z, i) => {
+    fetch(`/api/zones-stock/${z.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ordre: i })
+    }).catch(() => {});
+  });
+  _stockLoadZones(); // Mettre à jour les filtres + boutons du panel création
 }
 
 async function zsAdd() {
