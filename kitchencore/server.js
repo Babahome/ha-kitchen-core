@@ -159,6 +159,12 @@ db.exec(`
     conditions TEXT DEFAULT '[]',
     position   INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS zones_stock (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom      TEXT NOT NULL UNIQUE,
+    emoji    TEXT DEFAULT '📦',
+    ordre    INTEGER DEFAULT 0
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -250,6 +256,12 @@ db.exec(`UPDATE ingredients SET rayon_id=(
     const ins = db.prepare('INSERT OR IGNORE INTO tags(nom) VALUES(?)');
     all.forEach(nom => { if(nom) ins.run(nom); });
   }
+}
+
+// Seed zones_stock par défaut si vide
+if (db.prepare('SELECT COUNT(*) as n FROM zones_stock').get().n === 0) {
+  const ins = db.prepare('INSERT OR IGNORE INTO zones_stock(nom,emoji,ordre) VALUES(?,?,?)');
+  [['Frigo','🧊',0],['Freezer','❄️',1],['Placard','🚪',2]].forEach(([n,e,o]) => ins.run(n,e,o));
 }
 
 // Seed unités de base si vide
@@ -473,6 +485,50 @@ app.delete('/api/produits/:id', (req, res) => {
   db.prepare('DELETE FROM mouvements WHERE produit_id=?').run(id);
   db.prepare('DELETE FROM stocks WHERE produit_id=?').run(id);
   db.prepare('DELETE FROM produits WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ZONES STOCK
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/zones-stock', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM zones_stock ORDER BY ordre, id').all());
+});
+
+app.post('/api/zones-stock', (req, res) => {
+  const { nom, emoji = '📦' } = req.body;
+  if (!nom || !nom.trim()) return res.status(400).json({ error: 'nom requis' });
+  try {
+    const ordre = (db.prepare('SELECT MAX(ordre) as m FROM zones_stock').get().m ?? -1) + 1;
+    const r = db.prepare('INSERT INTO zones_stock(nom,emoji,ordre) VALUES(?,?,?)').run(nom.trim(), emoji, ordre);
+    res.status(201).json(db.prepare('SELECT * FROM zones_stock WHERE id=?').get(r.lastInsertRowid));
+  } catch(e) {
+    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Zone déjà existante' : e.message });
+  }
+});
+
+app.patch('/api/zones-stock/:id', (req, res) => {
+  const { nom, emoji, ordre } = req.body;
+  const sets = []; const vals = [];
+  if (nom !== undefined) { sets.push('nom=?'); vals.push(nom.trim()); }
+  if (emoji !== undefined) { sets.push('emoji=?'); vals.push(emoji); }
+  if (ordre !== undefined) { sets.push('ordre=?'); vals.push(ordre); }
+  if (!sets.length) return res.status(400).json({ error: 'rien à modifier' });
+  vals.push(req.params.id);
+  try {
+    db.prepare(`UPDATE zones_stock SET ${sets.join(',')} WHERE id=?`).run(...vals);
+    res.json(db.prepare('SELECT * FROM zones_stock WHERE id=?').get(req.params.id));
+  } catch(e) {
+    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Zone déjà existante' : e.message });
+  }
+});
+
+app.delete('/api/zones-stock/:id', (req, res) => {
+  const zone = db.prepare('SELECT * FROM zones_stock WHERE id=?').get(req.params.id);
+  if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+  const count = db.prepare("SELECT COUNT(*) as n FROM stocks WHERE zone=?").get(zone.nom).n;
+  if (count > 0) return res.status(409).json({ error: `Impossible : ${count} produit(s) dans cette zone. Déplacez-les d'abord.` });
+  db.prepare('DELETE FROM zones_stock WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 

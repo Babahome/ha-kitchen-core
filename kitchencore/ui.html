@@ -2032,7 +2032,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <!-- ══ PAGE STOCK ══════════════════════════════════════════════════════ -->
     <div id="page-stock" class="page active">
 
-      <!-- Filtres zones -->
+      <!-- Filtres zones (générés dynamiquement par _stockLoadZones) -->
       <div class="stock-filters">
         <div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>
         <div class="filter-pill" onclick="stockFilterZone(this,'Frigo')">🧊 Frigo</div>
@@ -2201,6 +2201,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
 
 
+
+    <!-- ══ PAGE ZONES STOCK ═══════════════════════════════════════════════════ -->
+    <div id="page-zones-stock" class="page">
+      <div id="zs-list" style="padding:12px 14px 80px"></div>
+    </div>
 
     <!-- ══ PAGE INGRÉDIENTS (v1.0) ═════════════════════════════════════════════ -->
     <div id="page-ingredients" class="page">
@@ -2633,7 +2638,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
-  <!-- MENU ⋮ STOCK -->
+  <!-- MENU ⋮ STOCK (mode normal) -->
+  <div class="m-hdmenu" id="stock-main-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" onclick="stockHideMainHdmenu();stockToggleSelectMode()"><span>☑️</span><span>Sélectionner</span></div>
+    <div class="m-hdmenu-item" onclick="stockHideMainHdmenu();zsOpen()"><span>🗂</span><span>Gérer les zones</span></div>
+  </div>
+
+  <!-- MENU ⋮ STOCK (mode sélection) -->
   <div class="m-hdmenu" id="stock-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
     <div class="m-hdmenu-item danger" id="stock-hd-delete" onclick="stockDeleteSelected();stockHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
@@ -2855,7 +2866,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="pnp-field">
         <div class="pnp-label">Zone de stockage</div>
-        <div class="pnp-zone-row">
+        <div class="pnp-zone-row" id="pnp-zone-row">
           <div class="pnp-zone-btn active" onclick="pnpZone(this,'Frigo')">🧊 Frigo</div>
           <div class="pnp-zone-btn" onclick="pnpZone(this,'Freezer')">❄️ Freezer</div>
           <div class="pnp-zone-btn" onclick="pnpZone(this,'Placard')">🚪 Placard</div>
@@ -2905,7 +2916,7 @@ function toggleCheck(el) {
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — chargement et affichage dynamique
 // ════════════════════════════════════════════════════════════════════════════
-const STOCK_ZONES = [
+let STOCK_ZONES = [
   { key: 'Frigo',   emoji: '🧊' },
   { key: 'Freezer', emoji: '❄️' },
   { key: 'Placard', emoji: '🚪' },
@@ -2915,7 +2926,32 @@ let _stockItems      = [];
 let _stockSelectMode = false;
 let _stockSelectedIds = new Set();
 
+async function _stockLoadZones() {
+  try {
+    const r = await fetch('/api/zones-stock');
+    if (r.ok) {
+      const zones = await r.json();
+      STOCK_ZONES = zones.map(z => ({ key: z.nom, emoji: z.emoji, id: z.id }));
+    }
+  } catch(e) {}
+  // Mettre à jour les filtres pills
+  const fp = document.querySelector('#page-stock .stock-filters');
+  if (fp) {
+    fp.innerHTML = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
+      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+  }
+  // Mettre à jour les boutons du panel création
+  const zr = document.getElementById('pnp-zone-row');
+  if (zr) {
+    zr.innerHTML = STOCK_ZONES.map((z, i) =>
+      `<div class="pnp-zone-btn${i===0?' active':''}" onclick="pnpZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`
+    ).join('');
+    if (STOCK_ZONES.length > 0) _pnpZone = STOCK_ZONES[0].key;
+  }
+}
+
 async function _stockLoad() {
+  await _stockLoadZones();
   try {
     const r = await fetch('/api/stocks');
     _stockItems = r.ok ? await r.json() : [];
@@ -3028,6 +3064,9 @@ function stockToggleSelectMode() {
 function stockHideHdmenu() {
   document.getElementById('stock-hdmenu')?.classList.remove('on');
 }
+function stockHideMainHdmenu() {
+  document.getElementById('stock-main-hdmenu')?.classList.remove('on');
+}
 
 function _stockUpdateSelectUI() {
   const n = _stockSelectedIds.size;
@@ -3060,8 +3099,104 @@ async function stockDeleteSelected() {
 
 window.stockToggleSelectMode = stockToggleSelectMode;
 window.stockHideHdmenu       = stockHideHdmenu;
+window.stockHideMainHdmenu   = stockHideMainHdmenu;
 window.stockToggleCard       = stockToggleCard;
 window.stockDeleteSelected   = stockDeleteSelected;
+
+// ════════════════════════════════════════════════════════════════════════════
+// GESTION DES ZONES DE STOCK
+// ════════════════════════════════════════════════════════════════════════════
+let _zsZones = [];
+
+function zsOpen() {
+  switchPage(null, 'zones-stock', 'Zones de stock');
+}
+
+async function _zsLoad() {
+  try {
+    const r = await fetch('/api/zones-stock');
+    _zsZones = r.ok ? await r.json() : [];
+  } catch(e) { _zsZones = []; }
+  _zsRender();
+}
+
+function _zsRender() {
+  const el = document.getElementById('zs-list');
+  if (!el) return;
+  let html = `<div style="font-size:.8rem;color:var(--grey-d);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Zones de stockage</div>`;
+  if (_zsZones.length === 0) {
+    html += `<div style="color:#aaa;padding:20px 0;text-align:center">Aucune zone définie</div>`;
+  } else {
+    _zsZones.forEach(z => {
+      html += `<div class="zs-card" style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <div class="zs-emoji" onclick="zsEditEmoji(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="font-size:1.6rem;cursor:pointer;min-width:36px;text-align:center" title="Changer l'emoji">${z.emoji}</div>
+        <div style="flex:1;font-weight:700;font-size:.95rem">${z.nom}</div>
+        <button onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="border:none;background:var(--grey-l);border-radius:8px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--text)">✏️ Renommer</button>
+        <button onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}') " style="border:none;background:#fff0f0;border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--red)">🗑</button>
+      </div>`;
+    });
+  }
+  html += `<div style="margin-top:18px">
+    <div style="font-size:.8rem;color:var(--grey-d);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Nouvelle zone</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="zs-new-emoji" value="📦" style="width:48px;text-align:center;border:1.5px solid var(--grey-l);border-radius:10px;padding:10px 4px;font-size:1.2rem;background:white">
+      <input id="zs-new-nom" placeholder="Nom de la zone…" style="flex:1;border:1.5px solid var(--grey-l);border-radius:10px;padding:10px 12px;font-size:.95rem;background:white" onkeydown="if(event.key==='Enter')zsAdd()">
+      <button onclick="zsAdd()" style="border:none;background:var(--orange);color:white;border-radius:10px;padding:10px 16px;font-size:.9rem;font-weight:800;cursor:pointer">+</button>
+    </div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+async function zsAdd() {
+  const nom = document.getElementById('zs-new-nom')?.value?.trim();
+  const emoji = document.getElementById('zs-new-emoji')?.value?.trim() || '📦';
+  if (!nom) { showToast('Entrez un nom de zone', 'warn'); return; }
+  try {
+    const r = await fetch('/api/zones-stock', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nom, emoji }) });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Erreur', 'error'); return; }
+    showToast(`Zone "${nom}" ajoutée`);
+    document.getElementById('zs-new-nom').value = '';
+    document.getElementById('zs-new-emoji').value = '📦';
+    await _zsLoad();
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+async function zsRename(id, currentNom, currentEmoji) {
+  const newNom = prompt(`Nouveau nom pour "${currentNom}" :`, currentNom);
+  if (!newNom || !newNom.trim() || newNom.trim() === currentNom) return;
+  try {
+    const r = await fetch(`/api/zones-stock/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nom: newNom.trim() }) });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Erreur', 'error'); return; }
+    // Mettre à jour les stocks qui utilisaient l'ancien nom
+    showToast(`Zone renommée en "${newNom.trim()}"`);
+    await _zsLoad();
+    await _stockLoadZones();
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+async function zsEditEmoji(id, currentNom, currentEmoji) {
+  const newEmoji = prompt(`Nouvel emoji pour "${currentNom}" :`, currentEmoji);
+  if (!newEmoji || newEmoji.trim() === currentEmoji) return;
+  try {
+    const r = await fetch(`/api/zones-stock/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ emoji: newEmoji.trim() }) });
+    if (!r.ok) { const d = await r.json(); showToast(d.error||'Erreur','error'); return; }
+    await _zsLoad();
+    await _stockLoadZones();
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+async function zsDelete(id, nom) {
+  try {
+    const r = await fetch(`/api/zones-stock/${id}`, { method:'DELETE' });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Erreur', 'error'); return; }
+    showToast(`Zone "${nom}" supprimée`);
+    await _zsLoad();
+    await _stockLoadZones();
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
 
 function stockFilterZone(pill, zone) {
   document.querySelectorAll('#page-stock .filter-pill').forEach(p => p.classList.remove('active'));
@@ -3103,6 +3238,7 @@ const PAGE_CONFIG = {
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
   marchands:            { title: '🏪 Marchands',           fab: true,  search: false, fabIcon: '+', dark: false },
   'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
+  'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
 };
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
@@ -3167,6 +3303,7 @@ function switchPage(tab, page, title) {
   if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
   if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
   if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
+  if (page === 'zones-stock'        && typeof _zsLoad     === 'function') _zsLoad();
   if (page === 'stock'              && typeof _stockLoad  === 'function') _stockLoad();
   if (page !== 'stock') {
     _stockSelectMode = false;
@@ -5339,7 +5476,13 @@ function mHeaderDotsClick(){
     return;
   }
   if(page === 'stock'){
-    stockToggleSelectMode();
+    if(_stockSelectMode){
+      const m = document.getElementById('stock-hdmenu');
+      if(m) m.classList.toggle('on');
+    } else {
+      const m = document.getElementById('stock-main-hdmenu');
+      if(m) m.classList.toggle('on');
+    }
     return;
   }
   if(page === 'courses'){
@@ -5749,10 +5892,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
     document.getElementById('ing-hdmenu')?.classList.remove('on');
     clHideHdmenu();
+    stockHideHdmenu();
+    stockHideMainHdmenu();
   });
 });
 
