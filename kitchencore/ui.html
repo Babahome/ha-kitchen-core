@@ -3667,12 +3667,10 @@ function _renderScanList() {
   }
   empty.style.display = 'none';
 
-  const knownQty = _scanList.filter(i => i.status === 'known').reduce((s, i) => s + i.qty, 0);
-  const unknownN = _scanList.filter(i => i.status === 'unknown').length;
-  fab.classList.toggle('visible', knownQty > 0);
-  fab.textContent = knownQty > 0
-    ? `✓ Ajouter ${knownQty} au stock${unknownN ? ` · ${unknownN} à créer` : ''}`
-    : `${unknownN} produit${unknownN > 1 ? 's' : ''} à créer`;
+  const readyItems = _scanList.filter(i => i.status !== 'loading');
+  const totalQty   = readyItems.reduce((s, i) => s + i.qty, 0);
+  fab.classList.toggle('visible', readyItems.length > 0);
+  fab.textContent = `✓ Ajouter ${totalQty} au stock`;
 
   list.innerHTML = _scanList.map((item, idx) => {
     const photoSrc = item.photoOFF || (item.photo && item.photo.startsWith('http') ? item.photo : null) || (item.photo && item.photo.startsWith('data:') ? item.photo : null);
