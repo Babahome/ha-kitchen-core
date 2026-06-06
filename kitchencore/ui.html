@@ -3614,7 +3614,7 @@ async function onCodeDetected(code) {
       item.nom = p.nom;
       item.marque = p.marque || '';
       item.zone = p.zone || 'Frigo';
-      item.photo = (p.icone && p.icone.startsWith('http')) ? p.icone : (photo || null);
+      item.photo = (p.icone && (p.icone.startsWith('http') || p.icone.startsWith('/'))) ? p.icone : (photo || null);
       item.status = 'known';
     } else {
       item.status = 'unknown';
