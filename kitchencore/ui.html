@@ -3717,46 +3717,55 @@ function _scanRemove(idx) {
 }
 
 async function validateScanList() {
-  const known   = _scanList.filter(i => i.status === 'known');
-  const toCreate = _scanList.filter(i => i.status === 'new' || i.status === 'unknown');
+  const items = _scanList.filter(i => i.status !== 'loading');
+  if (!items.length) { showToast('Liste vide', 'warn'); return; }
 
-  if (!known.length && !toCreate.length) { showToast('Liste vide', 'warn'); return; }
+  const fab = document.getElementById('scan-validate-fab');
+  fab.textContent = '⏳ En cours…';
+  fab.disabled = true;
 
-  if (known.length) {
-    const fab = document.getElementById('scan-validate-fab');
-    fab.textContent = '⏳ Ajout en cours…';
-    fab.disabled = true;
-
-    let ok = 0, err = 0;
-    for (const item of known) {
-      try {
-        const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, {
+  let ok = 0, err = 0;
+  for (const item of items) {
+    try {
+      // Produits inconnus/nouveaux : créer d'abord automatiquement
+      if (item.status !== 'known') {
+        const rp = await fetch('/api/produits', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ packs: item.qty })
+          body: JSON.stringify({
+            nom: item.nom !== item.code ? item.nom : `Produit ${item.code}`,
+            marque: item.marque || null,
+            code_barres: item.code,
+            zone: 'À définir',
+            contenance: 1,
+            unite: 'unité',
+            ingredient_id: null
+          })
         });
-        if (r.ok) ok += item.qty; else err++;
-      } catch(e) { err++; }
-    }
-    fab.disabled = false;
-    _scanList = _scanList.filter(i => i.status !== 'known');
-    _renderScanList();
-    _stockLoad();
-
-    const msg = `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}`
-      + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : '')
-      + (toCreate.length ? ` · ${toCreate.length} à créer` : '');
-    showToast(msg, err ? 'warn' : 'ok');
+        if (!rp.ok) { err++; continue; }
+        const produit = await rp.json();
+        item.produitId = produit.id;
+        item.status = 'known';
+      }
+      // Ajouter au stock
+      const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packs: item.qty })
+      });
+      if (r.ok) ok += item.qty; else err++;
+    } catch(e) { err++; }
   }
 
-  // Lancer la création des produits inconnus/nouveaux un par un
-  if (toCreate.length) _processNextUnknown();
-}
+  fab.disabled = false;
+  _scanList = [];
+  _renderScanList();
+  _stockLoad();
 
-function _processNextUnknown() {
-  const next = _scanList.find(i => i.status === 'new' || i.status === 'unknown');
-  if (!next) return;
-  openNewProduit(next.code);
+  showToast(
+    `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}` + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : ''),
+    err ? 'warn' : 'ok'
+  );
 }
 
 function confirmManual() {
@@ -3939,8 +3948,6 @@ async function saveNewProduit() {
     }
     closeNewProduit();
     _stockLoad();
-    // Produit suivant à créer dans la queue
-    setTimeout(_processNextUnknown, 350);
   } catch(e) {
     console.error('[saveNewProduit]', e.message);
     showToast('Erreur : ' + e.message, 'error');
