@@ -447,7 +447,7 @@ app.get('/api/produits', (_req, res) => {
 app.get('/api/produits/barcode/:code', (req, res) => {
   try {
     const row = db.prepare(`
-      SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
+      SELECT p.*, a.nom AS ingredient_nom, COALESCE(a.icone, p.icone) AS icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
       FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
       WHERE p.code_barres=?
     `).get(req.params.code);
