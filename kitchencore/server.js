@@ -351,6 +351,20 @@ app.post('/api/ingredients/:id/photo', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/produits/:id/photo', (req, res) => {
+  const { base64, mime } = req.body;
+  if (!base64 || !mime) return res.status(400).json({ error: 'base64 et mime requis' });
+  const ext = (mime.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+  const filename = `prod_${req.params.id}_${Date.now()}.${ext}`;
+  const filepath = path.join(PHOTOS_DIR, filename);
+  try {
+    fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
+    const url = `/photos/${filename}`;
+    db.prepare('UPDATE produits SET icone=? WHERE id=?').run(url, req.params.id);
+    res.json({ url });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.delete('/api/ingredients/:id', (req, res) => {
   try {
     const n = db.prepare('SELECT COUNT(*) as n FROM produits WHERE ingredient_id=?').get(req.params.id).n;

@@ -3745,6 +3745,18 @@ async function validateScanList() {
         const produit = await rp.json();
         item.produitId = produit.id;
         item.status = 'known';
+        // Upload photo caméra si pas de photo OFF (produit vraiment inconnu)
+        if (!item.photoOFF && item.photo && item.photo.startsWith('data:')) {
+          try {
+            const [header, b64] = item.photo.split(',');
+            const mime = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+            await fetch(`/api/produits/${produit.id}/photo`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ base64: b64, mime })
+            });
+          } catch(_) {}
+        }
       }
       // Ajouter au stock
       const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, {
