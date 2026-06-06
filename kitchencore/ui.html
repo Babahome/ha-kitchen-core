@@ -496,7 +496,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 /* Viewfinder */
 .scanner-view {
-  flex: 1; position: relative; overflow: hidden;
+  flex: 0 0 42vh; position: relative; overflow: hidden;
 }
 #scanner-video {
   width: 100%; height: 100%; object-fit: cover; display: block;
@@ -587,6 +587,54 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   padding: 6px 12px; font-weight: 700; font-size: .8rem; font-family: var(--font);
   cursor: pointer; flex-shrink: 0;
 }
+
+/* ── Liste de scans (mode caisse) ─────────────────────────────────────────── */
+.scan-list-area {
+  flex: 1; background: white; position: relative;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column;
+}
+.scan-list-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #ccc; font-size: .9rem; gap: 8px; padding: 20px;
+}
+.scan-list-empty span { font-size: 2rem; }
+.scan-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
+  cursor: default;
+}
+.scan-item.unknown { cursor: pointer; background: #fff8f5; }
+.scan-item-photo {
+  width: 44px; height: 44px; border-radius: 8px;
+  background: #f5f5f5; flex-shrink: 0;
+  display: grid; place-items: center; overflow: hidden; font-size: 1.3rem;
+}
+.scan-item-photo img { width: 44px; height: 44px; object-fit: cover; }
+.scan-item-info { flex: 1; min-width: 0; }
+.scan-item-name {
+  font-weight: 700; font-size: .88rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scan-item.unknown .scan-item-name { color: #e65100; }
+.scan-item-sub { font-size: .72rem; color: #999; margin-top: 2px; }
+.scan-item-qty { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.scan-qty-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: #f0f0f0; font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; display: grid; place-items: center; font-family: var(--font);
+}
+.scan-qty-val { font-weight: 800; font-size: 1rem; min-width: 20px; text-align: center; }
+.scan-item-del { color: #ddd; font-size: 1rem; cursor: pointer; padding: 0 4px; flex-shrink: 0; }
+.scan-validate-fab {
+  position: sticky; bottom: 0; left: 0; right: 0;
+  background: var(--orange); color: white; border: none;
+  padding: 16px 20px; font-size: 1rem; font-weight: 800; font-family: var(--font);
+  cursor: pointer; display: none; align-items: center; justify-content: center;
+  gap: 8px; box-shadow: 0 -2px 12px rgba(0,0,0,.1);
+}
+.scan-validate-fab.visible { display: flex; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    BURGER DRAWER
@@ -2514,15 +2562,16 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="scanner-manual-ok" onclick="confirmManual()">OK</button>
     </div>
 
-    <!-- Résultat -->
-    <div class="scanner-result" id="scanner-result">
-      <div class="scanner-result-title" id="result-title">Produit détecté</div>
-      <div class="scanner-result-name" id="result-name">—</div>
-      <div class="scanner-result-sub"  id="result-sub">—</div>
-      <div class="scanner-result-row">
-        <button class="scanner-result-btn ghost" onclick="resetScan()">↩ Rescanner</button>
-        <button class="scanner-result-btn primary" id="result-action-btn" onclick="addToStock()">+ Ajouter au stock</button>
+    <!-- Liste scans (mode caisse) -->
+    <div class="scan-list-area">
+      <div class="scan-list-empty" id="scan-list-empty">
+        <span>📦</span>
+        Scannez des produits — ils apparaîtront ici
       </div>
+      <div id="scan-list"></div>
+      <button class="scan-validate-fab" id="scan-validate-fab" onclick="validateScanList()">
+        ✓ Ajouter au stock
+      </button>
     </div>
 
   </div>
@@ -3391,6 +3440,9 @@ function _stopScanner() {
 
 async function openScanner() {
   document.getElementById('scanner-modal').classList.add('open');
+  _scanList = [];
+  _scanCooldown = {};
+  _renderScanList();
   resetScan();
 
   try {
@@ -3439,14 +3491,13 @@ async function _startScanner() {
       document.querySelector('.scanner-hint').textContent = 'Placez le code-barres dans le cadre';
 
       const loop = async () => {
-        if (_scanDone || !_nativeDetector) return;
-        if (video.readyState >= 2) {
+        if (!_nativeDetector) return;
+        if (!_scanDone && video.readyState >= 2) {
           try {
             const results = await _nativeDetector.detect(video);
             if (results.length && !_scanDone) {
               _scanDone = true;
               onCodeDetected(results[0].rawValue);
-              return;
             }
           } catch(_) {}
         }
@@ -3498,85 +3549,203 @@ async function _startScanner() {
   });
 }
 
-let _scanProduct = null; // produit trouvé par l'API, ou null
+// ── MODE CAISSE ───────────────────────────────────────────────────────────────
+let _scanList = [];       // [{code, produitId, nom, marque, zone, qty, photo, status}]
+let _scanCooldown = {};   // code → timestamp dernière détection
+const _SCAN_COOLDOWN_MS = 2000;
+
+function _captureFrame() {
+  const video = document.getElementById('scanner-video');
+  if (!video || !video.videoWidth) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.6);
+  } catch(e) { return null; }
+}
 
 async function onCodeDetected(code) {
   if (navigator.vibrate) navigator.vibrate(80);
-  _stopScanner();
+
+  // Cooldown : même code ignoré pendant _SCAN_COOLDOWN_MS
+  const now = Date.now();
+  if (_scanCooldown[code] && now - _scanCooldown[code] < _SCAN_COOLDOWN_MS) {
+    _scanDone = false; return;
+  }
+  _scanCooldown[code] = now;
+  _scanDone = false; // relance la boucle de détection
 
   document.getElementById('manual-barcode').value = code;
-  document.getElementById('result-title').textContent = 'Recherche…';
-  document.getElementById('result-name').textContent = code;
-  document.getElementById('result-sub').textContent = 'Interrogation du catalogue…';
-  document.getElementById('result-action-btn').textContent = '…';
-  document.getElementById('result-action-btn').onclick = null;
-  document.getElementById('scanner-result').classList.add('show');
 
+  // Déjà dans la liste → incrémenter la quantité
+  const existing = _scanList.find(i => i.code === code);
+  if (existing && existing.status !== 'loading') {
+    existing.qty++;
+    _renderScanList();
+    _flashFrame();
+    return;
+  }
+
+  // Nouveau code : capturer frame et ajouter en "loading"
+  const photo = _captureFrame();
+  const item = { code, produitId: null, nom: code, marque: '', zone: 'Frigo', qty: 1, photo, status: 'loading' };
+  _scanList.unshift(item);
+  _renderScanList();
+  _flashFrame();
+
+  // Lookup dans notre catalogue
   try {
     const res = await fetch(`/api/produits/barcode/${encodeURIComponent(code)}`);
     if (res.ok) {
-      _scanProduct = await res.json();
-      document.getElementById('result-title').textContent = 'Produit trouvé ✓';
-      document.getElementById('result-name').textContent = _scanProduct.nom + (_scanProduct.marque ? ` — ${_scanProduct.marque}` : '');
-      document.getElementById('result-sub').textContent  = `Zone : ${_scanProduct.zone || '?'} · Stock : ${(_scanProduct.packs_pleins||0) + (_scanProduct.unites_ouvert||0)}`;
-      document.getElementById('result-action-btn').textContent = '+ Ajouter au stock';
-      document.getElementById('result-action-btn').onclick = addToStock;
-    } else if (res.status === 404) {
-      _scanProduct = null;
-      document.getElementById('result-title').textContent = 'Produit inconnu';
-      document.getElementById('result-name').textContent = `Code : ${code}`;
-      document.getElementById('result-sub').textContent  = 'Ce produit n\'est pas encore dans le catalogue';
-      document.getElementById('result-action-btn').textContent = '+ Créer le produit';
-      document.getElementById('result-action-btn').onclick = () => openNewProduit(code);
+      const p = await res.json();
+      item.produitId = p.id;
+      item.nom = p.nom;
+      item.marque = p.marque || '';
+      item.zone = p.zone || 'Frigo';
+      item.photo = (p.icone && p.icone.startsWith('http')) ? p.icone : (photo || null);
+      item.status = 'known';
     } else {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Erreur serveur ${res.status}`);
+      item.status = 'unknown';
+      _renderScanList();
+      _lookupOFF(item); // enrichissement en arrière-plan
+      return;
     }
   } catch(e) {
-    document.getElementById('result-title').textContent = 'Erreur';
-    document.getElementById('result-name').textContent = e.message;
-    document.getElementById('result-sub').textContent = 'Consulte la console pour le détail';
-    document.getElementById('result-action-btn').textContent = 'Réessayer';
-    document.getElementById('result-action-btn').onclick = () => onCodeDetected(code);
-    console.error('barcode lookup error:', e.message);
+    item.status = 'unknown';
   }
+  _renderScanList();
+}
+
+async function _lookupOFF(item) {
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${item.code}?fields=product_name,product_name_fr,generic_name,generic_name_fr,brands,quantity,image_front_small_url`);
+    const data = await r.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const nom = p.product_name_fr || p.generic_name_fr || p.product_name || p.generic_name || '';
+      const marque = p.brands ? p.brands.split(',')[0].trim() : '';
+      if (nom) item.nom = nom;
+      if (marque) item.marque = marque;
+      if (p.image_front_small_url) item.photoOFF = p.image_front_small_url;
+      item.offFound = true;
+    }
+  } catch(e) {}
+  _renderScanList();
+}
+
+function _flashFrame() {
+  const frame = document.querySelector('.scanner-frame');
+  if (!frame) return;
+  frame.classList.add('confirming');
+  setTimeout(() => frame.classList.remove('confirming'), 400);
+}
+
+function _renderScanList() {
+  const list = document.getElementById('scan-list');
+  const fab  = document.getElementById('scan-validate-fab');
+  const empty = document.getElementById('scan-list-empty');
+  if (!list) return;
+
+  if (!_scanList.length) {
+    list.innerHTML = '';
+    fab.classList.remove('visible');
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const knownQty = _scanList.filter(i => i.status === 'known').reduce((s, i) => s + i.qty, 0);
+  const unknownN = _scanList.filter(i => i.status === 'unknown').length;
+  fab.classList.toggle('visible', knownQty > 0);
+  fab.textContent = knownQty > 0
+    ? `✓ Ajouter ${knownQty} au stock${unknownN ? ` · ${unknownN} à créer` : ''}`
+    : `${unknownN} produit${unknownN > 1 ? 's' : ''} à créer`;
+
+  list.innerHTML = _scanList.map((item, idx) => {
+    const photoSrc = item.photoOFF || (item.photo && item.photo.startsWith('http') ? item.photo : null) || (item.photo && item.photo.startsWith('data:') ? item.photo : null);
+    const photoHtml = photoSrc
+      ? `<img src="${photoSrc}">`
+      : `📦`;
+
+    const sub = item.status === 'loading'  ? `<span style="color:#aaa">recherche…</span>`
+      : item.status === 'unknown' ? `<span style="color:#e65100;font-weight:700">⚠ Inconnu — toucher pour créer</span>`
+      : `<span>${item.marque || ''}${item.marque && item.zone ? ' · ' : ''}${item.zone || ''}</span>`;
+
+    const qtyHtml = item.status !== 'loading' ? `
+      <div class="scan-item-qty">
+        <button class="scan-qty-btn" onclick="event.stopPropagation();_scanQty(${idx},-1)">−</button>
+        <span class="scan-qty-val">${item.qty}</span>
+        <button class="scan-qty-btn" onclick="event.stopPropagation();_scanQty(${idx},+1)">+</button>
+      </div>` : '';
+
+    return `<div class="scan-item${item.status === 'unknown' ? ' unknown' : ''}"
+        ${item.status === 'unknown' ? `onclick="openNewProduit('${item.code.replace(/'/g,"\\'")}')"` : ''}>
+      <div class="scan-item-photo">${photoHtml}</div>
+      <div class="scan-item-info">
+        <div class="scan-item-name">${item.nom}</div>
+        <div class="scan-item-sub">${sub}</div>
+      </div>
+      ${qtyHtml}
+      <span class="scan-item-del" onclick="event.stopPropagation();_scanRemove(${idx})">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function _scanQty(idx, delta) {
+  if (!_scanList[idx]) return;
+  _scanList[idx].qty = Math.max(1, _scanList[idx].qty + delta);
+  _renderScanList();
+}
+
+function _scanRemove(idx) {
+  _scanList.splice(idx, 1);
+  _renderScanList();
+}
+
+async function validateScanList() {
+  const known = _scanList.filter(i => i.status === 'known');
+  if (!known.length) { showToast('Aucun produit connu à valider', 'warn'); return; }
+
+  const fab = document.getElementById('scan-validate-fab');
+  fab.textContent = '⏳ Ajout en cours…';
+  fab.disabled = true;
+
+  let ok = 0, err = 0;
+  for (const item of known) {
+    for (let i = 0; i < item.qty; i++) {
+      try {
+        const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, { method: 'POST' });
+        if (r.ok) ok++; else err++;
+      } catch(e) { err++; }
+    }
+  }
+  fab.disabled = false;
+  _scanList = _scanList.filter(i => i.status !== 'known');
+  _renderScanList();
+  _stockLoad();
+
+  const msg = `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}`
+    + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : '')
+    + (_scanList.length ? ` · ${_scanList.length} produit${_scanList.length > 1 ? 's' : ''} à créer` : '');
+  showToast(msg, err ? 'warn' : 'ok');
 }
 
 function confirmManual() {
   const code = document.getElementById('manual-barcode').value.trim();
   if (!code) return;
+  document.getElementById('manual-barcode').value = '';
   onCodeDetected(code);
 }
 
 function resetScan() {
-  _scanProduct = null;
+  _scanDone = false;
   _lastCode = null;
   _confirmCount = 0;
   document.querySelector('.scanner-frame')?.classList.remove('confirming');
-  document.getElementById('scanner-result').classList.remove('show');
   document.getElementById('manual-barcode').value = '';
-  document.getElementById('result-name').textContent = '—';
-  document.getElementById('result-sub').textContent = '—';
   if (document.getElementById('scanner-modal').classList.contains('open') && _videoDevices.length) {
     _startScanner();
-  }
-}
-
-async function addToStock() {
-  if (!_scanProduct) return;
-  try {
-    const res = await fetch(`/api/stocks/${_scanProduct.id}/ajouter`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ packs_pleins: 1 })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const s = await res.json();
-    const total = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
-    showToast(`✓ ${_scanProduct.nom} — stock : ${total}`, 'ok');
-    closeScanner();
-  } catch(e) {
-    showToast('Erreur : ' + e.message, 'error');
   }
 }
 
@@ -3585,7 +3754,6 @@ function closeScanner() {
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
-  document.getElementById('scanner-result').classList.remove('show');
   document.getElementById('manual-barcode').value = '';
 }
 
@@ -3731,8 +3899,17 @@ async function saveNewProduit() {
       body: JSON.stringify({ packs_pleins: 1 })
     });
     showToast(`✓ ${nom} ajouté au stock`, 'ok');
+    // Mettre à jour l'item dans la liste de scan s'il était inconnu
+    const scanItem = _scanList.find(i => i.code === code);
+    if (scanItem) {
+      scanItem.produitId = produit.id;
+      scanItem.nom = nom;
+      scanItem.marque = document.getElementById('pnp-marque').value.trim() || '';
+      scanItem.zone = _pnpZone;
+      scanItem.status = 'known';
+      _renderScanList();
+    }
     closeNewProduit();
-    closeScanner();
     _stockLoad();
   } catch(e) {
     console.error('[saveNewProduit]', e.message);
