@@ -2972,9 +2972,10 @@ function toggleCheck(el) {
 // STOCK — chargement et affichage dynamique
 // ════════════════════════════════════════════════════════════════════════════
 let STOCK_ZONES = [
-  { key: 'Frigo',   emoji: '🧊' },
-  { key: 'Freezer', emoji: '❄️' },
-  { key: 'Placard', emoji: '🚪' },
+  { key: 'À définir', emoji: '❓' },
+  { key: 'Frigo',     emoji: '🧊' },
+  { key: 'Freezer',   emoji: '❄️' },
+  { key: 'Placard',   emoji: '🚪' },
 ];
 let _stockFilter     = 'all';
 let _stockItems      = [];
@@ -2999,7 +3000,7 @@ async function _stockLoadZones() {
   const zr = document.getElementById('pnp-zone-row');
   if (zr) {
     zr.innerHTML = STOCK_ZONES.map((z, i) =>
-      `<div class="pnp-zone-btn${i===0?' active':''}" onclick="pnpZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`
+      `<div class="pnp-zone-btn${i===0?' active':''}" data-zone="${z.key}" onclick="pnpZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`
     ).join('');
     if (STOCK_ZONES.length > 0) _pnpZone = STOCK_ZONES[0].key;
   }
@@ -3496,8 +3497,19 @@ async function _startScanner() {
           try {
             const results = await _nativeDetector.detect(video);
             if (results.length && !_scanDone) {
-              _scanDone = true;
-              onCodeDetected(results[0].rawValue);
+              const code = results[0].rawValue;
+              if (code === _lastCode) {
+                _confirmCount++;
+                if (_confirmCount >= _CONFIRM_NEEDED) {
+                  _scanDone = true;
+                  _lastCode = null; _confirmCount = 0;
+                  onCodeDetected(code);
+                }
+              } else {
+                _lastCode = code; _confirmCount = 1;
+              }
+            } else if (!results.length) {
+              _lastCode = null; _confirmCount = 0;
             }
           } catch(_) {}
         }
@@ -3566,8 +3578,6 @@ function _captureFrame() {
 }
 
 async function onCodeDetected(code) {
-  if (navigator.vibrate) navigator.vibrate(80);
-
   // Cooldown : même code ignoré pendant _SCAN_COOLDOWN_MS
   const now = Date.now();
   if (_scanCooldown[code] && now - _scanCooldown[code] < _SCAN_COOLDOWN_MS) {
@@ -3575,6 +3585,7 @@ async function onCodeDetected(code) {
   }
   _scanCooldown[code] = now;
   _scanDone = false; // relance la boucle de détection
+  if (navigator.vibrate) navigator.vibrate(80);
 
   document.getElementById('manual-barcode').value = code;
 
@@ -3628,8 +3639,9 @@ async function _lookupOFF(item) {
       if (nom) item.nom = nom;
       if (marque) item.marque = marque;
       if (p.image_front_small_url) item.photoOFF = p.image_front_small_url;
-      item.offFound = true;
+      item.status = 'new'; // connu OFF, nouveau dans notre stock
     }
+    // sinon status reste 'unknown' : vraiment inconnu
   } catch(e) {}
   _renderScanList();
 }
@@ -3668,8 +3680,9 @@ function _renderScanList() {
       ? `<img src="${photoSrc}">`
       : `📦`;
 
-    const sub = item.status === 'loading'  ? `<span style="color:#aaa">recherche…</span>`
-      : item.status === 'unknown' ? `<span style="color:#e65100;font-weight:700">⚠ Inconnu — toucher pour créer</span>`
+    const sub = item.status === 'loading' ? `<span style="color:#aaa">recherche…</span>`
+      : item.status === 'unknown' ? `<span style="color:#c62828;font-weight:700">❓ Inconnu</span>`
+      : item.status === 'new'     ? `<span style="color:#e65100;font-weight:700">✦ Nouveau — sera créé</span>`
       : `<span>${item.marque || ''}${item.marque && item.zone ? ' · ' : ''}${item.zone || ''}</span>`;
 
     const qtyHtml = item.status !== 'loading' ? `
@@ -3679,8 +3692,8 @@ function _renderScanList() {
         <button class="scan-qty-btn" onclick="event.stopPropagation();_scanQty(${idx},+1)">+</button>
       </div>` : '';
 
-    return `<div class="scan-item${item.status === 'unknown' ? ' unknown' : ''}"
-        ${item.status === 'unknown' ? `onclick="openNewProduit('${item.code.replace(/'/g,"\\'")}')"` : ''}>
+    const isNew = item.status === 'new' || item.status === 'unknown';
+    return `<div class="scan-item${isNew ? ' unknown' : ''}">
       <div class="scan-item-photo">${photoHtml}</div>
       <div class="scan-item-info">
         <div class="scan-item-name">${item.nom}</div>
@@ -3704,31 +3717,46 @@ function _scanRemove(idx) {
 }
 
 async function validateScanList() {
-  const known = _scanList.filter(i => i.status === 'known');
-  if (!known.length) { showToast('Aucun produit connu à valider', 'warn'); return; }
+  const known   = _scanList.filter(i => i.status === 'known');
+  const toCreate = _scanList.filter(i => i.status === 'new' || i.status === 'unknown');
 
-  const fab = document.getElementById('scan-validate-fab');
-  fab.textContent = '⏳ Ajout en cours…';
-  fab.disabled = true;
+  if (!known.length && !toCreate.length) { showToast('Liste vide', 'warn'); return; }
 
-  let ok = 0, err = 0;
-  for (const item of known) {
-    for (let i = 0; i < item.qty; i++) {
+  if (known.length) {
+    const fab = document.getElementById('scan-validate-fab');
+    fab.textContent = '⏳ Ajout en cours…';
+    fab.disabled = true;
+
+    let ok = 0, err = 0;
+    for (const item of known) {
       try {
-        const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, { method: 'POST' });
-        if (r.ok) ok++; else err++;
+        const r = await fetch(`/api/stocks/${item.produitId}/ajouter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ packs: item.qty })
+        });
+        if (r.ok) ok += item.qty; else err++;
       } catch(e) { err++; }
     }
-  }
-  fab.disabled = false;
-  _scanList = _scanList.filter(i => i.status !== 'known');
-  _renderScanList();
-  _stockLoad();
+    fab.disabled = false;
+    _scanList = _scanList.filter(i => i.status !== 'known');
+    _renderScanList();
+    _stockLoad();
 
-  const msg = `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}`
-    + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : '')
-    + (_scanList.length ? ` · ${_scanList.length} produit${_scanList.length > 1 ? 's' : ''} à créer` : '');
-  showToast(msg, err ? 'warn' : 'ok');
+    const msg = `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}`
+      + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : '')
+      + (toCreate.length ? ` · ${toCreate.length} à créer` : '');
+    showToast(msg, err ? 'warn' : 'ok');
+  }
+
+  // Lancer la création des produits inconnus/nouveaux un par un
+  if (toCreate.length) _processNextUnknown();
+}
+
+function _processNextUnknown() {
+  const next = _scanList.find(i => i.status === 'new' || i.status === 'unknown');
+  if (!next) return;
+  openNewProduit(next.code);
 }
 
 function confirmManual() {
@@ -3798,9 +3826,9 @@ async function openNewProduit(code) {
   document.getElementById('pnp-suggest').style.display = 'none';
   const badge = document.getElementById('pnp-off-badge');
   badge.style.display = 'none';
-  // Reset zone → Frigo
-  _pnpZone = 'Frigo';
-  document.querySelectorAll('.pnp-zone-btn').forEach(b => b.classList.toggle('active', b.textContent.includes('Frigo')));
+  // Reset zone → première zone disponible (défaut: À définir)
+  _pnpZone = STOCK_ZONES.length > 0 ? STOCK_ZONES[0].key : 'À définir';
+  document.querySelectorAll('.pnp-zone-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   document.getElementById('panel-new-produit').classList.add('open');
 
   // Lookup OpenFoodFacts si on a un code
@@ -3899,7 +3927,7 @@ async function saveNewProduit() {
       body: JSON.stringify({ packs_pleins: 1 })
     });
     showToast(`✓ ${nom} ajouté au stock`, 'ok');
-    // Mettre à jour l'item dans la liste de scan s'il était inconnu
+    // Mettre à jour l'item dans la liste de scan s'il était inconnu/nouveau
     const scanItem = _scanList.find(i => i.code === code);
     if (scanItem) {
       scanItem.produitId = produit.id;
@@ -3911,6 +3939,8 @@ async function saveNewProduit() {
     }
     closeNewProduit();
     _stockLoad();
+    // Produit suivant à créer dans la queue
+    setTimeout(_processNextUnknown, 350);
   } catch(e) {
     console.error('[saveNewProduit]', e.message);
     showToast('Erreur : ' + e.message, 'error');
