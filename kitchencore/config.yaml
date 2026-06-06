@@ -1,6 +1,6 @@
 name: "KitchenCore"
 description: "Gestion de stock alimentaire – Interface mobile avec scanner code-barres"
-version: "0.10.40"
+version: "0.10.37"
 slug: "kitchencore"
 init: false
 arch:
@@ -11,9 +11,12 @@ ingress: true
 ingress_port: 8080
 ports:
   8080/tcp: 8080
+  8443/tcp: 8443
 ports_description:
   8080/tcp: "KitchenCore – Interface Web & API"
+  8443/tcp: "KitchenCore – HTTPS direct (caméra Android)"
 map:
   - data:rw
+  - ssl:ro
 panel_icon: mdi:food-apple
 panel_title: KitchenCore

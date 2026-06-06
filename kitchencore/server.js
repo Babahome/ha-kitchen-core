@@ -1314,4 +1314,19 @@ app.get('/api/suggestion', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // START
 // ══════════════════════════════════════════════════════════════════════════════
-app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.10.34 démarré sur http://0.0.0.0:${PORT}`));
+// Serveur HTTP (ingress HA)
+app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.10.37 démarré sur http://0.0.0.0:${PORT}`));
+
+// Serveur HTTPS direct (caméra Android sans auth HA)
+const HTTPS_PORT = 8443;
+const CERT_PATH  = '/ssl/fullchain.pem';
+const KEY_PATH   = '/ssl/privkey.pem';
+if (fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH)) {
+  try {
+    const https = require('https');
+    https.createServer({ cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) }, app)
+      .listen(HTTPS_PORT, '0.0.0.0', () => console.log(`[KitchenCore] HTTPS démarré sur https://0.0.0.0:${HTTPS_PORT}`));
+  } catch(e) { console.warn('[KitchenCore] HTTPS non disponible:', e.message); }
+} else {
+  console.log('[KitchenCore] Pas de certificat SSL — HTTPS désactivé');
+}
