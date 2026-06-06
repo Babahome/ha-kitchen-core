@@ -3638,11 +3638,12 @@ async function openNewProduit(code) {
   // Lookup OpenFoodFacts si on a un code
   if (code) {
     try {
-      const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+      const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}?fields=product_name,product_name_fr,generic_name,generic_name_fr,brands,quantity`);
       const data = await r.json();
+      console.log('[OFF]', data.status, data.product);
       if (data.status === 1 && data.product) {
         const p = data.product;
-        const nom = p.product_name_fr || p.product_name || '';
+        const nom = p.product_name_fr || p.generic_name_fr || p.product_name || p.generic_name || '';
         const marque = p.brands ? p.brands.split(',')[0].trim() : '';
         if (nom) document.getElementById('pnp-nom').value = nom;
         if (marque) document.getElementById('pnp-marque').value = marque;
@@ -3651,7 +3652,7 @@ async function openNewProduit(code) {
           badge.style.display = 'flex';
         }
       }
-    } catch(e) { /* OFF inaccessible, on continue sans */ }
+    } catch(e) { console.warn('[OFF] erreur:', e.message); }
   }
 
   setTimeout(() => document.getElementById('pnp-nom').focus(), 350);
