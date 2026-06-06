@@ -2861,6 +2861,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="pnp-field">
         <div class="pnp-label">Nom du produit *</div>
         <input class="pnp-input" id="pnp-nom" placeholder="ex: Lait demi-écrémé Lactel 1L">
+        <div id="pnp-off-badge" style="display:none;margin-top:6px;font-size:12px;color:#888;display:none;align-items:center;gap:5px">
+          <span style="background:#e8f5e9;color:#388e3c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✓ OpenFoodFacts</span>
+          <span id="pnp-off-info"></span>
+        </div>
       </div>
       <div class="pnp-field">
         <div class="pnp-label">Marque (optionnel)</div>
@@ -3617,17 +3621,39 @@ async function toggleTorch() {
 let _pnpZone = 'Frigo';
 let _pnpIngredients = [];
 
-function openNewProduit(code) {
+async function openNewProduit(code) {
   document.getElementById('pnp-code').value = code || '';
   document.getElementById('pnp-nom').value = '';
   document.getElementById('pnp-marque').value = '';
   document.getElementById('pnp-ing-search').value = '';
   document.getElementById('pnp-ing-id').value = '';
   document.getElementById('pnp-suggest').style.display = 'none';
+  const badge = document.getElementById('pnp-off-badge');
+  badge.style.display = 'none';
   // Reset zone → Frigo
   _pnpZone = 'Frigo';
   document.querySelectorAll('.pnp-zone-btn').forEach(b => b.classList.toggle('active', b.textContent.includes('Frigo')));
   document.getElementById('panel-new-produit').classList.add('open');
+
+  // Lookup OpenFoodFacts si on a un code
+  if (code) {
+    try {
+      const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+      const data = await r.json();
+      if (data.status === 1 && data.product) {
+        const p = data.product;
+        const nom = p.product_name_fr || p.product_name || '';
+        const marque = p.brands ? p.brands.split(',')[0].trim() : '';
+        if (nom) document.getElementById('pnp-nom').value = nom;
+        if (marque) document.getElementById('pnp-marque').value = marque;
+        if (nom || marque) {
+          document.getElementById('pnp-off-info').textContent = p.quantity ? `· ${p.quantity}` : '';
+          badge.style.display = 'flex';
+        }
+      }
+    } catch(e) { /* OFF inaccessible, on continue sans */ }
+  }
+
   setTimeout(() => document.getElementById('pnp-nom').focus(), 350);
 }
 
