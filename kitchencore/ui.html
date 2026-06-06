@@ -3737,7 +3737,8 @@ async function validateScanList() {
             zone: 'À définir',
             contenance: 1,
             unite: 'unité',
-            ingredient_id: null
+            ingredient_id: null,
+            icone: item.photoOFF || null
           })
         });
         if (!rp.ok) { err++; continue; }

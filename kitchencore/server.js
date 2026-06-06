@@ -1,4 +1,4 @@
-/**
+﻿/**
  * KitchenCore v0.9 – Interface mobile avancée
  * Recettes, ingrédients, stocks, produits, IoT
  */
@@ -209,6 +209,7 @@ try {
 // On ne copie PAS aliment_id → ingredient_id car les deux tables sont différentes (aliments ≠ ingredients)
 // Les anciens produits gardent ingredient_id=NULL et s'affichent via leur propre colonne `nom`
 try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
+try { db.exec(`ALTER TABLE produits ADD COLUMN icone TEXT`); } catch(_) {}
 const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
@@ -445,7 +446,7 @@ app.get('/api/produits/barcode/:code', (req, res) => {
 });
 
 app.post('/api/produits', (req, res) => {
-  const { ingredient_id=null, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo' } = req.body;
+  const { ingredient_id=null, nom, marque, code_barres, contenance=1, unite='unité', zone='Frigo', icone=null } = req.body;
   if (!nom) return res.status(400).json({ error: 'nom requis' });
   try {
     let i;
@@ -454,12 +455,12 @@ app.post('/api/produits', (req, res) => {
       db.pragma('foreign_keys = OFF');
       try {
         // aliment_id est NOT NULL dans l'ancienne DB — on met 0 comme placeholder si pas d'ingrédient
-        i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id || 0, nom.trim(), marque||null, code_barres||null, contenance, unite);
+        i = db.prepare('INSERT INTO produits(ingredient_id,aliment_id,nom,marque,code_barres,contenance,unite,icone) VALUES(?,?,?,?,?,?,?,?)').run(ingredient_id, ingredient_id || 0, nom.trim(), marque||null, code_barres||null, contenance, unite, icone||null);
       } finally {
         db.pragma('foreign_keys = ON');
       }
     } else {
-      i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite) VALUES(?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite);
+      i = db.prepare('INSERT INTO produits(ingredient_id,nom,marque,code_barres,contenance,unite,icone) VALUES(?,?,?,?,?,?,?)').run(ingredient_id, nom.trim(), marque||null, code_barres||null, contenance, unite, icone||null);
     }
     db.prepare('INSERT INTO stocks(produit_id,zone) VALUES(?,?)').run(i.lastInsertRowid, zone);
     res.status(201).json(db.prepare('SELECT * FROM produits WHERE id=?').get(i.lastInsertRowid));
@@ -538,7 +539,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
-           a.nom AS ingredient_nom, a.icone, a.seuil_alerte, a.categorie,
+           a.nom AS ingredient_nom, COALESCE(a.icone, p.icone) AS icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
     FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY s.zone, p.nom
