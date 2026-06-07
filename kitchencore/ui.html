@@ -133,7 +133,10 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   padding: 12px 14px 8px;
   background: white;
   border-bottom: 1px solid var(--grey);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.stock-filters::-webkit-scrollbar { display: none; }
 .filter-pill {
   display: flex; align-items: center; gap: 5px;
   background: var(--grey-l); border: 1.5px solid var(--grey);
