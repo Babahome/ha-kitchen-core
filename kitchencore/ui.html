@@ -3484,8 +3484,16 @@ async function _startScanner() {
 
       _nativeDetector = new BarcodeDetector({ formats: formats.length ? formats : supported });
 
-      const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } };
-      _nativeStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const videoBase = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' };
+      let _nativeStreamOk = false;
+      // Essai avec torch dans les contraintes (réserve la capacité torche sur Android)
+      try {
+        _nativeStream = await navigator.mediaDevices.getUserMedia({ video: { ...videoBase, advanced: [{ torch: false }] } });
+        _nativeStreamOk = true;
+      } catch(_) {}
+      if (!_nativeStreamOk) {
+        _nativeStream = await navigator.mediaDevices.getUserMedia({ video: videoBase });
+      }
       video.srcObject = _nativeStream;
       await video.play();
 
