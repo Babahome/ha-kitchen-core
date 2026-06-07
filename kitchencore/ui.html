@@ -2932,6 +2932,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </div>
       </div>
       <div class="pnp-field">
+        <div class="pnp-label">Contenance & Unité</div>
+        <div style="display:flex;gap:8px">
+          <input class="pnp-input" id="pnp-contenance" type="number" min="0" step="any" placeholder="ex: 500" style="flex:1">
+          <input class="pnp-input" id="pnp-unite" placeholder="ex: g, mL, unité" style="flex:1">
+        </div>
+      </div>
+      <div class="pnp-field">
         <div class="pnp-label">Ingrédient associé (optionnel)</div>
         <input class="pnp-input" id="pnp-ing-search" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="pnpSearchIng(this.value)">
         <div class="pnp-suggest" id="pnp-suggest" style="display:none"></div>
@@ -4018,6 +4025,8 @@ async function _lookupOFF(item) {
       if (nom) item.nom = nom;
       if (marque) item.marque = marque;
       if (p.image_front_small_url) item.photoOFF = p.image_front_small_url;
+      const parsedQty = _parseQtyOFF(p.quantity);
+      if (parsedQty) { item.contenance = parsedQty.contenance; item.unite = parsedQty.unite; }
       item.status = 'new'; // connu OFF, nouveau dans notre stock
     }
     // sinon status reste 'unknown' : vraiment inconnu
@@ -4114,8 +4123,8 @@ async function validateScanList() {
             marque: item.marque || null,
             code_barres: item.code,
             zone: 'À définir',
-            contenance: 1,
-            unite: 'unité',
+            contenance: item.contenance || 1,
+            unite: item.unite || 'unité',
             ingredient_id: null,
             icone: item.photoOFF || null
           })
@@ -4231,6 +4240,23 @@ async function toggleTorch() {
 let _pnpZone = 'Frigo';
 let _pnpIngredients = [];
 
+function _parseQtyOFF(str) {
+  if (!str) return null;
+  // "6 x 125 g" → 750 g
+  const multi = str.match(/^(\d+)\s*[x×]\s*([\d.,]+)\s*([a-zA-Zµμéèêëàâùûôîïœ°]+)/i);
+  if (multi) {
+    const count = parseFloat(multi[1]);
+    const unit_qty = parseFloat(multi[2].replace(',', '.'));
+    return { contenance: count * unit_qty, unite: multi[3].toLowerCase() };
+  }
+  // "500 g", "1.5 L", "250ml"
+  const simple = str.match(/^([\d.,]+)\s*([a-zA-Zµμéèêëàâùûôîïœ°]+)/i);
+  if (simple) {
+    return { contenance: parseFloat(simple[1].replace(',', '.')), unite: simple[2].toLowerCase() };
+  }
+  return null;
+}
+
 async function openNewProduit(code) {
   document.getElementById('pnp-code').value = code || '';
   document.getElementById('pnp-nom').value = '';
@@ -4238,6 +4264,8 @@ async function openNewProduit(code) {
   document.getElementById('pnp-ing-search').value = '';
   document.getElementById('pnp-ing-id').value = '';
   document.getElementById('pnp-suggest').style.display = 'none';
+  document.getElementById('pnp-contenance').value = '';
+  document.getElementById('pnp-unite').value = '';
   const badge = document.getElementById('pnp-off-badge');
   badge.style.display = 'none';
   // Reset zone → première zone disponible (défaut: À définir)
@@ -4258,6 +4286,11 @@ async function openNewProduit(code) {
         const marque = p.brands ? p.brands.split(',')[0].trim() : '';
         if (nom) document.getElementById('pnp-nom').value = nom;
         if (marque) document.getElementById('pnp-marque').value = marque;
+        const parsed = _parseQtyOFF(p.quantity);
+        if (parsed) {
+          document.getElementById('pnp-contenance').value = parsed.contenance;
+          document.getElementById('pnp-unite').value = parsed.unite;
+        }
         const qty = p.quantity ? ` · ${p.quantity}` : '';
         badge.innerHTML = `<span style="background:#e8f5e9;color:#388e3c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✓ OpenFoodFacts${qty}</span>`;
         if (!nom && !marque) badge.innerHTML = '<span style="background:#fce4ec;color:#c62828;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">⚠ Produit trouvé mais sans nom</span>';
@@ -4322,8 +4355,8 @@ async function saveNewProduit() {
     marque: document.getElementById('pnp-marque').value.trim() || null,
     code_barres: code || null,
     zone: _pnpZone,
-    contenance: 1,
-    unite: 'unité'
+    contenance: parseFloat(document.getElementById('pnp-contenance').value) || 1,
+    unite: document.getElementById('pnp-unite').value.trim() || 'unité'
   };
 
   try {
