@@ -4185,7 +4185,7 @@ async function validateScanList() {
   _scanList = [];
   _renderScanList();
   closeScanner();
-  switchPage('stock');
+  switchPage(document.querySelector('.nav-tab'), 'stock', 'Stock Cuisine');
 
   showToast(
     `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}` + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : ''),
