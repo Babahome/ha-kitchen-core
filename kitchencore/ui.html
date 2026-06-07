@@ -2997,6 +2997,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <span class="ing-panel-label">Stock actuel</span>
         <div class="prod-qty" id="stock-detailQty" style="justify-content:flex-start;gap:12px"></div>
       </div>
+      <div class="ing-panel-section" id="stock-detailDlcSection">
+        <span class="ing-panel-label">Date limite de conso.</span>
+        <div class="ing-panel-value" id="stock-detailDlc"></div>
+      </div>
       <div class="ing-panel-section" id="stock-detailBarcodeSection">
         <span class="ing-panel-label">Code-barres</span>
         <div class="ing-panel-value" id="stock-detailBarcode"></div>
@@ -3045,6 +3049,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
         <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
         <input type="hidden" id="stock-editIngId">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Date limite de conso. (optionnel)</label>
+        <input class="ing-panel-input" id="stock-editDlc" type="date">
       </div>
       <button class="ing-panel-btn-del" onclick="stockDeleteFromEdit()">🗑 Supprimer ce produit</button>
     </div>
@@ -3172,6 +3180,16 @@ function _stockRender() {
   el.innerHTML = html + '<div style="height:80px"></div>';
 }
 
+function _dlcBadge(dlc) {
+  if (!dlc) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dlc); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  const label = diff < 0 ? `Expiré` : diff === 0 ? `Auj.` : diff <= 7 ? `J-${diff}` : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  const color = diff < 0 ? '#c0392b' : diff <= 3 ? '#e67e22' : diff <= 7 ? '#f39c12' : '#27ae60';
+  return `<div style="position:absolute;top:4px;right:4px;background:${color};color:#fff;font-size:.62rem;font-weight:700;padding:2px 5px;border-radius:10px;line-height:1.3;z-index:2">${label}</div>`;
+}
+
 function _stockCard(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   const statusClass = qty === 0 ? 'empty' : qty <= 1 ? 'warn' : 'ok';
@@ -3187,8 +3205,9 @@ function _stockCard(s) {
   const clickAttr = _stockSelectMode
     ? `onclick="stockToggleCard(${s.produit_id},event)"`
     : `onclick="_stockOpenDetail(${s.produit_id})"`;
-  return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" ${clickAttr}>
+  return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" ${clickAttr} style="position:relative">
     ${cbHtml}
+    ${_dlcBadge(s.dlc)}
     <div class="prod-img-placeholder" style="overflow:hidden">${imgHtml}</div>
     <div class="prod-status ${statusClass}">${statusEmoji}</div>
     <div class="prod-info">
@@ -3342,6 +3361,22 @@ function _stockOpenDetail(id) {
     contenanceSection.style.display = 'none';
   }
 
+  // DLC
+  const dlcSection = document.getElementById('stock-detailDlcSection');
+  if (s.dlc) {
+    const d = new Date(s.dlc); d.setHours(12);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.round((d - today) / 86400000);
+    const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const note = diff < 0 ? ` — expiré depuis ${-diff} jour${-diff > 1 ? 's' : ''}` : diff === 0 ? ' — expire aujourd\'hui !' : diff <= 7 ? ` — dans ${diff} jour${diff > 1 ? 's' : ''}` : '';
+    const color = diff < 0 ? '#c0392b' : diff <= 3 ? '#e67e22' : diff <= 7 ? '#f39c12' : '';
+    document.getElementById('stock-detailDlc').innerHTML =
+      `<span${color ? ` style="color:${color};font-weight:600"` : ''}>${label}${note}</span>`;
+    dlcSection.style.display = '';
+  } else {
+    dlcSection.style.display = 'none';
+  }
+
   // Code-barres
   const bcSection = document.getElementById('stock-detailBarcodeSection');
   if (s.code_barres) {
@@ -3426,6 +3461,7 @@ function _stockOpenEdit(id) {
   // Contenance + unité
   document.getElementById('stock-editContenance').value = s.contenance || '';
   document.getElementById('stock-editUnite').value = s.unite || '';
+  document.getElementById('stock-editDlc').value = s.dlc || '';
 
   // Ingrédient
   document.getElementById('stock-editIngId').value = s.ingredient_id || '';
@@ -3534,7 +3570,13 @@ async function stockSaveEdit() {
     });
     if (!rp.ok) throw new Error('Erreur sauvegarde');
 
-    // 3. Changer la zone si nécessaire
+    // 3. Sauvegarder la DLC
+    const dlcVal = document.getElementById('stock-editDlc').value || null;
+    await fetch(`/api/stocks/${id}/dlc`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dlc: dlcVal })
+    });
+
+    // 4. Changer la zone si nécessaire
     const s = _stockItems.find(i => i.produit_id === id);
     if (s && _stockEditZone !== s.zone) {
       await fetch(`/api/stocks/${id}/ajouter`, {

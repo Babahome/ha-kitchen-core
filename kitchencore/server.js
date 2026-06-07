@@ -210,6 +210,7 @@ try {
 // Les anciens produits gardent ingredient_id=NULL et s'affichent via leur propre colonne `nom`
 try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
 try { db.exec(`ALTER TABLE produits ADD COLUMN icone TEXT`); } catch(_) {}
+try { db.exec(`ALTER TABLE stocks ADD COLUMN dlc TEXT`); } catch(_) {}
 const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
@@ -583,6 +584,12 @@ app.post('/api/stocks/:id/consommer', (req, res) => {
   db.prepare("UPDATE stocks SET packs_pleins=?,unites_ouvert=?,updated_at=datetime('now') WHERE produit_id=?").run(packs_pleins, unites_ouvert, id);
   db.prepare("INSERT INTO mouvements(produit_id,type,delta,source) VALUES(?,'consommation',-1,?)").run(id, src);
   res.json({ stock: db.prepare('SELECT * FROM stocks WHERE produit_id=?').get(id), pack_deballe: pd });
+});
+
+app.patch('/api/stocks/:id/dlc', (req, res) => {
+  const { dlc } = req.body;
+  db.prepare("UPDATE stocks SET dlc=? WHERE produit_id=?").run(dlc || null, req.params.id);
+  res.json({ ok: true });
 });
 
 app.post('/api/stocks/:id/corriger', (req, res) => {
