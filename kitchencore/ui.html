@@ -1599,7 +1599,9 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
   /* ── DETAIL & EDIT PANELS (plein écran, absolute dans .frame) ── */
   .frame > .ing-detail-panel,
-  .frame > .ing-edit-panel {
+  .frame > .ing-edit-panel,
+  .frame > .stock-detail-panel,
+  .frame > .stock-edit-panel {
     position: absolute; inset: 0; z-index: 400;
     background: var(--grey-l);
     display: none; flex-direction: column; overflow: hidden;
@@ -1607,7 +1609,9 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
   .frame > .ing-detail-panel.open,
-  .frame > .ing-edit-panel.open { display: flex; transform: translateX(0); }
+  .frame > .ing-edit-panel.open,
+  .frame > .stock-detail-panel.open,
+  .frame > .stock-edit-panel.open { display: flex; transform: translateX(0); }
 
   /* Header commun */
   .ing-panel-head {
@@ -2937,6 +2941,82 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   </div>
   <!-- ══ /PANEL CRÉATION PRODUIT ══════════════════════════════════════════ -->
 
+  <!-- ══ PANEL DÉTAIL PRODUIT ════════════════════════════════════════════════ -->
+  <div class="stock-detail-panel" id="stock-detailPanel">
+    <div class="ing-panel-head">
+      <button class="ing-panel-back" onclick="stockCloseDetail()">←</button>
+      <span class="ing-panel-title" id="stock-detailName"></span>
+      <button class="ing-panel-btn" onclick="stockOpenEditFromDetail()">✏️ Modifier</button>
+    </div>
+    <div class="ing-panel-hero" id="stock-detailHero"></div>
+    <div class="ing-panel-scroll">
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Nom</span>
+        <div class="ing-panel-value" id="stock-detailNomVal"></div>
+      </div>
+      <div class="ing-panel-section" id="stock-detailMarqueSection">
+        <span class="ing-panel-label">Marque</span>
+        <div class="ing-panel-value" id="stock-detailMarqueVal"></div>
+      </div>
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Zone</span>
+        <div id="stock-detailZone"></div>
+      </div>
+      <div class="ing-panel-section" id="stock-detailIngSection">
+        <span class="ing-panel-label">Ingrédient lié</span>
+        <div id="stock-detailIng"></div>
+      </div>
+      <div class="ing-panel-section">
+        <span class="ing-panel-label">Stock actuel</span>
+        <div class="prod-qty" id="stock-detailQty" style="justify-content:flex-start;gap:12px"></div>
+      </div>
+      <div class="ing-panel-section" id="stock-detailBarcodeSection">
+        <span class="ing-panel-label">Code-barres</span>
+        <div class="ing-panel-value" id="stock-detailBarcode"></div>
+      </div>
+    </div>
+  </div>
+  <!-- ══ /PANEL DÉTAIL PRODUIT ══════════════════════════════════════════════ -->
+
+  <!-- ══ PANEL ÉDITION PRODUIT ════════════════════════════════════════════════ -->
+  <div class="stock-edit-panel" id="stock-editPanel">
+    <div class="ing-panel-head">
+      <button class="ing-panel-back" onclick="stockCloseEdit()">←</button>
+      <span class="ing-panel-title" id="stock-editTitle"></span>
+      <button class="ing-panel-btn save" onclick="stockSaveEdit()">✓ Enregistrer</button>
+    </div>
+    <div class="ing-panel-hero" id="stock-editHero">
+      <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span id="stock-editHeroOverlayText">Ajouter une photo</span>
+      </div>
+    </div>
+    <input type="file" id="stock-photoFileInput" accept="image/*" onchange="stockHandlePhotoFile(this)" style="display:none">
+    <input type="hidden" id="stock-editId">
+    <div class="ing-panel-scroll">
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Nom</label>
+        <input class="ing-panel-input" id="stock-editNom" placeholder="ex: Yaourt nature">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Marque (optionnel)</label>
+        <input class="ing-panel-input" id="stock-editMarque" placeholder="ex: Danone">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Zone</label>
+        <div class="ing-panel-rayon-grid" id="stock-editZoneGrid"></div>
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Ingrédient associé (optionnel)</label>
+        <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
+        <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
+        <input type="hidden" id="stock-editIngId">
+      </div>
+      <button class="ing-panel-btn-del" onclick="stockDeleteFromEdit()">🗑 Supprimer ce produit</button>
+    </div>
+  </div>
+  <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
+
 </div><!-- /frame -->
 
 <script>
@@ -3070,7 +3150,9 @@ function _stockCard(s) {
   const cbHtml = _stockSelectMode
     ? `<div class="stock-checkbox${sel ? ' checked' : ''}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`
     : '';
-  const clickAttr = _stockSelectMode ? `onclick="stockToggleCard(${s.produit_id},event)"` : '';
+  const clickAttr = _stockSelectMode
+    ? `onclick="stockToggleCard(${s.produit_id},event)"`
+    : `onclick="_stockOpenDetail(${s.produit_id})"`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" ${clickAttr}>
     ${cbHtml}
     <div class="prod-img-placeholder" style="overflow:hidden">${imgHtml}</div>
@@ -3079,9 +3161,9 @@ function _stockCard(s) {
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       <div class="prod-controls">
         <div class="prod-qty">
-          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
+          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
           <div><div class="qty-val">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
-          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `stockChangeQty(${s.produit_id},1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>+</div>
+          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>+</div>
         </div>
       </div>
     </div>
@@ -3158,6 +3240,295 @@ window.stockHideHdmenu       = stockHideHdmenu;
 window.stockHideMainHdmenu   = stockHideMainHdmenu;
 window.stockToggleCard       = stockToggleCard;
 window.stockDeleteSelected   = stockDeleteSelected;
+
+// ════════════════════════════════════════════════════════════════════════════
+// STOCK — Panels Détail & Édition produit
+// ════════════════════════════════════════════════════════════════════════════
+let _stockDetailId       = null;
+let _stockEditingId      = null;
+let _stockEditZone       = 'Frigo';
+let _stockEditIngredients = [];
+let _stockPendingPhotoFile = null;
+
+function _stockOpenDetail(id) {
+  const s = _stockItems.find(i => i.produit_id === id);
+  if (!s) return;
+  _stockDetailId = id;
+  const nom = s.produit_nom || s.ingredient_nom || '—';
+  const initials = nom.slice(0, 2).toUpperCase();
+
+  document.getElementById('stock-detailName').textContent = nom;
+  document.getElementById('stock-detailNomVal').textContent = nom;
+
+  // Marque
+  const marqueSection = document.getElementById('stock-detailMarqueSection');
+  if (s.marque) {
+    document.getElementById('stock-detailMarqueVal').textContent = s.marque;
+    marqueSection.style.display = '';
+  } else {
+    marqueSection.style.display = 'none';
+  }
+
+  // Hero
+  const hero = document.getElementById('stock-detailHero');
+  const hasPhoto = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'));
+  hero.innerHTML = hasPhoto
+    ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <span class="ing-panel-initials" style="display:none">${initials}</span>`
+    : `<span class="ing-panel-initials">${initials}</span>`;
+
+  // Zone
+  const zoneMeta = STOCK_ZONES.find(z => z.key === s.zone) || { emoji: '📦' };
+  document.getElementById('stock-detailZone').innerHTML =
+    `<span class="rayon-chip active" style="pointer-events:none">${zoneMeta.emoji} ${s.zone || '—'}</span>`;
+
+  // Ingrédient lié
+  const ingSection = document.getElementById('stock-detailIngSection');
+  if (s.ingredient_nom) {
+    document.getElementById('stock-detailIng').innerHTML =
+      `<span class="rayon-chip active" style="pointer-events:none">🥕 ${s.ingredient_nom}</span>`;
+    ingSection.style.display = '';
+  } else {
+    ingSection.style.display = 'none';
+  }
+
+  // Quantité +/−
+  const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+  document.getElementById('stock-detailQty').innerHTML =
+    `<div class="qty-btn" onclick="stockDetailChangeQty(-1)">−</div>
+     <div><div class="qty-val" id="stock-detailQtyVal">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
+     <div class="qty-btn" onclick="stockDetailChangeQty(1)">+</div>`;
+
+  // Code-barres
+  const bcSection = document.getElementById('stock-detailBarcodeSection');
+  if (s.code_barres) {
+    document.getElementById('stock-detailBarcode').textContent = s.code_barres;
+    bcSection.style.display = '';
+  } else {
+    bcSection.style.display = 'none';
+  }
+
+  document.getElementById('stock-detailPanel').classList.add('open');
+}
+
+function stockCloseDetail() {
+  document.getElementById('stock-detailPanel').classList.remove('open');
+}
+
+async function stockDetailChangeQty(delta) {
+  const s = _stockItems.find(i => i.produit_id === _stockDetailId);
+  if (!s) return;
+  const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+  if (delta < 0 && qty === 0) return;
+  try {
+    const endpoint = delta > 0 ? 'ajouter' : 'consommer';
+    const body = delta > 0 ? { packs: 1 } : {};
+    await fetch(`/api/stocks/${_stockDetailId}/${endpoint}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (delta > 0) s.packs_pleins = (s.packs_pleins || 0) + 1;
+    else { if ((s.unites_ouvert || 0) > 0) s.unites_ouvert--; else if ((s.packs_pleins || 0) > 0) s.packs_pleins--; }
+    const newQty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+    const qtyVal = document.getElementById('stock-detailQtyVal');
+    if (qtyVal) qtyVal.textContent = newQty;
+    _stockRender();
+    if (delta < 0 && newQty === 0) showToast('Stock vide', 'warn');
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+function stockOpenEditFromDetail() {
+  stockCloseDetail();
+  setTimeout(() => _stockOpenEdit(_stockDetailId), 100);
+}
+
+function _stockOpenEdit(id) {
+  const s = _stockItems.find(i => i.produit_id === id);
+  if (!s) return;
+  _stockEditingId = id;
+  _stockPendingPhotoFile = null;
+
+  const nom = s.produit_nom || s.ingredient_nom || '—';
+  const initials = nom.slice(0, 2).toUpperCase();
+  document.getElementById('stock-editId').value = id;
+  document.getElementById('stock-editTitle').textContent = nom;
+  document.getElementById('stock-editNom').value = nom;
+  document.getElementById('stock-editMarque').value = s.marque || '';
+
+  // Hero
+  const hero = document.getElementById('stock-editHero');
+  const hasPhoto = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'));
+  const overlayLabel = hasPhoto ? 'Changer la photo' : 'Ajouter une photo';
+  document.getElementById('stock-editHeroOverlayText').textContent = overlayLabel;
+  if (hasPhoto) {
+    hero.innerHTML = `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span class="ing-panel-initials" style="display:none">${initials}</span>
+      <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span>${overlayLabel}</span>
+      </div>`;
+  } else {
+    hero.innerHTML = `<span class="ing-panel-initials">${initials}</span>
+      <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
+        <span class="ing-panel-hero-overlay-icon">📷</span>
+        <span>${overlayLabel}</span>
+      </div>`;
+  }
+
+  // Zone chips
+  _stockEditZone = s.zone || (STOCK_ZONES[0] && STOCK_ZONES[0].key) || 'Frigo';
+  document.getElementById('stock-editZoneGrid').innerHTML = STOCK_ZONES
+    .filter(z => z.key !== 'À définir')
+    .map(z => `<div class="rayon-chip${z.key === _stockEditZone ? ' active' : ''}" onclick="stockEditPickZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`)
+    .join('');
+
+  // Ingrédient
+  document.getElementById('stock-editIngId').value = s.ingredient_id || '';
+  document.getElementById('stock-editIngSearch').value = s.ingredient_nom || '';
+  document.getElementById('stock-editIngSuggest').style.display = 'none';
+
+  document.getElementById('stock-editPanel').classList.add('open');
+}
+
+function stockCloseEdit() {
+  document.getElementById('stock-editPanel').classList.remove('open');
+  _stockEditingId = null;
+}
+
+function stockEditPickZone(btn, zone) {
+  _stockEditZone = zone;
+  document.querySelectorAll('#stock-editZoneGrid .rayon-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function stockSearchIng(q) {
+  const box = document.getElementById('stock-editIngSuggest');
+  document.getElementById('stock-editIngId').value = '';
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  if (!_stockEditIngredients.length) {
+    const r = await fetch('/api/ingredients');
+    _stockEditIngredients = r.ok ? await r.json() : [];
+  }
+  const q2 = q.toLowerCase();
+  const matches = _stockEditIngredients.filter(i => i.nom.toLowerCase().includes(q2)).slice(0, 6);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map(i =>
+    `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
+      ${i.icone && (i.icone.startsWith('http') || i.icone.startsWith('/'))
+        ? `<img src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">`
+        : ''}${i.nom}
+    </div>`
+  ).join('');
+  box.style.display = 'block';
+}
+
+function stockPickIng(id, nom) {
+  document.getElementById('stock-editIngId').value = id;
+  document.getElementById('stock-editIngSearch').value = nom;
+  document.getElementById('stock-editIngSuggest').style.display = 'none';
+}
+
+function stockTriggerPhotoUpload() {
+  document.getElementById('stock-photoFileInput').click();
+}
+
+function stockHandlePhotoFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _stockPendingPhotoFile = file;
+  const url = URL.createObjectURL(file);
+  const nom = document.getElementById('stock-editNom').value || '?';
+  const initials = nom.slice(0, 2).toUpperCase();
+  document.getElementById('stock-editHero').innerHTML =
+    `<img src="${url}" style="width:100%;height:100%;object-fit:cover">
+     <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
+       <span class="ing-panel-hero-overlay-icon">📷</span>
+       <span>Changer la photo</span>
+     </div>`;
+}
+
+async function stockSaveEdit() {
+  const id = _stockEditingId;
+  if (!id) return;
+  const nom = document.getElementById('stock-editNom').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
+
+  try {
+    // 1. Upload photo si changée
+    let photoUploaded = false;
+    if (_stockPendingPhotoFile) {
+      const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = e => resolve(e.target.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(_stockPendingPhotoFile);
+      });
+      const upRes = await fetch(`/api/produits/${id}/photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, mime: _stockPendingPhotoFile.type || 'image/jpeg' })
+      });
+      if (!upRes.ok) { showToast('Erreur upload photo', 'error'); return; }
+      photoUploaded = true;
+    }
+
+    // 2. Mettre à jour les champs texte + ingrédient
+    const ingIdRaw = document.getElementById('stock-editIngId').value;
+    const ingredient_id = ingIdRaw ? parseInt(ingIdRaw) : null;
+    const body = {
+      nom,
+      marque: document.getElementById('stock-editMarque').value.trim() || null,
+      ingredient_id
+    };
+    const rp = await fetch(`/api/produits/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!rp.ok) throw new Error('Erreur sauvegarde');
+
+    // 3. Changer la zone si nécessaire
+    const s = _stockItems.find(i => i.produit_id === id);
+    if (s && _stockEditZone !== s.zone) {
+      await fetch(`/api/stocks/${id}/ajouter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packs: 0, zone: _stockEditZone })
+      });
+    }
+
+    stockCloseEdit();
+    await _stockLoad();
+    showToast('Produit mis à jour ✓');
+  } catch(e) { showToast('Erreur sauvegarde', 'error'); }
+}
+
+async function stockDeleteFromEdit() {
+  const id = _stockEditingId;
+  if (!id) return;
+  const s = _stockItems.find(i => i.produit_id === id);
+  const nom = s?.produit_nom || '?';
+  if (!confirm(`Supprimer "${nom}" définitivement ?`)) return;
+  try {
+    await fetch(`/api/produits/${id}`, { method: 'DELETE' });
+    stockCloseEdit();
+    await _stockLoad();
+    showToast('Produit supprimé');
+  } catch(e) { showToast('Erreur suppression', 'error'); }
+}
+
+window._stockOpenDetail      = _stockOpenDetail;
+window.stockCloseDetail      = stockCloseDetail;
+window.stockDetailChangeQty  = stockDetailChangeQty;
+window.stockOpenEditFromDetail = stockOpenEditFromDetail;
+window._stockOpenEdit        = _stockOpenEdit;
+window.stockCloseEdit        = stockCloseEdit;
+window.stockEditPickZone     = stockEditPickZone;
+window.stockSearchIng        = stockSearchIng;
+window.stockPickIng          = stockPickIng;
+window.stockTriggerPhotoUpload = stockTriggerPhotoUpload;
+window.stockHandlePhotoFile  = stockHandlePhotoFile;
+window.stockSaveEdit         = stockSaveEdit;
+window.stockDeleteFromEdit   = stockDeleteFromEdit;
 
 // ════════════════════════════════════════════════════════════════════════════
 // GESTION DES ZONES DE STOCK

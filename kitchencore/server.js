@@ -486,7 +486,7 @@ app.post('/api/produits', (req, res) => {
 
 app.patch('/api/produits/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','marque','code_barres','contenance','unite'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','marque','code_barres','contenance','unite','ingredient_id'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   try {
@@ -552,7 +552,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
-    SELECT s.*, p.nom AS produit_nom, p.contenance, p.unite, p.code_barres,
+    SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres,
            a.nom AS ingredient_nom, COALESCE(a.icone, p.icone) AS icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
     FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
