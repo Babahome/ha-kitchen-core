@@ -3818,17 +3818,19 @@ async function flipCamera() {
 }
 
 async function toggleTorch() {
-  // La torche passe par le stream vidéo actif dans la balise <video>
   const video = document.getElementById('scanner-video');
   const stream = video.srcObject;
   if (!stream) return;
   const track = stream.getVideoTracks()[0];
-  if (!track || !track.getCapabilities().torch) {
-    showToast('Torche non supportée sur cet appareil', 'warn'); return;
-  }
+  if (!track) return;
   _torchOn = !_torchOn;
-  await track.applyConstraints({ advanced: [{ torch: _torchOn }] });
-  document.getElementById('torch-btn').classList.toggle('on', _torchOn);
+  try {
+    await track.applyConstraints({ advanced: [{ torch: _torchOn }] });
+    document.getElementById('torch-btn').classList.toggle('on', _torchOn);
+  } catch(e) {
+    _torchOn = !_torchOn; // annuler
+    showToast('Torche non supportée sur cet appareil', 'warn');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
