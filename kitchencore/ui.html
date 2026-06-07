@@ -3180,7 +3180,7 @@ function _stockCard(s) {
       <div class="prod-controls">
         <div class="prod-qty">
           <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
-          <div><div class="qty-val">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
+          <div><div class="qty-val">${qty}</div><div class="qty-unit">unité${qty > 1 ? 's' : ''}</div></div>
           <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>+</div>
         </div>
       </div>
@@ -3314,7 +3314,7 @@ function _stockOpenDetail(id) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   document.getElementById('stock-detailQty').innerHTML =
     `<div class="qty-btn" onclick="stockDetailChangeQty(-1)">−</div>
-     <div><div class="qty-val" id="stock-detailQtyVal">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
+     <div><div class="qty-val" id="stock-detailQtyVal">${qty}</div><div class="qty-unit">unité${qty > 1 ? 's' : ''}</div></div>
      <div class="qty-btn" onclick="stockDetailChangeQty(1)">+</div>`;
 
   // Contenance
