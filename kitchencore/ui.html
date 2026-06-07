@@ -4216,6 +4216,7 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   document.getElementById('manual-barcode').value = '';
+  switchPage('stock');
 }
 
 async function flipCamera() {
