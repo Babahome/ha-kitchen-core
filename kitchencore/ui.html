@@ -4184,7 +4184,8 @@ async function validateScanList() {
   fab.disabled = false;
   _scanList = [];
   _renderScanList();
-  _stockLoad();
+  closeScanner();
+  switchPage('stock');
 
   showToast(
     `${ok} ajout${ok > 1 ? 's' : ''} effectué${ok > 1 ? 's' : ''}` + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : ''),
@@ -4216,7 +4217,6 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   document.getElementById('manual-barcode').value = '';
-  switchPage('stock');
 }
 
 async function flipCamera() {
