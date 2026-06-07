@@ -501,6 +501,18 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 #scanner-video {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
+#scanner-focus-ring {
+  position: absolute; width: 60px; height: 60px;
+  border: 2px solid #fff; border-radius: 8px;
+  pointer-events: none; display: none;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4);
+  animation: focus-pulse .4s ease-out;
+}
+@keyframes focus-pulse {
+  from { opacity: 1; transform: translate(-50%,-50%) scale(1.4); }
+  to   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
 .scanner-overlay {
   position: absolute; inset: 0;
   background: rgba(0,0,0,.45);
@@ -2549,6 +2561,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <!-- Caméra -->
     <div class="scanner-view">
       <video id="scanner-video" playsinline muted></video>
+      <div id="scanner-focus-ring"></div>
       <div class="scanner-overlay">
         <div class="scanner-frame">
           <div class="scanner-laser"></div>
@@ -3835,10 +3848,20 @@ let _lastCode = null;       // pour double confirmation ZXing
 let _confirmCount = 0;
 const _CONFIRM_NEEDED = 2;  // lectures ZXing requises (fallback uniquement)
 
-function _stopScanner() {
+async function _stopScanner() {
   if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
   _nativeDetector = null;
-  if (_nativeStream) { _nativeStream.getTracks().forEach(t => t.stop()); _nativeStream = null; }
+  if (_nativeStream) {
+    // Éteindre la torche avant d'arrêter le track (certains Android gardent la LED allumée sinon)
+    if (_torchOn) {
+      try {
+        const t = _nativeStream.getVideoTracks()[0];
+        if (t) await t.applyConstraints({ advanced: [{ torch: false }] });
+      } catch(_) {}
+    }
+    _nativeStream.getTracks().forEach(t => t.stop());
+    _nativeStream = null;
+  }
   if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 }
 
@@ -4258,6 +4281,37 @@ async function toggleTorch() {
     _torchOn = !_torchOn;
     showToast('Torche non supportée sur cet appareil', 'warn');
   }
+}
+
+function _initScannerTouchFocus() {
+  const view = document.querySelector('.scanner-view');
+  const ring = document.getElementById('scanner-focus-ring');
+  if (!view || !ring) return;
+  view.addEventListener('touchstart', async (e) => {
+    const video = document.getElementById('scanner-video');
+    const stream = video && video.srcObject;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if (!caps.focusMode || !caps.focusMode.includes('manual')) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = view.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / rect.width;
+    const y = (touch.clientY - rect.top) / rect.height;
+    // Afficher l'indicateur visuel
+    ring.style.left = (x * 100) + '%';
+    ring.style.top  = (y * 100) + '%';
+    ring.style.display = 'block';
+    ring.style.animation = 'none';
+    void ring.offsetWidth; // reflow pour relancer l'animation
+    ring.style.animation = '';
+    setTimeout(() => { ring.style.display = 'none'; }, 800);
+    try {
+      await track.applyConstraints({ advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] }] });
+    } catch(_) {}
+  }, { passive: false });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7802,6 +7856,7 @@ window.__ingApplyPageVisibility = _ingApplyPageVisibility;
 
 // Init au chargement (event listener — pas de redéfinition de switchPage)
 document.addEventListener('DOMContentLoaded', function() {
+  _initScannerTouchFocus();
   _ingBoot();
   // Si on est déjà sur la page au chargement
   const active = document.querySelector('.page.active');
