@@ -3094,7 +3094,7 @@ async function stockChangeQty(id, delta, btn) {
   if (delta < 0 && qty === 0) return;
   try {
     const endpoint = delta > 0 ? 'ajouter' : 'consommer';
-    const body = delta > 0 ? { packs_pleins: 1 } : {};
+    const body = delta > 0 ? { packs: 1 } : {};
     await fetch(`/api/stocks/${id}/${endpoint}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
