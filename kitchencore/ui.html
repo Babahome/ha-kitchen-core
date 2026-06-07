@@ -684,7 +684,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 ══════════════════════════════════════════════════════════════════════════════ */
 .toast-wrap {
   position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
-  z-index: 100; width: calc(100% - 28px);
+  z-index: 300; width: calc(100% - 28px);
   display: flex; flex-direction: column; gap: 6px; pointer-events: none;
 }
 .toast {
@@ -3824,11 +3824,24 @@ async function toggleTorch() {
   const track = stream.getVideoTracks()[0];
   if (!track) return;
   _torchOn = !_torchOn;
+  let ok = false;
+  // Méthode 1 : applyConstraints (Android Chrome standard)
   try {
     await track.applyConstraints({ advanced: [{ torch: _torchOn }] });
+    ok = true;
+  } catch(_) {}
+  // Méthode 2 : ImageCapture API (certains Android)
+  if (!ok && 'ImageCapture' in window) {
+    try {
+      const ic = new ImageCapture(track);
+      await ic.setOptions({ fillLightMode: _torchOn ? 'torch' : 'off' });
+      ok = true;
+    } catch(_) {}
+  }
+  if (ok) {
     document.getElementById('torch-btn').classList.toggle('on', _torchOn);
-  } catch(e) {
-    _torchOn = !_torchOn; // annuler
+  } else {
+    _torchOn = !_torchOn;
     showToast('Torche non supportée sur cet appareil', 'warn');
   }
 }
