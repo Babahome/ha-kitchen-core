@@ -2969,6 +2969,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <span class="ing-panel-label">Zone</span>
         <div id="stock-detailZone"></div>
       </div>
+      <div class="ing-panel-section" id="stock-detailContenanceSection">
+        <span class="ing-panel-label">Contenance</span>
+        <div class="ing-panel-value" id="stock-detailContenance"></div>
+      </div>
       <div class="ing-panel-section" id="stock-detailIngSection">
         <span class="ing-panel-label">Ingrédient lié</span>
         <div id="stock-detailIng"></div>
@@ -3012,6 +3016,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Zone</label>
         <div class="ing-panel-rayon-grid" id="stock-editZoneGrid"></div>
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Contenance & Unité</label>
+        <div style="display:flex;gap:8px">
+          <input class="ing-panel-input" id="stock-editContenance" type="number" min="0" step="any" placeholder="ex: 500" style="flex:1">
+          <input class="ing-panel-input" id="stock-editUnite" placeholder="ex: g, mL, unité" style="flex:1">
+        </div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Ingrédient associé (optionnel)</label>
@@ -3306,6 +3317,15 @@ function _stockOpenDetail(id) {
      <div><div class="qty-val" id="stock-detailQtyVal">${qty}</div><div class="qty-unit">${s.unite || 'unité'}</div></div>
      <div class="qty-btn" onclick="stockDetailChangeQty(1)">+</div>`;
 
+  // Contenance
+  const contenanceSection = document.getElementById('stock-detailContenanceSection');
+  if (s.contenance || s.unite) {
+    document.getElementById('stock-detailContenance').textContent = `${s.contenance || ''} ${s.unite || ''}`.trim();
+    contenanceSection.style.display = '';
+  } else {
+    contenanceSection.style.display = 'none';
+  }
+
   // Code-barres
   const bcSection = document.getElementById('stock-detailBarcodeSection');
   if (s.code_barres) {
@@ -3387,6 +3407,10 @@ function _stockOpenEdit(id) {
     .filter(z => z.key !== 'À définir')
     .map(z => `<div class="rayon-chip${z.key === _stockEditZone ? ' active' : ''}" onclick="stockEditPickZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`)
     .join('');
+
+  // Contenance + unité
+  document.getElementById('stock-editContenance').value = s.contenance || '';
+  document.getElementById('stock-editUnite').value = s.unite || '';
 
   // Ingrédient
   document.getElementById('stock-editIngId').value = s.ingredient_id || '';
@@ -3484,7 +3508,9 @@ async function stockSaveEdit() {
     const body = {
       nom,
       marque: document.getElementById('stock-editMarque').value.trim() || null,
-      ingredient_id
+      ingredient_id,
+      contenance: parseFloat(document.getElementById('stock-editContenance').value) || null,
+      unite: document.getElementById('stock-editUnite').value.trim() || null
     };
     const rp = await fetch(`/api/produits/${id}`, {
       method: 'PATCH',
