@@ -4842,10 +4842,11 @@ function clToggleSearch() {
   if(_clSearchOpen){ inp.classList.add('expanded'); setTimeout(()=>inp.focus(),50); }
   else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); clHideSuggestions(); inp.blur(); }
 }
+function clNorm(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
 function clSearchFilter(val) {
-  const q = val.trim().toLowerCase();
+  const q = clNorm(val.trim());
   document.querySelectorAll('.cl-item').forEach(el=>{
-    const name = el.querySelector('.cl-name')?.textContent.toLowerCase()||'';
+    const name = clNorm(el.querySelector('.cl-name')?.textContent||'');
     el.style.display=(!q||name.includes(q))?'':'none';
   });
   document.querySelectorAll('.cl-rayon').forEach(sec=>{

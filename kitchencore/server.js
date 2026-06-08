@@ -18,6 +18,7 @@ const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
 if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'kitchencore.db'));
+db.function('NORM', s => s ? s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : '');
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -413,7 +414,7 @@ app.get('/api/ingredients/search', (req, res) => {
     `SELECT i.id, i.nom, i.categorie, i.icone, r.nom AS rayon_nom
      FROM ingredients i
      LEFT JOIN rayons r ON r.id = i.rayon_id
-     WHERE i.nom LIKE ? ORDER BY i.nom LIMIT 8`
+     WHERE NORM(i.nom) LIKE NORM(?) ORDER BY i.nom LIMIT 8`
   ).all(`%${q}%`));
 });
 
