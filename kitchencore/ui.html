@@ -2474,15 +2474,17 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="m-sg" id="m-sg"></div>
       <div class="m-actrow">
-        <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode">🍳</button>
-        <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
-        <div id="m-port-grp" style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <span class="m-portlbl">👥 Portions</span>
+        <div id="m-port-grp" style="display:flex;align-items:center;gap:8px">
           <div class="m-portctrl">
             <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
             <span class="m-portval" id="m-portval">2</span>
             <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
           </div>
+          <span class="m-portlbl">👥 Portions</span>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode">🍳</button>
+          <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
         </div>
       </div>
       <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
