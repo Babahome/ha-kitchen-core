@@ -1335,6 +1335,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-tb      { padding:7px 12px;border-radius:99px;border:2px solid var(--grey);font-size:.78rem;font-weight:800;color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;background:white;font-family:var(--font);transition:all .15s; }
 .m-tb.on   { background:var(--orange);border-color:var(--orange);color:white; }
 .m-sr      { display:flex;gap:8px;align-items:center;margin-bottom:8px; }
+.m-actrow  { display:flex;align-items:center;gap:8px;margin-bottom:8px; }
 .m-si      { flex:1;background:var(--grey-l);border:1.5px solid var(--grey);border-radius:10px;padding:10px 12px;font-size:.9rem;font-family:var(--font);outline:none;transition:border-color .15s; }
 .m-si:focus{ border-color:var(--orange);background:white; }
 .m-rd      { width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--orange-l);border:2px solid var(--orange);display:grid;place-items:center;cursor:pointer;font-size:1.1rem; }
@@ -2469,17 +2470,19 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <button class="m-tb" data-t="a" onclick="mTyp(this)">📌 Autre</button>
       </div>
       <div class="m-sr">
-        <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode">🍳</button>
         <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
-        <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
       </div>
       <div class="m-sg" id="m-sg"></div>
-      <div class="m-portrow" id="m-portrow">
-        <span class="m-portlbl">👥 Portions</span>
-        <div class="m-portctrl">
-          <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
-          <span class="m-portval" id="m-portval">2</span>
-          <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
+      <div class="m-actrow">
+        <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode">🍳</button>
+        <div class="m-rd" id="m-rd" onclick="mRnd()">🎲</div>
+        <div id="m-port-grp" style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <span class="m-portlbl">👥 Portions</span>
+          <div class="m-portctrl">
+            <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
+            <span class="m-portval" id="m-portval">2</span>
+            <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
+          </div>
         </div>
       </div>
       <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
@@ -6074,8 +6077,8 @@ function mSetMode(mode){
   const isIng = mode === 'ing';
   const sq = document.getElementById('m-mode-sq');
   if(sq){ sq.textContent = isIng ? '🥕' : '🍳'; sq.classList.toggle('ing', isIng); }
-  document.getElementById('m-portrow').style.display = isIng ? 'none' : '';
-  document.getElementById('m-rd').style.display      = isIng ? 'none' : '';
+  document.getElementById('m-port-grp').style.display = isIng ? 'none' : '';
+  document.getElementById('m-rd').style.display       = isIng ? 'none' : '';
   document.getElementById('m-si').placeholder        = isIng ? 'Rechercher un ingrédient…' : 'Recette ou note libre…';
   document.getElementById('m-si').value = '';
   document.getElementById('m-sg').className = 'm-sg';
