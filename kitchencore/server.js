@@ -449,7 +449,7 @@ app.get('/api/produits', (_req, res) => {
 app.get('/api/produits/barcode/:code', (req, res) => {
   try {
     const row = db.prepare(`
-      SELECT p.*, a.nom AS ingredient_nom, COALESCE(a.icone, p.icone) AS icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
+      SELECT p.*, a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
       FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
       WHERE p.code_barres=?
     `).get(req.params.code);
@@ -555,7 +555,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres,
-           a.nom AS ingredient_nom, COALESCE(a.icone, p.icone) AS icone, a.seuil_alerte, a.categorie,
+           a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
     FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY s.zone, p.nom
