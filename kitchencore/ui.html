@@ -3793,7 +3793,7 @@ function switchPage(tab, page, title) {
 
   const cfg = PAGE_CONFIG[page] || { title: title, fab: true, search: false, dark: false };
   document.getElementById('header-title').textContent = cfg.title || title;
-  document.getElementById('content').scrollTop = 0;
+  document.getElementById('content').scrollTo({ top: 0, behavior: 'instant' });
 
   // Header couleur
   const header = document.querySelector('.header');
