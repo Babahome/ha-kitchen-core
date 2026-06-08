@@ -1280,7 +1280,7 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-day.tod .m-dlbl { color:var(--orange);font-weight:900;font-size:.92rem; }
 .m-dadd    { width:28px;height:28px;border-radius:50%;border:2px dashed var(--grey);display:grid;place-items:center;cursor:pointer;font-size:1.1rem;color:var(--grey-d);background:none;font-family:var(--font);transition:all .15s;flex-shrink:0; }
 .m-dadd:active { border-color:var(--orange);color:var(--orange);background:var(--orange-l); }
-.m-zone    { display:flex;flex-direction:column;gap:7px;padding-left:21px;margin-bottom:4px;min-height:8px;border-radius:8px;transition:background .15s; }
+.m-zone    { display:flex;flex-direction:column;gap:7px;padding-left:10px;margin-bottom:4px;min-height:8px;border-radius:8px;transition:background .15s; }
 .m-zone.dz { background:var(--orange-l);min-height:40px; }
 .m-empty   { font-size:.78rem;color:var(--grey-d);font-style:italic;padding:4px 0; }
 .mcard     { background:white;border-radius:12px;border:1px solid var(--grey);box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:stretch;min-height:64px;transition:opacity .15s,transform .15s;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none; }
@@ -1289,14 +1289,15 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-grip:active { color:var(--orange); }
 .m-st      { width:5px;flex-shrink:0; }
 .sp{background:#66BB6A}.sd{background:#42A5F5}.sg2{background:#AB47BC}.sn{background:var(--orange)}.sa{background:var(--grey-d)}
-.m-bd      { flex:1;padding:9px 8px 9px 12px;display:flex;flex-direction:column;justify-content:center;min-width:0; }
-.m-tg      { font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px; }
+.m-bd      { flex:1;padding:7px 8px 7px 10px;display:flex;flex-direction:column;justify-content:center;min-width:0; }
+.m-top-row { display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:3px; }
+.m-tg      { font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;flex:1;min-width:0; }
 .m-port    { font-weight:700;color:var(--grey-d);text-transform:none;letter-spacing:.02em;margin-left:6px; }
 .tp{color:#66BB6A}.td{color:#42A5F5}.tg2{color:#AB47BC}.tn{color:var(--orange)}.ta{color:var(--grey-d)}
-.m-nm      { font-size:.9rem;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.m-nm      { font-size:.9rem;font-weight:800;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 .m-nt      { font-size:.7rem;color:var(--grey-d);margin-top:1px; }
-.m-bts     { display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px 8px;flex-shrink:0; }
-.m-bt      { width:26px;height:26px;border-radius:7px;border:none;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:.8rem; }
+.m-bts     { display:flex;flex-direction:row;align-items:center;gap:3px;flex-shrink:0; }
+.m-bt      { width:24px;height:24px;border-radius:7px;border:none;background:var(--grey-l);display:grid;place-items:center;cursor:pointer;font-size:.75rem; }
 .m-bt:active { background:var(--grey); }
 .m-bt-cart { background:var(--orange-l); }
 .m-bar     { height:3px;background:var(--orange);border-radius:2px;margin:1px 0;pointer-events:none; }
@@ -6023,14 +6024,16 @@ function mBuild(scrollY){
         <div class="m-st ${c.s}"></div>
         ${thumbHtml}
         <div class="m-bd">
-          <div class="m-tg ${tCls}">${c.e} ${c.l}${portStr}</div>
+          <div class="m-top-row">
+            <div class="m-tg ${tCls}">${c.e} ${c.l}${portStr}</div>
+            <div class="m-bts">
+              <button class="m-bt m-bt-cart" data-act="courses">🛒</button>
+              <button class="m-bt m-bt-edit" data-act="edit">✏️</button>
+              <button class="m-bt m-bt-del" data-act="del">🗑</button>
+            </div>
+          </div>
           <div class="m-nm">${r.n}</div>
           ${r.note?`<div class="m-nt">${r.note}</div>`:''}
-        </div>
-        <div class="m-bts">
-          <button class="m-bt m-bt-cart" data-act="courses">🛒</button>
-          <button class="m-bt m-bt-edit" data-act="edit">✏️</button>
-          <button class="m-bt m-bt-del" data-act="del">🗑</button>
         </div>
       </div>`;
     }).join('');
