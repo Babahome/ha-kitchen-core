@@ -166,6 +166,13 @@ db.exec(`
     emoji    TEXT DEFAULT '📦',
     ordre    INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS ingredient_aliases (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+    alias         TEXT NOT NULL,
+    created_at    TEXT DEFAULT (datetime('now')),
+    UNIQUE(alias)
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -186,6 +193,7 @@ db.exec(`
   ['recette_ingredients', 'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['ingredients',    'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['ingredients',    'saison',        "TEXT DEFAULT '[]'"],
+  ['ingredients',    'nom_pluriel',   'TEXT'],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
@@ -333,7 +341,7 @@ app.post('/api/ingredients', (req, res) => {
 
 app.patch('/api/ingredients/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','categorie','rayon_id','seuil_alerte','icone','saison'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
@@ -376,6 +384,30 @@ app.delete('/api/ingredients/:id', (req, res) => {
   db.prepare('DELETE FROM ingredients WHERE id=?').run(req.params.id);
   res.status(204).end();
 });
+
+// ── Aliases routes ──────────────────────────────────────────────────────────
+app.get('/api/ingredients/:id/aliases', (req, res) => {
+  try {
+    res.json(db.prepare('SELECT * FROM ingredient_aliases WHERE ingredient_id=? ORDER BY id').all(req.params.id));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ingredients/:id/aliases', (req, res) => {
+  const { alias } = req.body;
+  if (!alias?.trim()) return res.status(400).json({ error: 'alias requis' });
+  try {
+    const r = db.prepare('INSERT INTO ingredient_aliases(ingredient_id, alias) VALUES(?,?)').run(req.params.id, alias.trim());
+    res.status(201).json({ id: r.lastInsertRowid, ingredient_id: parseInt(req.params.id), alias: alias.trim() });
+  } catch(e) {
+    res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Alias déjà utilisé.' : e.message });
+  }
+});
+
+app.delete('/api/ingredients/:id/aliases/:aliasId', (req, res) => {
+  db.prepare('DELETE FROM ingredient_aliases WHERE id=? AND ingredient_id=?').run(req.params.aliasId, req.params.id);
+  res.status(204).end();
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 app.post('/api/ingredients/merge', (req, res) => {
   const { keep_id, merge_ids, name } = req.body;
@@ -423,8 +455,8 @@ app.get('/api/ingredients/search', (req, res) => {
 app.post('/api/ingredients/auto-add', (req, res) => {
   const { nom } = req.body;
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
-  const existing = db.prepare('SELECT * FROM ingredients WHERE LOWER(nom)=LOWER(?)').get(nom.trim());
-  if (existing) return res.json(existing);
+  const found = findIngByNameOrAlias(nom.trim());
+  if (found) return res.json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(found.id));
   try {
     const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), 'Autre', 1, '🥫');
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));
@@ -662,7 +694,8 @@ function getRecette(id) {
   r.favori      = !!r.favori;
   r.ingredients = db.prepare(`
     SELECT ri.*, COALESCE(i1.icone, i2.icone) as ingredient_icone,
-           COALESCE(ri.ingredient_id, i2.id) as ingredient_id
+           COALESCE(ri.ingredient_id, i2.id) as ingredient_id,
+           COALESCE(i1.nom_pluriel, i2.nom_pluriel) as nom_pluriel
     FROM recette_ingredients ri
     LEFT JOIN ingredients i1 ON i1.id = ri.ingredient_id
     LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
@@ -704,18 +737,37 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
   return result;
 }
 
+// Recherche un ingrédient par nom exact, nom_pluriel, ou alias (insensible à la casse)
+function findIngByNameOrAlias(nom) {
+  const n = nom.trim();
+  let row = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1').get(n);
+  if (row) return row;
+  try {
+    row = db.prepare('SELECT id FROM ingredients WHERE nom_pluriel IS NOT NULL AND LOWER(TRIM(nom_pluriel))=LOWER(TRIM(?)) LIMIT 1').get(n);
+    if (row) return row;
+    row = db.prepare('SELECT ingredient_id AS id FROM ingredient_aliases WHERE LOWER(TRIM(alias))=LOWER(TRIM(?)) LIMIT 1').get(n);
+    if (row) return row;
+  } catch(_) {}
+  return null;
+}
+
 function saveIngredients(recetteId, ingredients) {
   db.prepare('DELETE FROM recette_ingredients WHERE recette_id=?').run(recetteId);
   const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id,note,ingredient_id) VALUES(?,?,?,?,?,?,?,?,?)');
   const autoAdd = db.prepare('INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)');
-  const findIng = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1');
   (ingredients || []).forEach((ing, i) => {
     let ingredient_id = ing.ingredient_id ? parseInt(ing.ingredient_id) : null;
     if (ing.type !== 'sous_recette' && ing.nom?.trim()) {
-      autoAdd.run(ing.nom.trim(), 'Autre', 1, '🥫');
-      if (!ingredient_id) {
-        const found = findIng.get(ing.nom.trim());
-        if (found) ingredient_id = found.id;
+      // Cherche par nom, nom_pluriel ou alias avant de créer
+      const found = findIngByNameOrAlias(ing.nom.trim());
+      if (found) {
+        ingredient_id = ingredient_id || found.id;
+      } else {
+        autoAdd.run(ing.nom.trim(), 'Autre', 1, '🥫');
+        if (!ingredient_id) {
+          const created = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1').get(ing.nom.trim());
+          if (created) ingredient_id = created.id;
+        }
       }
     }
     ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null, ing.note||'', ingredient_id||null);

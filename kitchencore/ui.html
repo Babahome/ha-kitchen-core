@@ -2798,7 +2798,19 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="ing-panel-scroll">
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom</label>
-        <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomates cerises">
+        <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomate cerise" oninput="ingAutoFillPluriel(this.value)">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Nom au pluriel <span style="font-weight:400;color:var(--grey-d);font-size:12px">(affiché si quantité > 1)</span></label>
+        <input class="ing-panel-input" id="ing-editNomPluriel" placeholder="ex: Tomates cerises">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Alias <span style="font-weight:400;color:var(--grey-d);font-size:12px">(autres noms pour la recherche et l'import)</span></label>
+        <div id="ing-aliasChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px">
+          <input class="ing-panel-input" id="ing-aliasInput" placeholder="Ajouter un alias…" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();ingAddAlias();}">
+          <button onclick="ingAddAlias()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:0 14px;font-size:18px;cursor:pointer">+</button>
+        </div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Rayon</label>
@@ -5519,6 +5531,8 @@ async function openDetail(id) {
     const qtyNum = parseFloat(i.qty);
     const qtyDisplay = (!isNaN(qtyNum) && qtyNum !== 0) ? String(i.qty) : '';
     const qtyTxt = [qtyDisplay, abbrevUnit(i.unite)].filter(Boolean).join(' ');
+    // Utilise le nom pluriel si quantité > 1 et nom_pluriel disponible
+    const displayNom = (i.nom_pluriel && !isNaN(qtyNum) && qtyNum > 1) ? i.nom_pluriel : i.nom;
     const rowClick = (isSub && subRecId) ? `onclick="window.open('?recipe=${subRecId}','_blank')" style="cursor:pointer"` : '';
     const linkIcon = (isSub && subRecId) ? `<span style="font-size:.75rem;color:#1d4ed8;margin-left:.25rem">↗</span>` : '';
     return `
@@ -5526,7 +5540,7 @@ async function openDetail(id) {
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${i.nom}${linkIcon}</div>
+        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${displayNom}${linkIcon}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
@@ -7007,6 +7021,9 @@ let _ingSort            = 'alpha';
 let _ingSelectMode      = false;
 let _ingSearchQuery     = '';
 let _ingEditingId       = null;
+let _ingAliasesLoaded   = [];   // [{id, alias}] chargés depuis API
+let _ingAliasesToDelete = [];   // ids à supprimer
+let _ingAliasesToAdd    = [];   // strings à créer
 let _ingPendingPhotoFile = null;
 let _ingLastSelectedId  = null;
 let _ingDetailId     = null;
@@ -7037,14 +7054,15 @@ async function _ingLoadData() {
     _ingAll = data.map(a => {
       const iconeIsUrl = a.icone && (a.icone.startsWith('http') || a.icone.startsWith('/') || a.icone.startsWith('data:'));
       return {
-        id:       String(a.id),
-        name:     a.nom || '',
-        emoji:    iconeIsUrl ? '🥫' : (a.icone || '🥫'),
-        rayon_id: a.rayon_id || null,
-        imageUrl: iconeIsUrl ? a.icone : '',
-        saison:   a.saison || '[]',
-        usedIn:   [],
-        _dbId:    a.id,
+        id:         String(a.id),
+        name:       a.nom || '',
+        nom_pluriel:a.nom_pluriel || '',
+        emoji:      iconeIsUrl ? '🥫' : (a.icone || '🥫'),
+        rayon_id:   a.rayon_id || null,
+        imageUrl:   iconeIsUrl ? a.icone : '',
+        saison:     a.saison || '[]',
+        usedIn:     [],
+        _dbId:      a.id,
       };
     });
     let usedInMap = {};
@@ -7203,10 +7221,36 @@ function _ingRenderDoublons() {
 
 function _ingFindDuplicateGroups() {
   const groups = new Map();
+  // Regroupement par radical (suppression du s final)
   _ingAll.forEach(ing => {
     const key = _ingNormalize(ing.name).replace(/s$/,'');
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(ing);
+    if (!groups.get(key).includes(ing)) groups.get(key).push(ing);
+  });
+  // Regroupement supplémentaire : si nom_pluriel d'un ingrédient = nom d'un autre
+  _ingAll.forEach(ing => {
+    if (!ing.nom_pluriel) return;
+    const plurNorm = _ingNormalize(ing.nom_pluriel).replace(/s$/,'');
+    _ingAll.forEach(other => {
+      if (other.id === ing.id) return;
+      const otherNorm = _ingNormalize(other.name).replace(/s$/,'');
+      if (plurNorm === otherNorm) {
+        // Les deux appartiennent au même groupe
+        const keyA = _ingNormalize(ing.name).replace(/s$/,'');
+        const keyB = otherNorm;
+        const existing = groups.get(keyA) || groups.get(keyB);
+        const mergedKey = keyA;
+        if (!groups.has(mergedKey)) groups.set(mergedKey, []);
+        const g = groups.get(mergedKey);
+        if (!g.includes(ing)) g.push(ing);
+        if (!g.includes(other)) g.push(other);
+        // Nettoyer l'autre clé si elle existe séparément
+        if (keyB !== mergedKey && groups.has(keyB)) {
+          groups.get(keyB).forEach(i => { if (!g.includes(i)) g.push(i); });
+          groups.delete(keyB);
+        }
+      }
+    });
   });
   return Array.from(groups.entries())
     .filter(([, items]) => items.length > 1)
@@ -7523,6 +7567,61 @@ function _ingCloseEditPanel() {
   _ingEditingId = null;
 }
 
+function _ingAutoFillPluriel(nom) {
+  const el = document.getElementById('ing-editNomPluriel');
+  if (!el) return;
+  // Suggestion seulement si le champ est vide ou était une suggestion automatique précédente
+  const current = el.value.trim();
+  const ing = _ingAll.find(i => i.id === String(_ingEditingId));
+  const savedPluriel = ing ? (ing.nom_pluriel || '') : '';
+  // Auto-remplir si vide ou si la valeur actuelle = ancien nom + s (suggestion)
+  const oldSuggestion = savedPluriel || (ing ? ing.name + 's' : '');
+  if (!current || current === oldSuggestion || current === (ing ? ing.name + 's' : '')) {
+    el.value = nom.trim() ? nom.trim() + 's' : '';
+  }
+}
+
+function _ingRenderAliasChips() {
+  const container = document.getElementById('ing-aliasChips');
+  if (!container) return;
+  const all = [
+    ..._ingAliasesLoaded.filter(a => !_ingAliasesToDelete.includes(a.id)),
+    ..._ingAliasesToAdd.map(a => ({ id: null, alias: a })),
+  ];
+  container.innerHTML = all.map(a => {
+    const label = _esc(a.alias);
+    const onclick = a.id
+      ? `ingRemoveAlias(${a.id}, null)`
+      : `ingRemoveAlias(null, '${label}')`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);color:var(--orange);border-radius:20px;padding:4px 10px;font-size:13px;font-weight:600">
+      ${label}
+      <button onclick="${onclick}" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;padding:0;line-height:1">✕</button>
+    </span>`;
+  }).join('');
+}
+
+function _ingAddAlias() {
+  const inp = document.getElementById('ing-aliasInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  // Vérifie doublon local
+  const already = _ingAliasesLoaded.some(a => a.alias.toLowerCase() === val.toLowerCase())
+    || _ingAliasesToAdd.some(a => a.toLowerCase() === val.toLowerCase());
+  if (already) { _ingToast('Alias déjà présent'); return; }
+  _ingAliasesToAdd.push(val);
+  inp.value = '';
+  _ingRenderAliasChips();
+}
+
+function _ingRemoveAlias(id, aliasStr) {
+  if (id) {
+    _ingAliasesToDelete.push(id);
+  } else {
+    _ingAliasesToAdd = _ingAliasesToAdd.filter(a => a !== aliasStr);
+  }
+  _ingRenderAliasChips();
+}
+
 function _ingOpenEditFromDetail() {
   _ingCloseDetailPanel();
   setTimeout(() => _ingOpenEditPanel(_ingDetailId), 100);
@@ -7535,12 +7634,23 @@ function _ingOpenEditPanel(id, e) {
   if (!ing) return;
   _ingEditingId = id;
   _ingPendingPhotoFile = null;
+  _ingAliasesLoaded   = [];
+  _ingAliasesToDelete = [];
+  _ingAliasesToAdd    = [];
 
   const initials = (ing.name || '?').slice(0, 2);
   document.getElementById('ing-editIngId').value = id;
   document.getElementById('ing-editTitle').textContent = ing.name;
   document.getElementById('ing-editName').value = ing.name;
+  document.getElementById('ing-editNomPluriel').value = ing.nom_pluriel || '';
   document.getElementById('ing-editImageUrl').value = ing.imageUrl || '';
+  document.getElementById('ing-aliasInput').value = '';
+
+  // Charger les aliases en arrière-plan
+  fetch('/api/ingredients/' + ing._dbId + '/aliases')
+    .then(r => r.ok ? r.json() : [])
+    .then(aliases => { _ingAliasesLoaded = aliases; _ingRenderAliasChips(); })
+    .catch(() => {});
 
   // Hero
   const hero = document.getElementById('ing-editHero');
@@ -7628,7 +7738,8 @@ async function _ingSaveIngredient() {
       _ingPendingPhotoFile = null;
     }
 
-    const body = { nom: newName, rayon_id: newRayon, saison: JSON.stringify([..._ingSaisonActive].sort((a,b)=>a-b)) };
+    const nomPluriel = document.getElementById('ing-editNomPluriel').value.trim();
+    const body = { nom: newName, rayon_id: newRayon, saison: JSON.stringify([..._ingSaisonActive].sort((a,b)=>a-b)), nom_pluriel: nomPluriel || null };
     if (imageUrl) body.icone = imageUrl;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
@@ -7636,6 +7747,19 @@ async function _ingSaveIngredient() {
       body: JSON.stringify(body)
     });
     if (!res.ok) { const d=await res.json(); _ingToast(d.error||'Erreur'); return; }
+
+    // Sauvegarder les aliases (suppressions puis ajouts)
+    const aliasBase = '/api/ingredients/' + ing._dbId + '/aliases';
+    await Promise.all(_ingAliasesToDelete.map(aid =>
+      fetch(`${aliasBase}/${aid}`, { method: 'DELETE' }).catch(() => {})
+    ));
+    for (const alias of _ingAliasesToAdd) {
+      try {
+        const ar = await fetch(aliasBase, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ alias }) });
+        if (!ar.ok) { const d = await ar.json(); _ingToast(d.error || 'Alias non ajouté'); }
+      } catch(_) {}
+    }
+
     await _ingLoadData();
     _ingCloseEditPanel();
     _ingToast('Ingrédient mis à jour');
@@ -8057,6 +8181,9 @@ window.ingOpenSaisonSheet  = _ingOpenSaisonSheet;
 window.ingCloseSaisonSheet = _ingCloseSaisonSheet;
 window.ingApplySaisonSelected = _ingApplySaisonSelected;
 window.ingCreateFromSearch = _ingCreateFromSearch;
+window.ingAutoFillPluriel  = _ingAutoFillPluriel;
+window.ingAddAlias         = _ingAddAlias;
+window.ingRemoveAlias      = _ingRemoveAlias;
 window.ingSortBy           = _ingSortBy;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
