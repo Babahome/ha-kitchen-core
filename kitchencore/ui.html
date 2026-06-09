@@ -3074,6 +3074,27 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   </div>
   <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
 
+  <!-- ══ POPUP POURCENTAGE (appui long) ══════════════════════════════════════ -->
+  <div id="stock-pctPopup" style="display:none;position:absolute;z-index:600;background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:14px 10px 10px;flex-direction:column;align-items:center;gap:6px;min-width:60px;touch-action:none">
+    <div id="stock-pctPopupLabel" style="font-size:.8rem;font-weight:800;color:#E8671A;min-width:32px;text-align:center"></div>
+    <div style="position:relative;height:150px;width:36px;display:flex;align-items:center;justify-content:center">
+      <!-- ticks -->
+      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;margin:auto;display:flex;flex-direction:column;justify-content:space-between;align-items:center;pointer-events:none">
+        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
+        <div style="width:6px;height:2px;background:#ddd;border-radius:1px"></div>
+        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
+        <div style="width:6px;height:2px;background:#ddd;border-radius:1px"></div>
+        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
+      </div>
+      <input type="range" id="stock-pctSlider" min="0" max="100" step="25"
+        style="width:150px;height:36px;transform:rotate(-90deg);cursor:pointer;accent-color:#E8671A;position:absolute;margin:0;padding:0"
+        oninput="_stockPctSliderInput(this.value)"
+        onchange="_stockPctSliderSave()">
+    </div>
+    <div style="font-size:.62rem;color:#aaa;letter-spacing:.02em">NIVEAU</div>
+  </div>
+  <!-- ══ /POPUP POURCENTAGE ══════════════════════════════════════════════════ -->
+
 </div><!-- /frame -->
 
 <script>
@@ -3539,6 +3560,125 @@ function stockEditPickPct(btn, val) {
   document.querySelectorAll('#stock-editPctGrid .rayon-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
+
+// ── Popup pourcentage (appui long) ──────────────────────────────────────────
+let _pctLongPressTimer = null;
+let _pctPopupProdId    = null;
+let _pctPopupOpen      = false;
+
+function _pctLabel(v) {
+  return v === 100 ? 'Plein' : v === 75 ? '¾' : v === 50 ? '½' : v === 25 ? '¼' : 'Vide';
+}
+
+function _pctLabelColor(v) {
+  return v >= 50 ? '#27ae60' : v >= 25 ? '#e67e22' : '#e74c3c';
+}
+
+function _stockPctSliderInput(val) {
+  const v = parseInt(val);
+  const lbl = document.getElementById('stock-pctPopupLabel');
+  lbl.textContent = _pctLabel(v);
+  lbl.style.color  = _pctLabelColor(v);
+  // mise à jour live dans _stockItems pour que la card se rafraîchisse
+  const item = _stockItems.find(i => i.produit_id === _pctPopupProdId);
+  if (item) { item.pourcentage = v; _stockRender(); }
+}
+
+async function _stockPctSliderSave() {
+  const id  = _pctPopupProdId;
+  const val = parseInt(document.getElementById('stock-pctSlider').value);
+  if (!id) return;
+  try {
+    await fetch(`/api/produits/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pourcentage: val })
+    });
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+function _stockPctOpenPopup(prodId, anchorEl) {
+  _pctPopupProdId = prodId;
+  _pctPopupOpen   = true;
+  const item = _stockItems.find(i => i.produit_id === prodId);
+  const pct  = (item && item.pourcentage !== null && item.pourcentage !== undefined) ? item.pourcentage : 50;
+
+  const slider = document.getElementById('stock-pctSlider');
+  slider.value = pct;
+
+  const lbl = document.getElementById('stock-pctPopupLabel');
+  lbl.textContent = _pctLabel(pct);
+  lbl.style.color  = _pctLabelColor(pct);
+
+  // Positionner le popup près de la card dans .frame
+  const popup  = document.getElementById('stock-pctPopup');
+  const frame  = document.querySelector('.frame');
+  const fRect  = frame.getBoundingClientRect();
+  const aRect  = anchorEl.getBoundingClientRect();
+
+  popup.style.display = 'flex';
+  const pw = popup.offsetWidth  || 60;
+  const ph = popup.offsetHeight || 220;
+
+  let left = aRect.left - fRect.left + aRect.width / 2 - pw / 2;
+  let top  = aRect.top  - fRect.top  - ph - 8;
+  if (top < 8) top = aRect.top - fRect.top + aRect.height + 8;
+  left = Math.max(8, Math.min(left, fRect.width - pw - 8));
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+}
+
+function _stockPctClosePopup() {
+  if (!_pctPopupOpen) return;
+  _pctPopupOpen = false;
+  document.getElementById('stock-pctPopup').style.display = 'none';
+  _pctPopupProdId = null;
+}
+
+// Fermer le popup sur clic en dehors
+document.addEventListener('click', e => {
+  if (!_pctPopupOpen) return;
+  if (!e.target.closest('#stock-pctPopup')) _stockPctClosePopup();
+});
+
+// Long press sur les cards stock (délégation sur #stock-content)
+document.addEventListener('DOMContentLoaded', () => {
+  const content = document.getElementById('stock-content');
+  if (!content) return;
+
+  content.addEventListener('touchstart', e => {
+    const card = e.target.closest('.prod-card');
+    if (!card || e.target.closest('.qty-btn')) return;
+    const id = parseInt(card.dataset.id);
+    _pctLongPressTimer = setTimeout(() => {
+      _pctLongPressTimer = null;
+      navigator.vibrate && navigator.vibrate(30);
+      _stockPctOpenPopup(id, card);
+    }, 500);
+  }, { passive: true });
+
+  content.addEventListener('touchmove', () => {
+    if (_pctLongPressTimer) { clearTimeout(_pctLongPressTimer); _pctLongPressTimer = null; }
+  }, { passive: true });
+
+  content.addEventListener('touchend', () => {
+    if (_pctLongPressTimer) { clearTimeout(_pctLongPressTimer); _pctLongPressTimer = null; }
+  });
+
+  // Support souris (desktop)
+  content.addEventListener('mousedown', e => {
+    const card = e.target.closest('.prod-card');
+    if (!card || e.target.closest('.qty-btn')) return;
+    const id = parseInt(card.dataset.id);
+    _pctLongPressTimer = setTimeout(() => {
+      _pctLongPressTimer = null;
+      _stockPctOpenPopup(id, card);
+    }, 500);
+  });
+
+  content.addEventListener('mouseup',   () => { if (_pctLongPressTimer) { clearTimeout(_pctLongPressTimer); _pctLongPressTimer = null; } });
+  content.addEventListener('mousemove', () => { if (_pctLongPressTimer) { clearTimeout(_pctLongPressTimer); _pctLongPressTimer = null; } });
+});
 
 async function stockSearchIng(q) {
   const box = document.getElementById('stock-editIngSuggest');
