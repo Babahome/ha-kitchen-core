@@ -3003,6 +3003,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <span class="ing-panel-label">Stock actuel</span>
         <div class="prod-qty" id="stock-detailQty" style="justify-content:flex-start;gap:12px"></div>
       </div>
+      <div class="ing-panel-section" id="stock-detailPctSection" style="display:none">
+        <span class="ing-panel-label">Niveau restant</span>
+        <div id="stock-detailPct"></div>
+      </div>
       <div class="ing-panel-section" id="stock-detailDlcSection">
         <span class="ing-panel-label">Date limite de conso.</span>
         <div class="ing-panel-value" id="stock-detailDlc"></div>
@@ -3055,6 +3059,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
         <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
         <input type="hidden" id="stock-editIngId">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Niveau restant (optionnel)</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="stock-editPctGrid"></div>
+        <input type="hidden" id="stock-editPct">
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Date limite de conso. (optionnel)</label>
@@ -3196,6 +3205,16 @@ function _dlcBadge(dlc) {
   return `<div style="position:absolute;top:4px;right:4px;background:${color};color:#fff;font-size:.62rem;font-weight:700;padding:2px 5px;border-radius:10px;line-height:1.3;z-index:2">${label}</div>`;
 }
 
+function _stockPctBar(pct) {
+  if (pct === null || pct === undefined) return '';
+  const color = pct >= 50 ? '#27ae60' : pct >= 25 ? '#e67e22' : '#e74c3c';
+  const label = pct === 100 ? 'Plein' : pct === 75 ? '¾' : pct === 50 ? '½' : pct === 25 ? '¼' : 'Vide';
+  return `<div style="margin:4px 0 0;height:4px;border-radius:2px;background:#e0e0e0;overflow:hidden">
+    <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .3s"></div>
+  </div>
+  <div style="font-size:.62rem;color:${color};font-weight:700;text-align:right;line-height:1.2">${label}</div>`;
+}
+
 function _stockCard(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   const statusClass = qty === 0 ? 'empty' : qty <= 1 ? 'warn' : 'ok';
@@ -3218,6 +3237,7 @@ function _stockCard(s) {
     <div class="prod-status ${statusClass}">${statusEmoji}</div>
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
+      ${_stockPctBar(s.pourcentage)}
       <div class="prod-controls">
         <div class="prod-qty">
           <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
@@ -3383,6 +3403,24 @@ function _stockOpenDetail(id) {
     dlcSection.style.display = 'none';
   }
 
+  // Pourcentage
+  const pctSection = document.getElementById('stock-detailPctSection');
+  if (s.pourcentage !== null && s.pourcentage !== undefined) {
+    const pct = s.pourcentage;
+    const color = pct >= 50 ? '#27ae60' : pct >= 25 ? '#e67e22' : '#e74c3c';
+    const label = pct === 100 ? 'Plein' : pct === 75 ? '¾' : pct === 50 ? '½' : pct === 25 ? '¼' : 'Vide';
+    document.getElementById('stock-detailPct').innerHTML =
+      `<div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;height:8px;border-radius:4px;background:#e0e0e0;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width .3s"></div>
+        </div>
+        <span style="font-weight:700;color:${color};min-width:36px;text-align:right">${label}</span>
+      </div>`;
+    pctSection.style.display = '';
+  } else {
+    pctSection.style.display = 'none';
+  }
+
   // Code-barres
   const bcSection = document.getElementById('stock-detailBarcodeSection');
   if (s.code_barres) {
@@ -3474,6 +3512,14 @@ function _stockOpenEdit(id) {
   document.getElementById('stock-editIngSearch').value = s.ingredient_nom || '';
   document.getElementById('stock-editIngSuggest').style.display = 'none';
 
+  // Pourcentage paliers
+  const pctVal = s.pourcentage !== null && s.pourcentage !== undefined ? s.pourcentage : '';
+  document.getElementById('stock-editPct').value = pctVal;
+  const paliers = [{ v: 100, l: '🟢 Plein' }, { v: 75, l: '¾' }, { v: 50, l: '½' }, { v: 25, l: '¼' }, { v: 0, l: '🔴 Vide' }];
+  document.getElementById('stock-editPctGrid').innerHTML =
+    `<div class="rayon-chip${pctVal === '' ? ' active' : ''}" onclick="stockEditPickPct(this, '')">— Aucun</div>` +
+    paliers.map(p => `<div class="rayon-chip${pctVal === p.v ? ' active' : ''}" onclick="stockEditPickPct(this, ${p.v})">${p.l}</div>`).join('');
+
   document.getElementById('stock-editPanel').classList.add('open');
 }
 
@@ -3485,6 +3531,12 @@ function stockCloseEdit() {
 function stockEditPickZone(btn, zone) {
   _stockEditZone = zone;
   document.querySelectorAll('#stock-editZoneGrid .rayon-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function stockEditPickPct(btn, val) {
+  document.getElementById('stock-editPct').value = val;
+  document.querySelectorAll('#stock-editPctGrid .rayon-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
 
@@ -3562,12 +3614,14 @@ async function stockSaveEdit() {
     // 2. Mettre à jour les champs texte + ingrédient
     const ingIdRaw = document.getElementById('stock-editIngId').value;
     const ingredient_id = ingIdRaw ? parseInt(ingIdRaw) : null;
+    const pctRaw = document.getElementById('stock-editPct').value;
     const body = {
       nom,
       marque: document.getElementById('stock-editMarque').value.trim() || null,
       ingredient_id,
       contenance: parseFloat(document.getElementById('stock-editContenance').value) || null,
-      unite: document.getElementById('stock-editUnite').value.trim() || null
+      unite: document.getElementById('stock-editUnite').value.trim() || null,
+      pourcentage: pctRaw !== '' ? parseInt(pctRaw) : null
     };
     const rp = await fetch(`/api/produits/${id}`, {
       method: 'PATCH',
