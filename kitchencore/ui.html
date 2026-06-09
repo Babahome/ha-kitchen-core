@@ -496,6 +496,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   cursor: pointer; font-size: 1.1rem; color: white;
 }
 .scanner-torch.on { background: rgba(255,200,0,.3); }
+.scanner-mode-btn {
+  padding: 0 10px; height: 30px; border-radius: 15px;
+  background: rgba(255,255,255,.15); display: grid; place-items: center;
+  cursor: pointer; font-size: .72rem; font-weight: 800; color: white;
+  white-space: nowrap; letter-spacing: .03em;
+}
+.scanner-mode-btn.zxing { background: rgba(232,103,26,.5); }
 
 /* Viewfinder */
 .scanner-view {
@@ -2563,6 +2570,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="scanner-header">
       <div class="scanner-close" onclick="closeScanner()">✕</div>
       <div class="scanner-title">Scanner un produit</div>
+      <div class="scanner-mode-btn" id="scanner-mode-btn" onclick="toggleScannerMode()" style="display:none" title="Changer de moteur de scan">NATIVE</div>
       <div class="scanner-torch" id="flip-btn" onclick="flipCamera()" title="Changer de caméra">🔄</div>
       <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()">🔦</div>
     </div>
@@ -4088,12 +4096,26 @@ async function _stopScanner() {
   if (_zxing) { try { _zxing.reset(); } catch(_) {} _zxing = null; }
 }
 
+let _scannerMode = 'native'; // 'native' | 'zxing'
+
+function toggleScannerMode() {
+  _scannerMode = _scannerMode === 'native' ? 'zxing' : 'native';
+  const btn = document.getElementById('scanner-mode-btn');
+  if (_scannerMode === 'zxing') {
+    btn.textContent = 'ZXING'; btn.classList.add('zxing');
+  } else {
+    btn.textContent = 'NATIVE'; btn.classList.remove('zxing');
+  }
+  _startScanner();
+}
+
 async function openScanner() {
   document.getElementById('scanner-modal').classList.add('open');
   _scanList = [];
   _scanCooldown = {};
   _renderScanList();
   resetScan();
+  _scannerMode = 'native';
 
   try {
     const first = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -4107,6 +4129,7 @@ async function openScanner() {
     _videoDeviceIndex = 0;
 
     document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
+    document.getElementById('scanner-mode-btn').style.display = ('BarcodeDetector' in window) ? '' : 'none';
 
     await _startScanner();
   } catch(err) {
@@ -4125,7 +4148,7 @@ async function _startScanner() {
   const video = document.getElementById('scanner-video');
 
   // ── Priorité 1 : BarcodeDetector natif (Android Chrome, HTTPS requis) ──
-  if ('BarcodeDetector' in window) {
+  if (_scannerMode === 'native' && 'BarcodeDetector' in window) {
     try {
       const supported = await BarcodeDetector.getSupportedFormats();
       const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'itf'];
