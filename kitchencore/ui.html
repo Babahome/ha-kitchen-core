@@ -4205,7 +4205,7 @@ async function _startScanner() {
     }
   }
 
-  // ── Fallback : ZXing avec double confirmation ──
+  // ── Fallback : ZXing + prétraitement canvas ──
   if (!window.ZXing) {
     document.querySelector('.scanner-hint').textContent = '⚠️ Scanner non disponible — saisir le code manuellement';
     return;
@@ -4227,22 +4227,75 @@ async function _startScanner() {
   _zxing = new ZXing.BrowserMultiFormatReader(hints);
   const frame = document.querySelector('.scanner-frame');
 
-  _zxing.decodeFromVideoDevice(deviceId, video, (result) => {
-    if (_scanDone || !result) return;
-    const code = result.getText();
-    if (code === _lastCode) {
-      _confirmCount++;
-      if (_confirmCount === 1) frame?.classList.add('confirming');
-      if (_confirmCount >= _CONFIRM_NEEDED) {
-        _scanDone = true;
-        frame?.classList.remove('confirming');
-        onCodeDetected(code);
-      }
-    } else {
-      _lastCode = code; _confirmCount = 1;
-      frame?.classList.remove('confirming');
+  // Démarrer le flux vidéo manuellement (nécessaire pour decodeFromCanvas)
+  const videoBase = deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    : { facingMode: 'environment',    width: { ideal: 1280 }, height: { ideal: 720 } };
+  try {
+    _nativeStream = await navigator.mediaDevices.getUserMedia({ video: videoBase });
+  } catch(_) {
+    _nativeStream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } });
+  }
+  video.srcObject = _nativeStream;
+  await video.play();
+
+  document.querySelector('.scanner-hint').textContent = 'Placez le code-barres dans le cadre';
+
+  const _ppCanvas = document.createElement('canvas');
+  const _ppCtx = _ppCanvas.getContext('2d', { willReadFrequently: true });
+
+  // Applique un prétraitement (niveaux de gris + contraste) sur le canvas
+  // factor > 1 = boost contraste ; factor = -1 = inversion couleurs
+  function _preprocessFrame(contrast) {
+    _ppCtx.drawImage(video, 0, 0);
+    const img = _ppCtx.getImageData(0, 0, _ppCanvas.width, _ppCanvas.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const c = contrast < 0
+        ? 255 - g
+        : Math.min(255, Math.max(0, contrast * (g - 128) + 128));
+      d[i] = d[i + 1] = d[i + 2] = c;
+      // d[i+3] (alpha) inchangé
     }
-  });
+    _ppCtx.putImageData(img, 0, 0);
+  }
+
+  const _zxingLoop = () => {
+    if (_scanDone || !_zxing) return;
+    if (video.readyState >= 2 && video.videoWidth > 0) {
+      _ppCanvas.width  = video.videoWidth;
+      _ppCanvas.height = video.videoHeight;
+
+      // 3 tentatives par frame : gris neutre, fort contraste, inversé
+      for (const contrast of [1.5, 2.5, -1]) {
+        try {
+          _preprocessFrame(contrast);
+          const result = _zxing.decodeFromCanvas(_ppCanvas);
+          if (result) {
+            const code = result.getText();
+            if (code === _lastCode) {
+              _confirmCount++;
+              if (_confirmCount === 1) frame?.classList.add('confirming');
+              if (_confirmCount >= _CONFIRM_NEEDED) {
+                _scanDone = true;
+                frame?.classList.remove('confirming');
+                onCodeDetected(code);
+                return;
+              }
+            } else {
+              _lastCode = code; _confirmCount = 1;
+              frame?.classList.remove('confirming');
+            }
+            break; // une variante a réussi, inutile d'essayer les autres
+          }
+        } catch(_) {} // ZXing lance une exception si rien trouvé
+      }
+      if (!_lastCode) _confirmCount = 0;
+    }
+    _rafId = requestAnimationFrame(_zxingLoop);
+  };
+  _rafId = requestAnimationFrame(_zxingLoop);
 }
 
 // ── MODE CAISSE ───────────────────────────────────────────────────────────────
