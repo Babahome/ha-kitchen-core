@@ -4190,6 +4190,41 @@ function _setupTapToFocus(video) {
 
 let _tapFocusAbort = null;
 
+// ── Détection de netteté (filtre Laplacien sur frame downscalée) ──────────────
+const _SHARP_THRESHOLD = 180; // en dessous = image floue, on skip le décodage
+const _sharpCanvas = document.createElement('canvas');
+_sharpCanvas.width = 160; _sharpCanvas.height = 90;
+const _sharpCtx = _sharpCanvas.getContext('2d', { willReadFrequently: true });
+
+function _calcSharpness(video) {
+  if (!video.videoWidth) return 999;
+  _sharpCtx.drawImage(video, 0, 0, 160, 90);
+  const d = _sharpCtx.getImageData(0, 0, 160, 90).data;
+  const gray = new Uint8Array(160 * 90);
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  }
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < 89; y++) {
+    for (let x = 1; x < 159; x++) {
+      const lap = -4 * gray[y * 160 + x]
+        + gray[(y - 1) * 160 + x] + gray[(y + 1) * 160 + x]
+        + gray[y * 160 + x - 1]   + gray[y * 160 + x + 1];
+      sum += lap; sum2 += lap * lap; n++;
+    }
+  }
+  const mean = sum / n;
+  return (sum2 / n) - mean * mean; // variance du Laplacien
+}
+
+let _lastHint = '';
+function _setHint(text) {
+  if (text === _lastHint) return;
+  _lastHint = text;
+  const el = document.querySelector('.scanner-hint');
+  if (el) el.textContent = text;
+}
+
 async function _startScanner() {
   _stopScanner();
   _scanDone = false;
@@ -4222,6 +4257,13 @@ async function _startScanner() {
       const loop = async () => {
         if (!_nativeDetector) return;
         if (!_scanDone && video.readyState >= 2) {
+          if (_calcSharpness(video) < _SHARP_THRESHOLD) {
+            _setHint('📷 Stabilisez — image floue');
+            _lastCode = null; _confirmCount = 0;
+            _rafId = requestAnimationFrame(loop);
+            return;
+          }
+          _setHint('Placez le code-barres dans le cadre');
           try {
             const results = await _nativeDetector.detect(video);
             if (results.length && !_scanDone) {
@@ -4303,6 +4345,13 @@ async function _startScanner() {
   const _zxingLoop = () => {
     if (_scanDone || !_zxing) return;
     if (video.readyState >= 2 && video.videoWidth > 0) {
+      if (_calcSharpness(video) < _SHARP_THRESHOLD) {
+        _setHint('📷 Stabilisez — image floue');
+        _lastCode = null; _confirmCount = 0;
+        _rafId = requestAnimationFrame(_zxingLoop);
+        return;
+      }
+      _setHint('Placez le code-barres dans le cadre');
       _ppCanvas.width  = video.videoWidth;
       _ppCanvas.height = video.videoHeight;
 
