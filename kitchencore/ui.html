@@ -4138,6 +4138,58 @@ async function openScanner() {
   }
 }
 
+// Démarre le flux vidéo avec focus continu, retourne le stream
+async function _startVideoStream(deviceId) {
+  const videoBase = deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    : { facingMode: 'environment',    width: { ideal: 1280 }, height: { ideal: 720 } };
+  const focusConstraints = { focusMode: 'continuous' };
+
+  // Tentatives par ordre de préférence : focus + torch réservé, focus seul, basique
+  for (const extra of [
+    { advanced: [{ torch: false, ...focusConstraints }] },
+    { advanced: [focusConstraints] },
+    {},
+  ]) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { ...videoBase, ...extra } });
+      // Appliquer le focus continu après coup si le track le supporte
+      try {
+        const track = stream.getVideoTracks()[0];
+        const caps = track.getCapabilities?.() || {};
+        if (caps.focusMode?.includes('continuous')) {
+          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        }
+      } catch(_) {}
+      return stream;
+    } catch(_) {}
+  }
+  throw new Error('Caméra indisponible');
+}
+
+// Tap sur la vidéo → force la mise au point sur le point touché
+function _setupTapToFocus(video) {
+  video.addEventListener('click', async (e) => {
+    if (!_nativeStream) return;
+    const track = _nativeStream.getVideoTracks()[0];
+    if (!track) return;
+    const caps = track.getCapabilities?.() || {};
+    if (!caps.pointsOfInterest) return;
+    const rect = video.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top)  / rect.height;
+    try {
+      await track.applyConstraints({ advanced: [{ pointsOfInterest: [{ x, y }], focusMode: 'single-shot' }] });
+      // Repasse en continu après 2s
+      setTimeout(() => {
+        try { track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(_) {}
+      }, 2000);
+    } catch(_) {}
+  }, { signal: _tapFocusAbort?.signal });
+}
+
+let _tapFocusAbort = null;
+
 async function _startScanner() {
   _stopScanner();
   _scanDone = false;
@@ -4146,6 +4198,11 @@ async function _startScanner() {
 
   const deviceId = _videoDevices[_videoDeviceIndex]?.deviceId;
   const video = document.getElementById('scanner-video');
+
+  // Tap-to-focus : réinitialiser l'écouteur
+  _tapFocusAbort?.abort();
+  _tapFocusAbort = new AbortController();
+  _setupTapToFocus(video);
 
   // ── Priorité 1 : BarcodeDetector natif (Android Chrome, HTTPS requis) ──
   if (_scannerMode === 'native' && 'BarcodeDetector' in window) {
@@ -4156,18 +4213,7 @@ async function _startScanner() {
 
       _nativeDetector = new BarcodeDetector({ formats: formats.length ? formats : supported });
 
-      const videoBase = deviceId
-        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-        : { facingMode: 'environment',    width: { ideal: 1280 }, height: { ideal: 720 } };
-      let _nativeStreamOk = false;
-      // Essai avec torch dans les contraintes (réserve la capacité torche sur Android)
-      try {
-        _nativeStream = await navigator.mediaDevices.getUserMedia({ video: { ...videoBase, advanced: [{ torch: false }] } });
-        _nativeStreamOk = true;
-      } catch(_) {}
-      if (!_nativeStreamOk) {
-        _nativeStream = await navigator.mediaDevices.getUserMedia({ video: videoBase });
-      }
+      _nativeStream = await _startVideoStream(deviceId);
       video.srcObject = _nativeStream;
       await video.play();
 
@@ -4227,15 +4273,8 @@ async function _startScanner() {
   _zxing = new ZXing.BrowserMultiFormatReader(hints);
   const frame = document.querySelector('.scanner-frame');
 
-  // Démarrer le flux vidéo manuellement (nécessaire pour decodeFromCanvas)
-  const videoBase = deviceId
-    ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    : { facingMode: 'environment',    width: { ideal: 1280 }, height: { ideal: 720 } };
-  try {
-    _nativeStream = await navigator.mediaDevices.getUserMedia({ video: videoBase });
-  } catch(_) {
-    _nativeStream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' } });
-  }
+  // Démarrer le flux vidéo avec focus continu (nécessaire pour decodeFromCanvas)
+  _nativeStream = await _startVideoStream(deviceId);
   video.srcObject = _nativeStream;
   await video.play();
 
