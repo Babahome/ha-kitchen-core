@@ -4128,12 +4128,14 @@ async function _startScanner() {
   if ('BarcodeDetector' in window) {
     try {
       const supported = await BarcodeDetector.getSupportedFormats();
-      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'itf'];
       const formats = wanted.filter(f => supported.includes(f));
 
       _nativeDetector = new BarcodeDetector({ formats: formats.length ? formats : supported });
 
-      const videoBase = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' };
+      const videoBase = deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        : { facingMode: 'environment',    width: { ideal: 1280 }, height: { ideal: 720 } };
       let _nativeStreamOk = false;
       // Essai avec torch dans les contraintes (réserve la capacité torche sur Android)
       try {
@@ -4191,9 +4193,11 @@ async function _startScanner() {
     if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
       hints = new Map();
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.EAN_13,   ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,    ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.ITF,
       ]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     }
   } catch(_) {}
 
