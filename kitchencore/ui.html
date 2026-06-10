@@ -3399,8 +3399,11 @@ function _stockOpenDetail(id) {
   // Ingrédient lié
   const ingSection = document.getElementById('stock-detailIngSection');
   if (s.ingredient_nom) {
+    const ingHasPhoto = s.ingredient_icone && (s.ingredient_icone.startsWith('http') || s.ingredient_icone.startsWith('/'));
     document.getElementById('stock-detailIng').innerHTML =
-      `<span class="rayon-chip active" style="pointer-events:none">🥕 ${s.ingredient_nom}</span>`;
+      `<div style="display:flex;align-items:center;gap:8px">` +
+      (ingHasPhoto ? `<img src="${s.ingredient_icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : '') +
+      `<span class="rayon-chip active" style="pointer-events:none">🥕 ${s.ingredient_nom}</span></div>`;
     ingSection.style.display = '';
   } else {
     ingSection.style.display = 'none';
@@ -3575,6 +3578,7 @@ function _stockOpenEdit(id) {
   document.getElementById('stock-editIngId').value = s.ingredient_id || '';
   document.getElementById('stock-editIngSearch').value = s.ingredient_nom || '';
   document.getElementById('stock-editIngSuggest').style.display = 'none';
+  _stockRenderIngPreview(s.ingredient_icone || null);
 
   document.getElementById('stock-editPanel').classList.add('open');
 }
@@ -3682,7 +3686,7 @@ async function stockSearchIng(q) {
   const matches = _stockEditIngredients.filter(i => i.nom.toLowerCase().includes(q2)).slice(0, 6);
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
-    `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
+    `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}','${(i.icone||'').replace(/'/g,"\\'")}')">
       ${i.icone && (i.icone.startsWith('http') || i.icone.startsWith('/'))
         ? `<img src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">`
         : ''}${i.nom}
@@ -3691,10 +3695,26 @@ async function stockSearchIng(q) {
   box.style.display = 'block';
 }
 
-function stockPickIng(id, nom) {
+function stockPickIng(id, nom, icone) {
   document.getElementById('stock-editIngId').value = id;
   document.getElementById('stock-editIngSearch').value = nom;
   document.getElementById('stock-editIngSuggest').style.display = 'none';
+  _stockRenderIngPreview(icone || null);
+}
+
+function _stockRenderIngPreview(icone) {
+  let preview = document.getElementById('stock-editIngPreview');
+  if (!preview) {
+    preview = document.createElement('div');
+    preview.id = 'stock-editIngPreview';
+    preview.style.cssText = 'margin-top:6px;display:flex;align-items:center;gap:8px';
+    document.getElementById('stock-editIngSuggest').after(preview);
+  }
+  const hasPhoto = icone && (icone.startsWith('http') || icone.startsWith('/'));
+  preview.innerHTML = hasPhoto
+    ? `<img src="${icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`
+    : '';
+  preview.style.display = hasPhoto ? 'flex' : 'none';
 }
 
 function stockTriggerPhotoUpload() {

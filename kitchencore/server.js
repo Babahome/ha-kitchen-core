@@ -588,7 +588,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage,
-           a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte, a.categorie,
+           a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.icone AS ingredient_icone, a.seuil_alerte, a.categorie,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
     FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
     ORDER BY s.zone, p.nom
