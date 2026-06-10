@@ -3454,12 +3454,30 @@ function stockCloseDetail() {
 }
 
 function _stockRenderDetailPctChips(pourcentage) {
-  const paliers = [{ v: null, l: '— Aucun' }, { v: 100, l: '🟢 Plein' }, { v: 75, l: '¾' }, { v: 50, l: '½' }, { v: 25, l: '¼' }, { v: 0, l: '🔴 Vide' }];
+  const val = (pourcentage !== null && pourcentage !== undefined) ? pourcentage : 50;
+  const label = _pctLabel(val);
+  const color  = _pctLabelColor(val);
   document.getElementById('stock-detailPctChips').innerHTML =
-    paliers.map(p => {
-      const active = (p.v === null && (pourcentage === null || pourcentage === undefined)) || p.v === pourcentage;
-      return `<div class="rayon-chip${active ? ' active' : ''}" onclick="stockDetailPickPct(${p.v === null ? 'null' : p.v})">${p.l}</div>`;
-    }).join('');
+    `<div style="width:100%;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#888">Vide</span>
+        <span id="stock-detailPctLabel" style="font-size:13px;font-weight:800;color:${color}">${label}</span>
+        <span style="font-size:12px;color:#888">Plein</span>
+      </div>
+      <input type="range" id="stock-detailPctSlider" min="0" max="100" step="25" value="${val}"
+        style="width:100%;accent-color:var(--orange)"
+        oninput="_stockDetailPctInput(this.value)"
+        onchange="stockDetailPickPct(parseInt(this.value))">
+      <div style="display:flex;justify-content:space-between;padding:0 2px">
+        ${[0,25,50,75,100].map(v => `<span style="font-size:10px;color:#bbb">${v === 0 ? '0' : v === 100 ? '100' : v + '%'}</span>`).join('')}
+      </div>
+    </div>`;
+}
+
+function _stockDetailPctInput(val) {
+  const color = _pctLabelColor(parseInt(val));
+  const lbl = document.getElementById('stock-detailPctLabel');
+  if (lbl) { lbl.textContent = _pctLabel(parseInt(val)); lbl.style.color = color; }
 }
 
 async function stockDetailPickPct(val) {
