@@ -2998,7 +2998,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="ing-panel-btn" onclick="stockOpenEditFromDetail()">✏️ Modifier</button>
     </div>
     <div class="ing-panel-hero" id="stock-detailHero"></div>
-    <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #eee"></div>
+    <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #f0f0f0"></div>
+    <div id="stock-detailPctChips" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid #eee"></div>
     <div class="ing-panel-scroll">
       <div class="ing-panel-section">
         <span class="ing-panel-label">Nom</span>
@@ -3072,11 +3073,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
         <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
         <input type="hidden" id="stock-editIngId">
-      </div>
-      <div class="ing-panel-section">
-        <label class="ing-panel-label">Niveau restant (optionnel)</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap" id="stock-editPctGrid"></div>
-        <input type="hidden" id="stock-editPct">
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Date limite de conso. (optionnel)</label>
@@ -3414,6 +3410,7 @@ function _stockOpenDetail(id) {
   // Quantité +/−
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   _stockRenderHeroStats(qty, s.pourcentage);
+  _stockRenderDetailPctChips(s.pourcentage);
 
   // Contenance
   const contenanceSection = document.getElementById('stock-detailContenanceSection');
@@ -3454,6 +3451,32 @@ function _stockOpenDetail(id) {
 
 function stockCloseDetail() {
   document.getElementById('stock-detailPanel').classList.remove('open');
+}
+
+function _stockRenderDetailPctChips(pourcentage) {
+  const paliers = [{ v: null, l: '— Aucun' }, { v: 100, l: '🟢 Plein' }, { v: 75, l: '¾' }, { v: 50, l: '½' }, { v: 25, l: '¼' }, { v: 0, l: '🔴 Vide' }];
+  document.getElementById('stock-detailPctChips').innerHTML =
+    paliers.map(p => {
+      const active = (p.v === null && (pourcentage === null || pourcentage === undefined)) || p.v === pourcentage;
+      return `<div class="rayon-chip${active ? ' active' : ''}" onclick="stockDetailPickPct(${p.v === null ? 'null' : p.v})">${p.l}</div>`;
+    }).join('');
+}
+
+async function stockDetailPickPct(val) {
+  const id = _stockDetailId;
+  const s = _stockItems.find(i => i.produit_id === id);
+  if (!s) return;
+  s.pourcentage = val;
+  _stockRenderDetailPctChips(val);
+  _stockRenderHeroStats((s.packs_pleins || 0) + (s.unites_ouvert || 0), val);
+  _stockRender();
+  try {
+    await fetch(`/api/produits/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pourcentage: val })
+    });
+  } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
 function _stockRenderHeroStats(qty, pourcentage) {
@@ -3559,14 +3582,6 @@ function _stockOpenEdit(id) {
   document.getElementById('stock-editIngSearch').value = s.ingredient_nom || '';
   document.getElementById('stock-editIngSuggest').style.display = 'none';
 
-  // Pourcentage paliers
-  const pctVal = s.pourcentage !== null && s.pourcentage !== undefined ? s.pourcentage : '';
-  document.getElementById('stock-editPct').value = pctVal;
-  const paliers = [{ v: 100, l: '🟢 Plein' }, { v: 75, l: '¾' }, { v: 50, l: '½' }, { v: 25, l: '¼' }, { v: 0, l: '🔴 Vide' }];
-  document.getElementById('stock-editPctGrid').innerHTML =
-    `<div class="rayon-chip${pctVal === '' ? ' active' : ''}" onclick="stockEditPickPct(this, '')">— Aucun</div>` +
-    paliers.map(p => `<div class="rayon-chip${pctVal === p.v ? ' active' : ''}" onclick="stockEditPickPct(this, ${p.v})">${p.l}</div>`).join('');
-
   document.getElementById('stock-editPanel').classList.add('open');
 }
 
@@ -3581,11 +3596,6 @@ function stockEditPickZone(btn, zone) {
   btn.classList.add('active');
 }
 
-function stockEditPickPct(btn, val) {
-  document.getElementById('stock-editPct').value = val;
-  document.querySelectorAll('#stock-editPctGrid .rayon-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
 
 // ── Popup pourcentage ────────────────────────────────────────────────────────
 let _pctPopupProdId = null;
@@ -3740,14 +3750,12 @@ async function stockSaveEdit() {
     // 2. Mettre à jour les champs texte + ingrédient
     const ingIdRaw = document.getElementById('stock-editIngId').value;
     const ingredient_id = ingIdRaw ? parseInt(ingIdRaw) : null;
-    const pctRaw = document.getElementById('stock-editPct').value;
     const body = {
       nom,
       marque: document.getElementById('stock-editMarque').value.trim() || null,
       ingredient_id,
       contenance: parseFloat(document.getElementById('stock-editContenance').value) || null,
       unite: document.getElementById('stock-editUnite').value.trim() || null,
-      pourcentage: pctRaw !== '' ? parseInt(pctRaw) : null
     };
     const rp = await fetch(`/api/produits/${id}`, {
       method: 'PATCH',
