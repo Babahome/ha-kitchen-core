@@ -2998,8 +2998,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="ing-panel-btn" onclick="stockOpenEditFromDetail()">✏️ Modifier</button>
     </div>
     <div class="ing-panel-hero" id="stock-detailHero"></div>
-    <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #f0f0f0"></div>
-    <div id="stock-detailPctChips" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-bottom:1px solid #eee"></div>
+    <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #eee"></div>
     <div class="ing-panel-scroll">
       <div class="ing-panel-section">
         <span class="ing-panel-label">Nom</span>
@@ -3410,7 +3409,6 @@ function _stockOpenDetail(id) {
   // Quantité +/−
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   _stockRenderHeroStats(qty, s.pourcentage);
-  _stockRenderDetailPctChips(s.pourcentage);
 
   // Contenance
   const contenanceSection = document.getElementById('stock-detailContenanceSection');
@@ -3453,27 +3451,6 @@ function stockCloseDetail() {
   document.getElementById('stock-detailPanel').classList.remove('open');
 }
 
-function _stockRenderDetailPctChips(pourcentage) {
-  const val = (pourcentage !== null && pourcentage !== undefined) ? pourcentage : 50;
-  const label = _pctLabel(val);
-  const color  = _pctLabelColor(val);
-  document.getElementById('stock-detailPctChips').innerHTML =
-    `<div style="width:100%;display:flex;flex-direction:column;gap:4px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:#888">Vide</span>
-        <span id="stock-detailPctLabel" style="font-size:13px;font-weight:800;color:${color}">${label}</span>
-        <span style="font-size:12px;color:#888">Plein</span>
-      </div>
-      <input type="range" id="stock-detailPctSlider" min="0" max="100" step="25" value="${val}"
-        style="width:100%;accent-color:var(--orange)"
-        oninput="_stockDetailPctInput(this.value)"
-        onchange="stockDetailPickPct(parseInt(this.value))">
-      <div style="display:flex;justify-content:space-between;padding:0 2px">
-        ${[0,25,50,75,100].map(v => `<span style="font-size:10px;color:#bbb">${v === 0 ? '0' : v === 100 ? '100' : v + '%'}</span>`).join('')}
-      </div>
-    </div>`;
-}
-
 function _stockDetailPctInput(val) {
   const color = _pctLabelColor(parseInt(val));
   const lbl = document.getElementById('stock-detailPctLabel');
@@ -3485,7 +3462,6 @@ async function stockDetailPickPct(val) {
   const s = _stockItems.find(i => i.produit_id === id);
   if (!s) return;
   s.pourcentage = val;
-  _stockRenderDetailPctChips(val);
   _stockRenderHeroStats((s.packs_pleins || 0) + (s.unites_ouvert || 0), val);
   _stockRender();
   try {
@@ -3499,19 +3475,9 @@ async function stockDetailPickPct(val) {
 
 function _stockRenderHeroStats(qty, pourcentage) {
   const bar = document.getElementById('stock-detailHeroStats');
-  const pctHtml = (pourcentage !== null && pourcentage !== undefined)
-    ? (() => {
-        const pct = pourcentage;
-        const color = pct >= 50 ? '#27ae60' : pct >= 25 ? '#e67e22' : '#e74c3c';
-        const label = pct === 100 ? 'Plein' : pct === 75 ? '¾' : pct === 50 ? '½' : pct === 25 ? '¼' : 'Vide';
-        return `<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-          <div style="flex:1;height:8px;border-radius:4px;background:#e0e0e0;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width .3s"></div>
-          </div>
-          <span style="font-weight:700;color:${color};min-width:32px;text-align:right;font-size:14px">${label}</span>
-        </div>`;
-      })()
-    : '';
+  const val = (pourcentage !== null && pourcentage !== undefined) ? pourcentage : 50;
+  const color = _pctLabelColor(val);
+  const label = _pctLabel(val);
   bar.style.display = 'flex';
   bar.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
@@ -3522,7 +3488,14 @@ function _stockRenderHeroStats(qty, pourcentage) {
       </div>
       <button class="qty-btn" onclick="stockDetailChangeQty(1)" style="width:32px;height:32px;font-size:18px">+</button>
     </div>
-    ${pctHtml ? `<div style="width:1px;background:#eee;align-self:stretch;margin:0 4px"></div>${pctHtml}` : ''}`;
+    <div style="width:1px;background:#eee;align-self:stretch;margin:0 4px"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+      <input type="range" id="stock-detailPctSlider" min="0" max="100" step="25" value="${val}"
+        style="flex:1;accent-color:var(--orange)"
+        oninput="_stockDetailPctInput(this.value)"
+        onchange="stockDetailPickPct(parseInt(this.value))">
+      <span id="stock-detailPctLabel" style="font-size:13px;font-weight:800;color:${color};min-width:32px;text-align:right">${label}</span>
+    </div>`;
 }
 
 async function stockDetailChangeQty(delta) {
