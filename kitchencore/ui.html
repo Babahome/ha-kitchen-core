@@ -3272,7 +3272,7 @@ function _stockCard(s) {
           ${_stockSelectMode ? '' : (() => {
             const hasPct = s.pourcentage !== null && s.pourcentage !== undefined;
             const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
-            const pctTxt   = hasPct ? _pctLabel(s.pourcentage)      : '%';
+            const pctTxt   = hasPct ? s.pourcentage + '%' : '%';
             return `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">${pctTxt}</div>`;
           })()}
           <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
