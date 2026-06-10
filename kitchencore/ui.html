@@ -3451,10 +3451,14 @@ function stockCloseDetail() {
   document.getElementById('stock-detailPanel').classList.remove('open');
 }
 
+let _pctSaveTimer = null;
 function _stockDetailPctInput(val) {
-  const color = _pctLabelColor(parseInt(val));
+  const v = parseInt(val);
+  const color = _pctLabelColor(v);
   const lbl = document.getElementById('stock-detailPctLabel');
-  if (lbl) { lbl.textContent = _pctLabel(parseInt(val)); lbl.style.color = color; }
+  if (lbl) { lbl.textContent = _pctLabel(v); lbl.style.color = color; }
+  clearTimeout(_pctSaveTimer);
+  _pctSaveTimer = setTimeout(() => stockDetailPickPct(v), 400);
 }
 
 async function stockDetailPickPct(val) {
@@ -3492,8 +3496,7 @@ function _stockRenderHeroStats(qty, pourcentage) {
     <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
       <input type="range" id="stock-detailPctSlider" min="0" max="100" step="25" value="${val}"
         style="flex:1;accent-color:var(--orange)"
-        oninput="_stockDetailPctInput(this.value)"
-        onchange="stockDetailPickPct(parseInt(this.value))">
+        oninput="_stockDetailPctInput(this.value)">
       <span id="stock-detailPctLabel" style="font-size:13px;font-weight:800;color:${color};min-width:32px;text-align:right">${label}</span>
     </div>`;
 }
