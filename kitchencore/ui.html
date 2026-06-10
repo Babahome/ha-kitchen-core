@@ -7774,16 +7774,28 @@ function _ingRenderAliasChips() {
     ..._ingAliasesLoaded.filter(a => !_ingAliasesToDelete.includes(a.id)),
     ..._ingAliasesToAdd.map(a => ({ id: null, alias: a })),
   ];
-  container.innerHTML = all.map(a => {
-    const label = _esc(a.alias);
-    const onclick = a.id
-      ? `ingRemoveAlias(${a.id}, null)`
-      : `ingRemoveAlias(null, '${label}')`;
-    return `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);color:var(--orange);border-radius:20px;padding:4px 10px;font-size:13px;font-weight:600">
-      ${label}
-      <button onclick="${onclick}" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;padding:0;line-height:1">✕</button>
-    </span>`;
-  }).join('');
+  container.innerHTML = '';
+  all.forEach(a => {
+    const span = document.createElement('span');
+    span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:var(--orange-l);color:var(--orange);border-radius:20px;padding:4px 10px;font-size:13px;font-weight:600';
+
+    // Texte cliquable pour modifier
+    const txt = document.createElement('span');
+    txt.textContent = a.alias;
+    txt.title = 'Cliquer pour modifier';
+    txt.style.cssText = 'cursor:pointer;border-bottom:1px dashed var(--orange)';
+    txt.onclick = () => _ingEditAlias(a.id, a.alias);
+    span.appendChild(txt);
+
+    // Bouton supprimer
+    const btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.style.cssText = 'background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;padding:0;line-height:1';
+    btn.onclick = () => _ingRemoveAlias(a.id, a.alias);
+    span.appendChild(btn);
+
+    container.appendChild(span);
+  });
 }
 
 function _ingAddAlias() {
@@ -7797,6 +7809,15 @@ function _ingAddAlias() {
   _ingAliasesToAdd.push(val);
   inp.value = '';
   _ingRenderAliasChips();
+}
+
+function _ingEditAlias(id, aliasStr) {
+  // Remet l'alias dans l'input pour modification, le retire de la liste
+  const inp = document.getElementById('ing-aliasInput');
+  if (!inp) return;
+  _ingRemoveAlias(id, aliasStr);
+  inp.value = aliasStr;
+  inp.focus();
 }
 
 function _ingRemoveAlias(id, aliasStr) {
@@ -8370,6 +8391,7 @@ window.ingCreateFromSearch = _ingCreateFromSearch;
 window.ingAutoFillPluriel  = _ingAutoFillPluriel;
 window.ingAddAlias         = _ingAddAlias;
 window.ingRemoveAlias      = _ingRemoveAlias;
+window.ingEditAlias        = _ingEditAlias;
 window.ingSortBy           = _ingSortBy;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
