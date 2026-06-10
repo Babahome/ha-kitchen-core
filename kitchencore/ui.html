@@ -3069,7 +3069,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Ingrédient associé (optionnel)</label>
-        <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <img id="stock-editIngImg" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0;display:none" onerror="this.style.display='none'">
+          <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)" style="flex:1;min-width:0">
+        </div>
         <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
         <input type="hidden" id="stock-editIngId">
       </div>
@@ -3403,7 +3406,7 @@ function _stockOpenDetail(id) {
     document.getElementById('stock-detailIng').innerHTML =
       `<div style="display:flex;align-items:center;gap:8px">` +
       (ingHasPhoto ? `<img src="${s.ingredient_icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : '') +
-      `<span class="rayon-chip active" style="pointer-events:none">🥕 ${s.ingredient_nom}</span></div>`;
+      `<span class="rayon-chip active" style="pointer-events:none">${s.ingredient_nom}</span></div>`;
     ingSection.style.display = '';
   } else {
     ingSection.style.display = 'none';
@@ -3703,18 +3706,11 @@ function stockPickIng(id, nom, icone) {
 }
 
 function _stockRenderIngPreview(icone) {
-  let preview = document.getElementById('stock-editIngPreview');
-  if (!preview) {
-    preview = document.createElement('div');
-    preview.id = 'stock-editIngPreview';
-    preview.style.cssText = 'margin-top:6px;display:flex;align-items:center;gap:8px';
-    document.getElementById('stock-editIngSuggest').after(preview);
-  }
+  const img = document.getElementById('stock-editIngImg');
+  if (!img) return;
   const hasPhoto = icone && (icone.startsWith('http') || icone.startsWith('/'));
-  preview.innerHTML = hasPhoto
-    ? `<img src="${icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`
-    : '';
-  preview.style.display = hasPhoto ? 'flex' : 'none';
+  if (hasPhoto) { img.src = icone; img.style.display = 'block'; }
+  else { img.src = ''; img.style.display = 'none'; }
 }
 
 function stockTriggerPhotoUpload() {
