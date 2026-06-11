@@ -8819,10 +8819,9 @@ function _mchInitDragDrop(mId) {
     });
     row.addEventListener('drop', e => e.preventDefault());
 
-    let touchStartY = 0, touchClone = null, touchTimer = null, touchDragging = false;
+    let touchOffsetY = 0, touchClone = null, touchTimer = null, touchDragging = false;
     row.addEventListener('touchstart', e => {
       if (!e.target.closest('.mch-rayon-handle')) return;
-      touchStartY = e.touches[0].clientY;
       touchDragging = false;
       touchTimer = setTimeout(() => {
         touchDragging = true;
@@ -8830,6 +8829,8 @@ function _mchInitDragDrop(mId) {
         row.classList.add('dragging');
         touchClone = row.cloneNode(true);
         const rect = row.getBoundingClientRect();
+        const touch = e.touches[0];
+        touchOffsetY = touch.clientY - rect.top;
         Object.assign(touchClone.style, {
           position:'fixed', left:rect.left+'px', top:rect.top+'px',
           width:rect.width+'px', opacity:'.85', zIndex:'9999',
@@ -8844,10 +8845,8 @@ function _mchInitDragDrop(mId) {
       if (!touchDragging) { clearTimeout(touchTimer); return; }
       e.preventDefault();
       const touch = e.touches[0];
-      const dy = touch.clientY - touchStartY;
       if (touchClone) {
-        const rect = dragSrc.getBoundingClientRect();
-        touchClone.style.top = (rect.top + dy) + 'px';
+        touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
       }
       const els = document.elementsFromPoint(touch.clientX, touch.clientY);
       const target = els.find(el => el.classList.contains('mch-rayon-row') && el !== dragSrc && el.closest(`#mch-rayon-list-${mId}`));
