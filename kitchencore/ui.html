@@ -8819,6 +8819,7 @@ function _mchInitDragDrop(mId) {
 
     let touchStartY = 0, touchClone = null, touchTimer = null, touchDragging = false;
     row.addEventListener('touchstart', e => {
+      if (!e.target.closest('.mch-rayon-handle')) return;
       touchStartY = e.touches[0].clientY;
       touchDragging = false;
       touchTimer = setTimeout(() => {
