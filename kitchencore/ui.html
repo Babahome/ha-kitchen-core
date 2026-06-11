@@ -7576,61 +7576,56 @@ function _ingDragSetup() {
   if (!grid || grid._dragBound) return;
   grid._dragBound = true;
 
-  grid.addEventListener('pointerdown', e => {
+  let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
+
+  const reset = () => {
+    clearTimeout(timer); timer = null;
+    grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
+    srcId = null; overId = null; srcCard = null; active = false;
+  };
+
+  grid.addEventListener('touchstart', e => {
     if (_ingSelectMode) return;
     const card = e.target.closest('.ing-card');
-    if (!card) return;
-    if (e.target.closest('.ing-btn, .ing-checkbox')) return;
-    _ingDragSrcId = card.dataset.ingId;
-    const startX = e.clientX, startY = e.clientY;
-
-    _ingDragTimer = setTimeout(() => {
-      _ingDragActive = true;
+    if (!card || e.target.closest('.ing-btn, .ing-checkbox')) return;
+    const t = e.touches[0];
+    srcId = card.dataset.ingId; srcCard = card;
+    startX = t.clientX; startY = t.clientY;
+    timer = setTimeout(() => {
+      active = true;
       card.classList.add('ing-dragging');
-      try { grid.setPointerCapture(e.pointerId); } catch(_) {}
     }, 300);
+  }, { passive: true });
 
-    const onMove = ev => {
-      const dx = ev.clientX - startX, dy = ev.clientY - startY;
-      if (!_ingDragActive && Math.hypot(dx, dy) > 8) {
-        clearTimeout(_ingDragTimer); _ingDragTimer = null; cleanup(ev); return;
-      }
-      if (!_ingDragActive) return;
-      ev.preventDefault();
-      const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      const target = el && el.closest('.ing-card');
-      grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
-      if (target && target.dataset.ingId !== _ingDragSrcId) {
-        target.classList.add('ing-drag-over');
-        _ingDragOverId = target.dataset.ingId;
-      } else { _ingDragOverId = null; }
-    };
+  grid.addEventListener('touchmove', e => {
+    if (!srcId) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX, dy = t.clientY - startY;
+    if (!active) {
+      if (Math.hypot(dx, dy) > 8) reset(); // mouvement trop rapide = scroll, annuler
+      return;
+    }
+    e.preventDefault(); // bloquer le scroll pendant le drag
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const target = el && el.closest('.ing-card');
+    grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
+    if (target && target.dataset.ingId !== srcId) {
+      target.classList.add('ing-drag-over');
+      overId = target.dataset.ingId;
+    } else { overId = null; }
+  }, { passive: false });
 
-    const onUp = async ev => {
-      clearTimeout(_ingDragTimer);
-      const wasActive = _ingDragActive;
-      const srcId = _ingDragSrcId, overId = _ingDragOverId;
-      _ingDragSrcId = null; _ingDragOverId = null; _ingDragActive = false;
-      cleanup(ev);
-      if (wasActive && srcId && overId) {
-        await _ingSetParent(srcId, overId);
-        _ingJustDragged = true;
-        setTimeout(() => { _ingJustDragged = false; }, 200);
-      }
-    };
-
-    const cleanup = ev => {
-      grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
-      try { grid.releasePointerCapture(ev.pointerId); } catch(_) {}
-      grid.removeEventListener('pointermove', onMove);
-      grid.removeEventListener('pointerup', onUp);
-      grid.removeEventListener('pointercancel', onUp);
-    };
-
-    grid.addEventListener('pointermove', onMove, { passive: false });
-    grid.addEventListener('pointerup', onUp);
-    grid.addEventListener('pointercancel', onUp);
+  grid.addEventListener('touchend', async () => {
+    const wasActive = active, s = srcId, o = overId;
+    reset();
+    if (wasActive && s && o) {
+      await _ingSetParent(s, o);
+      _ingJustDragged = true;
+      setTimeout(() => { _ingJustDragged = false; }, 300);
+    }
   });
+
+  grid.addEventListener('touchcancel', reset);
 }
 
 async function _ingSetParent(childId, parentId) {
