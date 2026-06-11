@@ -8817,22 +8817,28 @@ function _mchInitDragDrop(mId) {
     });
     row.addEventListener('drop', e => e.preventDefault());
 
-    let touchStartY = 0, touchClone = null;
+    let touchStartY = 0, touchClone = null, touchTimer = null, touchDragging = false;
     row.addEventListener('touchstart', e => {
-      dragSrc = row; touchStartY = e.touches[0].clientY;
-      row.classList.add('dragging');
-      touchClone = row.cloneNode(true);
-      const rect = row.getBoundingClientRect();
-      Object.assign(touchClone.style, {
-        position:'fixed', left:rect.left+'px', top:rect.top+'px',
-        width:rect.width+'px', opacity:'.85', zIndex:'9999',
-        pointerEvents:'none', borderRadius:'10px',
-        background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
-      });
-      document.body.appendChild(touchClone);
+      touchStartY = e.touches[0].clientY;
+      touchDragging = false;
+      touchTimer = setTimeout(() => {
+        touchDragging = true;
+        dragSrc = row;
+        row.classList.add('dragging');
+        touchClone = row.cloneNode(true);
+        const rect = row.getBoundingClientRect();
+        Object.assign(touchClone.style, {
+          position:'fixed', left:rect.left+'px', top:rect.top+'px',
+          width:rect.width+'px', opacity:'.85', zIndex:'9999',
+          pointerEvents:'none', borderRadius:'10px',
+          background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+        });
+        document.body.appendChild(touchClone);
+      }, 250);
     }, { passive: true });
 
     row.addEventListener('touchmove', e => {
+      if (!touchDragging) { clearTimeout(touchTimer); return; }
       e.preventDefault();
       const touch = e.touches[0];
       const dy = touch.clientY - touchStartY;
@@ -8851,6 +8857,8 @@ function _mchInitDragDrop(mId) {
     }, { passive: false });
 
     row.addEventListener('touchend', () => {
+      clearTimeout(touchTimer);
+      if (!touchDragging) return;
       row.classList.remove('dragging');
       list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
       if (touchClone) { touchClone.remove(); touchClone = null; }
