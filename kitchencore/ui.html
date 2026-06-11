@@ -2955,7 +2955,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="pnp-field">
         <div class="pnp-label">Nom du produit *</div>
-        <input class="pnp-input" id="pnp-nom" placeholder="ex: Lait demi-écrémé Lactel 1L">
+        <input class="pnp-input" id="pnp-nom" placeholder="ex: Lait demi-écrémé Lactel 1L" oninput="pnpAutoMatchIng(this.value)">
         <div id="pnp-off-badge" style="display:none;margin-top:6px;font-size:12px;color:#888;display:none;align-items:center;gap:5px">
           <span style="background:#e8f5e9;color:#388e3c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✓ OpenFoodFacts</span>
           <span id="pnp-off-info"></span>
@@ -2995,7 +2995,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="ing-panel-head">
       <button class="ing-panel-back" onclick="stockCloseDetail()">←</button>
       <span class="ing-panel-title" id="stock-detailName"></span>
-      <button class="ing-panel-btn" onclick="stockOpenEditFromDetail()">✏️ Modifier</button>
+      <span></span>
     </div>
     <div class="ing-panel-hero" id="stock-detailHero"></div>
     <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #eee"></div>
@@ -3029,6 +3029,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ing-panel-value" id="stock-detailBarcode"></div>
       </div>
     </div>
+    <button class="fab" onclick="stockOpenEditFromDetail()" style="position:absolute;bottom:24px;right:20px;z-index:10;font-size:22px;width:52px;height:52px;border-radius:50%;background:var(--orange);color:#fff;border:none;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;">🖊️</button>
   </div>
   <!-- ══ /PANEL DÉTAIL PRODUIT ══════════════════════════════════════════════ -->
 
@@ -3037,7 +3038,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="ing-panel-head">
       <button class="ing-panel-back" onclick="stockCloseEdit()">←</button>
       <span class="ing-panel-title" id="stock-editTitle"></span>
-      <button class="ing-panel-btn save" onclick="stockSaveEdit()">✓ Enregistrer</button>
+      <span></span>
     </div>
     <div class="ing-panel-hero" id="stock-editHero">
       <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
@@ -3082,6 +3083,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <button class="ing-panel-btn-del" onclick="stockDeleteFromEdit()">🗑 Supprimer ce produit</button>
     </div>
+    <button class="fab" onclick="stockSaveEdit()" style="position:absolute;bottom:24px;right:20px;z-index:10;font-size:22px;width:52px;height:52px;border-radius:50%;background:var(--orange);color:#fff;border:none;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;">💾</button>
   </div>
   <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
 
@@ -4572,6 +4574,8 @@ async function validateScanList() {
     try {
       // Produits inconnus/nouveaux : créer d'abord automatiquement
       if (item.status !== 'known') {
+        await _ensurePnpIngredients();
+        const _autoIng = _findIngForNom(item.nom || '');
         const rp = await fetch('/api/produits', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -4582,7 +4586,7 @@ async function validateScanList() {
             zone: 'À définir',
             contenance: item.contenance || 1,
             unite: item.unite || 'unité',
-            ingredient_id: null,
+            ingredient_id: _autoIng ? _autoIng.id : null,
             icone: item.photoOFF || null
           })
         });
@@ -4773,7 +4777,7 @@ async function openNewProduit(code) {
         const p = data.product;
         const nom = p.product_name_fr || p.generic_name_fr || p.product_name || p.generic_name || '';
         const marque = p.brands ? p.brands.split(',')[0].trim() : '';
-        if (nom) document.getElementById('pnp-nom').value = nom;
+        if (nom) { document.getElementById('pnp-nom').value = nom; pnpAutoMatchIng(nom); }
         if (marque) document.getElementById('pnp-marque').value = marque;
         const parsed = _parseQtyOFF(p.quantity);
         if (parsed) {
@@ -4826,6 +4830,32 @@ function pnpPickIng(id, nom) {
   document.getElementById('pnp-ing-id').value = id;
   document.getElementById('pnp-ing-search').value = nom;
   document.getElementById('pnp-suggest').style.display = 'none';
+}
+
+async function _ensurePnpIngredients() {
+  if (!_pnpIngredients.length) {
+    const r = await fetch('/api/ingredients');
+    _pnpIngredients = r.ok ? await r.json() : [];
+  }
+}
+
+function _findIngForNom(nomProduit) {
+  const q = nomProduit.toLowerCase();
+  const matches = _pnpIngredients.filter(i =>
+    q.includes(i.nom.toLowerCase()) ||
+    (i.nom_pluriel && q.includes(i.nom_pluriel.toLowerCase()))
+  );
+  if (!matches.length) return null;
+  matches.sort((a, b) => b.nom.length - a.nom.length);
+  return matches[0];
+}
+
+async function pnpAutoMatchIng(nomProduit) {
+  if (!nomProduit || nomProduit.length < 3) return;
+  if (document.getElementById('pnp-ing-id').value) return;
+  await _ensurePnpIngredients();
+  const ing = _findIngForNom(nomProduit);
+  if (ing) pnpPickIng(ing.id, ing.nom);
 }
 
 async function saveNewProduit() {
