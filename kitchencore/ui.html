@@ -3171,13 +3171,7 @@ async function _stockLoadZones() {
     }
   } catch(e) {}
   // Mettre à jour les filtres pills
-  const fp = document.querySelector('#page-stock .stock-filters');
-  if (fp) {
-    fp.innerHTML = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
-      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('') +
-      `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>` +
-      `<div class="filter-pill${_stockGroupBy==='rayon'?' active':''}" id="stock-groupByBtn" onclick="stockSetGroupBy(_stockGroupBy==='zone'?'rayon':'zone')">🏷️ Rayon</div>`;
-  }
+  _stockRebuildFilterPills();
   // Mettre à jour les boutons du panel création
   const zr = document.getElementById('pnp-zone-row');
   if (zr) {
@@ -3205,14 +3199,16 @@ function _stockRender() {
   if (_stockGroupBy === 'rayon') {
     const byRayon = {};
     _stockItems.forEach(s => {
+      const id    = s.rayon_id || s.ingredient_rayon_id || null;
       const key   = s.rayon_nom || s.ingredient_rayon_nom || 'Sans rayon';
       const emoji = s.rayon_emoji || s.ingredient_rayon_emoji || '📦';
-      if (!byRayon[key]) byRayon[key] = { emoji, items: [] };
+      if (!byRayon[key]) byRayon[key] = { id, emoji, items: [] };
       byRayon[key].items.push(s);
     });
     const keys = Object.keys(byRayon).sort((a, b) => a === 'Sans rayon' ? 1 : b === 'Sans rayon' ? -1 : a.localeCompare(b, 'fr'));
+    const keysToShow = _stockFilter === 'all' ? keys : keys.filter(k => byRayon[k].id === _stockFilter);
     let html = '';
-    keys.forEach(key => {
+    keysToShow.forEach(key => {
       const { emoji, items } = byRayon[key];
       html += `<div class="zone-section">
         <div class="zone-header">
@@ -3655,10 +3651,38 @@ function stockEditPickRayon(btn, id) {
   btn.classList.add('active');
 }
 
+function _stockRebuildFilterPills() {
+  const fp = document.querySelector('#page-stock .stock-filters');
+  if (!fp) return;
+  const isRayon = _stockGroupBy === 'rayon';
+  const toggleBtn = `<div class="filter-pill${isRayon ? ' active' : ''}" id="stock-groupByBtn" onclick="stockSetGroupBy(${isRayon ? "'zone'" : "'rayon'"})" title="${isRayon ? 'Vue par zone' : 'Vue par rayon'}">${isRayon ? '📦' : '🏷️'}</div>`;
+  const sep = `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>`;
+
+  let pills;
+  if (isRayon) {
+    const seen = new Map();
+    _stockItems.forEach(s => {
+      const id    = s.rayon_id || s.ingredient_rayon_id || null;
+      const nom   = s.rayon_nom || s.ingredient_rayon_nom || null;
+      const emoji = s.rayon_emoji || s.ingredient_rayon_emoji || '📦';
+      if (nom && !seen.has(id)) seen.set(id, { nom, emoji });
+    });
+    const sorted = [...seen.entries()].sort((a, b) => a[1].nom.localeCompare(b[1].nom, 'fr'));
+    pills = `<div class="filter-pill active" onclick="stockFilterRayon(this,'all')">Tout</div>` +
+      sorted.map(([id, { nom, emoji }]) =>
+        `<div class="filter-pill" onclick="stockFilterRayon(this,${id})">${emoji} ${nom}</div>`
+      ).join('');
+  } else {
+    pills = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
+      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+  }
+  fp.innerHTML = toggleBtn + sep + pills;
+}
+
 function stockSetGroupBy(mode) {
   _stockGroupBy = mode;
-  const btn = document.getElementById('stock-groupByBtn');
-  if (btn) btn.classList.toggle('active', mode === 'rayon');
+  _stockFilter  = 'all';
+  _stockRebuildFilterPills();
   _stockRender();
 }
 
@@ -3890,6 +3914,7 @@ window.stockCloseEdit        = stockCloseEdit;
 window.stockEditPickZone     = stockEditPickZone;
 window.stockEditPickRayon    = stockEditPickRayon;
 window.stockSetGroupBy       = stockSetGroupBy;
+window.stockFilterRayon      = stockFilterRayon;
 window.stockSearchIng        = stockSearchIng;
 window.stockPickIng          = stockPickIng;
 window.stockTriggerPhotoUpload = stockTriggerPhotoUpload;
@@ -4012,9 +4037,16 @@ async function zsDelete(id, nom) {
 }
 
 function stockFilterZone(pill, zone) {
-  document.querySelectorAll('#page-stock .filter-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-stock .filter-pill:not(#stock-groupByBtn)').forEach(p => p.classList.remove('active'));
   pill.classList.add('active');
   _stockFilter = zone;
+  _stockRender();
+}
+
+function stockFilterRayon(pill, rayonId) {
+  document.querySelectorAll('#page-stock .filter-pill:not(#stock-groupByBtn)').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  _stockFilter = rayonId;
   _stockRender();
 }
 
