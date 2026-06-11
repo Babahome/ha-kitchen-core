@@ -2520,7 +2520,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="nav-tab" onclick="switchPage(this,'recettes','Recettes')">
       <div class="nav-icon">🍳</div>
       <div class="nav-label">Recettes</div>
-      <div class="nav-badge">92</div>
     </div>
     <div class="nav-tab" onclick="switchPage(this,'menu','Menu')">
       <div class="nav-icon">📅</div>
@@ -2529,7 +2528,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="nav-tab" onclick="switchPage(this,'courses','Courses')">
       <div class="nav-icon">🛒</div>
       <div class="nav-label">Courses</div>
-      <div class="nav-badge">4</div>
     </div>
   </div>
 
@@ -2695,21 +2693,9 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
     </div>
     <div class="drawer-items">
-      <div class="drawer-item"><div class="d-icon">🫙</div> Aliments</div>
-      <div class="drawer-item"><div class="d-icon">🏷️</div> Produits</div>
-      <div class="drawer-sep"></div>
-      <div class="drawer-item"><div class="d-icon">📡</div> Scanner IoT</div>
-      <div class="drawer-item"><div class="d-icon">📋</div> Historique</div>
-      <div class="drawer-sep"></div>
-            <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Gérer les ingrédients</div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Gérer les marchands</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Ingrédients</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Marchands</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
-      <div class="drawer-sep"></div>
-      <div class="drawer-item"><div class="d-icon">⚙️</div> Zones de rangement</div>
-      <div class="drawer-item"><div class="d-icon">🔔</div> Alertes de stock</div>
-      <div class="drawer-sep"></div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(document.querySelector('.nav-tab'),'profil','Profil')"><div class="d-icon">👤</div> Profil &amp; Paramètres</div>
-      <div class="drawer-item"><div class="d-icon">❓</div> Aide</div>
     </div>
     <div class="drawer-version">KitchenCore v0.8 · Home Assistant Add-on</div>
   </div>
