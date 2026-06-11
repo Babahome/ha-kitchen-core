@@ -2355,7 +2355,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="panel-head">
       <button class="p-back" onclick="closeDetail()">←</button>
       <div class="p-title" id="detail-title"></div>
-      <button class="p-btn" onclick="openEdit(_currentId)">✏️ Modifier</button>
       <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
     </div>
     <div class="detail-ctx" id="detail-ctx">
@@ -2363,6 +2362,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
     </div>
     <div class="p-scroll" id="detail-body"></div>
+    <button class="ev3-save-fab" onclick="openEdit(_currentId)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
   </div>
 
   <!-- Panel édition recette -->
@@ -2373,7 +2373,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
 
     <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
-    <button class="ev3-save-fab" onclick="saveRecette()">✓</button>
+    <button class="ev3-save-fab" onclick="saveRecette()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
 
     <div class="ev3-form" id="edit-form">
 
