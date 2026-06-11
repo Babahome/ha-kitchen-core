@@ -3064,6 +3064,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ing-panel-rayon-grid" id="stock-editZoneGrid"></div>
       </div>
       <div class="ing-panel-section">
+        <label class="ing-panel-label">Rayon (optionnel)</label>
+        <div class="ing-panel-rayon-grid" id="stock-editRayonGrid"></div>
+      </div>
+      <div class="ing-panel-section">
         <label class="ing-panel-label">Contenance & Unité</label>
         <div style="display:flex;gap:8px">
           <input class="ing-panel-input" id="stock-editContenance" type="number" min="0" step="any" placeholder="ex: 500" style="flex:1">
@@ -3150,9 +3154,12 @@ let STOCK_ZONES = [
   { key: 'Freezer',   emoji: '❄️' },
   { key: 'Placard',   emoji: '🚪' },
 ];
-let _stockFilter     = 'all';
-let _stockItems      = [];
-let _stockSelectMode = false;
+let _stockFilter      = 'all';
+let _stockGroupBy     = 'zone';
+let _stockItems       = [];
+let _RAYONS           = [];
+let _stockEditRayonId = null;
+let _stockSelectMode  = false;
 let _stockSelectedIds = new Set();
 
 async function _stockLoadZones() {
@@ -3167,7 +3174,9 @@ async function _stockLoadZones() {
   const fp = document.querySelector('#page-stock .stock-filters');
   if (fp) {
     fp.innerHTML = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
-      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('') +
+      `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>` +
+      `<div class="filter-pill${_stockGroupBy==='rayon'?' active':''}" id="stock-groupByBtn" onclick="stockSetGroupBy(_stockGroupBy==='zone'?'rayon':'zone')">🏷️ Rayon</div>`;
   }
   // Mettre à jour les boutons du panel création
   const zr = document.getElementById('pnp-zone-row');
@@ -3181,6 +3190,7 @@ async function _stockLoadZones() {
 
 async function _stockLoad() {
   await _stockLoadZones();
+  try { const rr = await fetch('/api/rayons'); _RAYONS = rr.ok ? await rr.json() : []; } catch(e) { _RAYONS = []; }
   try {
     const r = await fetch('/api/stocks');
     _stockItems = r.ok ? await r.json() : [];
@@ -3191,6 +3201,31 @@ async function _stockLoad() {
 function _stockRender() {
   const el = document.getElementById('stock-content');
   if (!el) return;
+
+  if (_stockGroupBy === 'rayon') {
+    const byRayon = {};
+    _stockItems.forEach(s => {
+      const key   = s.rayon_nom || s.ingredient_rayon_nom || 'Sans rayon';
+      const emoji = s.rayon_emoji || s.ingredient_rayon_emoji || '📦';
+      if (!byRayon[key]) byRayon[key] = { emoji, items: [] };
+      byRayon[key].items.push(s);
+    });
+    const keys = Object.keys(byRayon).sort((a, b) => a === 'Sans rayon' ? 1 : b === 'Sans rayon' ? -1 : a.localeCompare(b, 'fr'));
+    let html = '';
+    keys.forEach(key => {
+      const { emoji, items } = byRayon[key];
+      html += `<div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-title"><span>${emoji}</span> ${key} <span class="zone-count">${items.length}</span></div>
+          <div class="zone-collapse" onclick="toggleZone(this)">−</div>
+        </div>
+        <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
+      </div>`;
+    });
+    if (!html) html = `<div style="padding:40px 20px;text-align:center;color:#aaa"><div style="font-size:2.5rem;margin-bottom:12px">📦</div><div style="font-weight:700;margin-bottom:6px">Stock vide</div><div style="font-size:.85rem">Scanne un produit avec le bouton + pour commencer</div></div>`;
+    el.innerHTML = html + '<div style="height:80px"></div>';
+    return;
+  }
 
   const byZone = {};
   _stockItems.forEach(s => {
@@ -3273,6 +3308,7 @@ function _stockCard(s) {
     <div class="prod-status ${statusClass}">${statusEmoji}</div>
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
+      ${(s.rayon_nom || s.ingredient_rayon_nom) ? `<div style="font-size:.6rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.rayon_emoji || s.ingredient_rayon_emoji || '📦'} ${s.rayon_nom || s.ingredient_rayon_nom}</div>` : ''}
       ${_stockPctBar(s.pourcentage)}
       <div class="prod-controls">
         <div class="prod-qty">
@@ -3576,6 +3612,10 @@ function _stockOpenEdit(id) {
     .map(z => `<div class="rayon-chip${z.key === _stockEditZone ? ' active' : ''}" onclick="stockEditPickZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`)
     .join('');
 
+  // Rayon chips (propre ou hérité de l'ingrédient)
+  _stockEditRayonId = s.rayon_id || s.ingredient_rayon_id || null;
+  _stockRenderRayonChips();
+
   // Contenance + unité
   document.getElementById('stock-editContenance').value = s.contenance || '';
   document.getElementById('stock-editUnite').value = s.unite || '';
@@ -3599,6 +3639,27 @@ function stockEditPickZone(btn, zone) {
   _stockEditZone = zone;
   document.querySelectorAll('#stock-editZoneGrid .rayon-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+}
+
+function _stockRenderRayonChips() {
+  const grid = document.getElementById('stock-editRayonGrid');
+  if (!grid) return;
+  grid.innerHTML =
+    `<div class="rayon-chip${!_stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,null)">Aucun</div>` +
+    _RAYONS.map(r => `<div class="rayon-chip${r.id === _stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,${r.id})">${r.emoji || '📦'} ${r.nom}</div>`).join('');
+}
+
+function stockEditPickRayon(btn, id) {
+  _stockEditRayonId = id || null;
+  document.querySelectorAll('#stock-editRayonGrid .rayon-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function stockSetGroupBy(mode) {
+  _stockGroupBy = mode;
+  const btn = document.getElementById('stock-groupByBtn');
+  if (btn) btn.classList.toggle('active', mode === 'rayon');
+  _stockRender();
 }
 
 
@@ -3707,6 +3768,11 @@ function stockPickIng(id, nom, icone) {
   document.getElementById('stock-editIngSearch').value = nom;
   document.getElementById('stock-editIngSuggest').style.display = 'none';
   _stockRenderIngPreview(icone || null);
+  // Auto-fill rayon depuis l'ingrédient si aucun rayon manuel
+  if (!_stockEditRayonId) {
+    const ing = (_stockEditIngredients || []).find(i => i.id === id);
+    if (ing && ing.rayon_id) { _stockEditRayonId = ing.rayon_id; _stockRenderRayonChips(); }
+  }
 }
 
 function _stockRenderIngPreview(icone) {
@@ -3770,6 +3836,7 @@ async function stockSaveEdit() {
       ingredient_id,
       contenance: parseFloat(document.getElementById('stock-editContenance').value) || null,
       unite: document.getElementById('stock-editUnite').value.trim() || null,
+      rayon_id: _stockEditRayonId || null,
     };
     const rp = await fetch(`/api/produits/${id}`, {
       method: 'PATCH',
@@ -3821,6 +3888,8 @@ window.stockOpenEditFromDetail = stockOpenEditFromDetail;
 window._stockOpenEdit        = _stockOpenEdit;
 window.stockCloseEdit        = stockCloseEdit;
 window.stockEditPickZone     = stockEditPickZone;
+window.stockEditPickRayon    = stockEditPickRayon;
+window.stockSetGroupBy       = stockSetGroupBy;
 window.stockSearchIng        = stockSearchIng;
 window.stockPickIng          = stockPickIng;
 window.stockTriggerPhotoUpload = stockTriggerPhotoUpload;

@@ -197,6 +197,7 @@ db.exec(`
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
+  ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -521,7 +522,7 @@ app.post('/api/produits', (req, res) => {
 
 app.patch('/api/produits/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','marque','code_barres','contenance','unite','ingredient_id','pourcentage'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','marque','code_barres','contenance','unite','ingredient_id','pourcentage','rayon_id'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   try {
@@ -587,10 +588,16 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
-    SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage,
+    SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage, p.rayon_id,
            a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.icone AS ingredient_icone, a.seuil_alerte, a.categorie,
-           ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites
-    FROM stocks s JOIN produits p ON p.id=s.produit_id LEFT JOIN ingredients a ON a.id=p.ingredient_id
+           ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites,
+           r.nom AS rayon_nom, r.emoji AS rayon_emoji,
+           a.rayon_id AS ingredient_rayon_id, ir.nom AS ingredient_rayon_nom, ir.emoji AS ingredient_rayon_emoji
+    FROM stocks s
+    JOIN produits p ON p.id=s.produit_id
+    LEFT JOIN ingredients a ON a.id=p.ingredient_id
+    LEFT JOIN rayons r ON r.id=p.rayon_id
+    LEFT JOIN rayons ir ON ir.id=a.rayon_id
     ORDER BY s.zone, p.nom
   `).all());
 });
