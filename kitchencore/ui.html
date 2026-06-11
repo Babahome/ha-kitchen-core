@@ -3446,7 +3446,7 @@ function _stockOpenDetail(id) {
   // Code-barres
   const bcSection = document.getElementById('stock-detailBarcodeSection');
   if (s.code_barres) {
-    document.getElementById('stock-detailBarcode').textContent = s.code_barres;
+    document.getElementById('stock-detailBarcode').innerHTML = `<a href="https://www.google.com/search?q=${encodeURIComponent(s.code_barres)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
     bcSection.style.display = '';
   } else {
     bcSection.style.display = 'none';
