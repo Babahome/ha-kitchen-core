@@ -194,6 +194,7 @@ db.exec(`
   ['ingredients',    'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['ingredients',    'saison',        "TEXT DEFAULT '[]'"],
   ['ingredients',    'nom_pluriel',   'TEXT'],
+  ['ingredients',    'parent_id',     'INTEGER REFERENCES ingredients(id)'],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
@@ -341,8 +342,18 @@ app.post('/api/ingredients', (req, res) => {
 });
 
 app.patch('/api/ingredients/:id', (req, res) => {
+  // Anti-cycle : vérifier que parent_id n'est pas un descendant de cet ingrédient
+  if (req.body.parent_id !== undefined && req.body.parent_id !== null) {
+    const isDesc = (nodeId, targetId) => {
+      if (nodeId === targetId) return true;
+      const n = db.prepare('SELECT parent_id FROM ingredients WHERE id=?').get(nodeId);
+      return n && n.parent_id ? isDesc(n.parent_id, targetId) : false;
+    };
+    if (isDesc(req.body.parent_id, parseInt(req.params.id)))
+      return res.status(400).json({ error: 'Cycle détecté' });
+  }
   const f=[], v=[];
-  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel','parent_id'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);

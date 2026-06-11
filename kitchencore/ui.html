@@ -1462,6 +1462,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-card:active { transform: scale(0.98); }
   .ing-card.selected { border-color: var(--orange); background: var(--orange-l); }
+  .ing-card.ing-depth-1 { margin-left: 20px; border-left: 3px solid #e0e0e0; }
+  .ing-card.ing-depth-2 { margin-left: 40px; border-left: 3px solid #e0e0e0; }
+  .ing-card.ing-depth-3 { margin-left: 60px; border-left: 3px solid #e0e0e0; }
+  .ing-card.ing-dragging { opacity: 0.35; transform: scale(0.97); }
+  .ing-card.ing-drag-over { border-color: var(--orange) !important; box-shadow: 0 0 0 2px var(--orange); }
 
   .ing-checkbox {
     width: 22px; height: 22px; flex-shrink: 0;
@@ -2834,6 +2839,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Recettes liées</label>
         <div class="ing-panel-recipes" id="ing-editRecipesList"></div>
+      </div>
+      <div class="ing-panel-section" id="ing-editParentSection" style="display:none">
+        <label class="ing-panel-label">Rattaché à</label>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+          <span id="ing-editParentName" style="flex:1;font-weight:600;font-size:15px"></span>
+          <button onclick="ingDissociateParent()" style="background:none;border:1px solid var(--grey);border-radius:8px;padding:5px 14px;color:var(--grey-d);font-size:13px;cursor:pointer">Dissocier</button>
+        </div>
       </div>
       <button class="ing-panel-btn-del" onclick="ingDeleteIngredient()">🗑 Supprimer cet ingrédient</button>
     </div>
@@ -7383,6 +7395,7 @@ async function _ingLoadData() {
         rayon_id:   a.rayon_id || null,
         imageUrl:   iconeIsUrl ? a.icone : '',
         saison:     a.saison || '[]',
+        parent_id:  a.parent_id ? String(a.parent_id) : null,
         usedIn:     [],
         _dbId:      a.id,
       };
@@ -7481,28 +7494,71 @@ function _ingRender() {
     </div>`;
     return;
   }
-  grid.innerHTML = items.map((ing, i) => _ingRenderCard(ing, i)).join('');
+  const tree = _ingBuildTree(items);
+  grid.innerHTML = tree.map(({ing, depth}, i) => _ingRenderCard(ing, i, depth)).join('');
+  _ingDragSetup();
 }
 
-function _ingRenderCard(ing, i) {
+function _ingGetEffectiveImage(ing, visited) {
+  visited = visited || new Set();
+  if (ing.imageUrl) return { url: ing.imageUrl, inherited: false };
+  if (!ing.parent_id || visited.has(ing.id)) return { url: '', inherited: false };
+  visited.add(ing.id);
+  const parent = _ingAll.find(i => i.id === ing.parent_id);
+  if (!parent) return { url: '', inherited: false };
+  const r = _ingGetEffectiveImage(parent, visited);
+  return r.url ? { url: r.url, inherited: true } : { url: '', inherited: false };
+}
+
+function _ingGetEffectiveRayon(ing, visited) {
+  visited = visited || new Set();
+  const r = _ingRayons.find(r => r.id === ing.rayon_id);
+  if (r) return { rayon: r, inherited: false };
+  if (!ing.parent_id || visited.has(ing.id)) return { rayon: null, inherited: false };
+  visited.add(ing.id);
+  const parent = _ingAll.find(i => i.id === ing.parent_id);
+  if (!parent) return { rayon: null, inherited: false };
+  const pr = _ingGetEffectiveRayon(parent, visited);
+  return pr.rayon ? { rayon: pr.rayon, inherited: true } : { rayon: null, inherited: false };
+}
+
+function _ingBuildTree(items) {
+  const idSet = new Set(items.map(i => i.id));
+  const result = [];
+  const addNode = (ing, depth) => {
+    result.push({ ing, depth });
+    items.filter(i => i.parent_id === ing.id)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(c => addNode(c, depth + 1));
+  };
+  items.filter(i => !i.parent_id || !idSet.has(i.parent_id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(i => addNode(i, 0));
+  return result;
+}
+
+function _ingRenderCard(ing, i, depth) {
+  depth = depth || 0;
   const selected = _ingSelectedIds.has(ing.id);
   const recipeCount = ing.usedIn ? ing.usedIn.length : 0;
-  const rayon = _ingRayons.find(r => r.id === ing.rayon_id);
-  const hasImage = !!ing.imageUrl;
+  const effImg   = _ingGetEffectiveImage(ing);
+  const effRayon = _ingGetEffectiveRayon(ing);
+  const hasImage = !!effImg.url;
   const initials = (ing.name || '?').slice(0, 2);
   const avatarContent = hasImage
-    ? `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img src="${effImg.url}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
       + `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#7a8694">${initials}</span>`
     : initials;
+  const depthClass = depth > 0 ? ` ing-depth-${Math.min(depth,3)}` : '';
 
-  return `<div class="ing-card${selected?' selected':''}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
+  return `<div class="ing-card${selected?' selected':''}${depthClass}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
     onclick="ingOnCardClick('${ing.id}', event)">
     ${_ingSelectMode ? `<div class="ing-checkbox">${selected?'✓':''}</div>` : ''}
     <div class="ing-avatar ${hasImage?'has-img':'no-img'}">${avatarContent}</div>
     <div class="ing-info">
       <div class="ing-name">${ing.name}</div>
       <div class="ing-meta">
-        ${rayon ? `<span class="ing-badge rayon">${rayon.emoji} ${rayon.nom}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
+        ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${effRayon.rayon.emoji} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
         ${recipeCount > 0 ? `<span class="ing-badge recipes">🍳 ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
       </div>
     </div>
@@ -7510,6 +7566,95 @@ function _ingRenderCard(ing, i) {
       <button class="ing-btn" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
     </div>
   </div>`;
+}
+
+// ─── Drag & drop pour équivalences ───
+let _ingDragSrcId = null, _ingDragOverId = null, _ingDragTimer = null, _ingDragActive = false, _ingJustDragged = false;
+
+function _ingDragSetup() {
+  const grid = document.getElementById('ing-ingredientsGrid');
+  if (!grid || grid._dragBound) return;
+  grid._dragBound = true;
+
+  grid.addEventListener('pointerdown', e => {
+    if (_ingSelectMode) return;
+    const card = e.target.closest('.ing-card');
+    if (!card) return;
+    if (e.target.closest('.ing-btn, .ing-checkbox')) return;
+    _ingDragSrcId = card.dataset.ingId;
+    const startX = e.clientX, startY = e.clientY;
+
+    _ingDragTimer = setTimeout(() => {
+      _ingDragActive = true;
+      card.classList.add('ing-dragging');
+      try { grid.setPointerCapture(e.pointerId); } catch(_) {}
+    }, 300);
+
+    const onMove = ev => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!_ingDragActive && Math.hypot(dx, dy) > 8) {
+        clearTimeout(_ingDragTimer); _ingDragTimer = null; cleanup(ev); return;
+      }
+      if (!_ingDragActive) return;
+      ev.preventDefault();
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const target = el && el.closest('.ing-card');
+      grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
+      if (target && target.dataset.ingId !== _ingDragSrcId) {
+        target.classList.add('ing-drag-over');
+        _ingDragOverId = target.dataset.ingId;
+      } else { _ingDragOverId = null; }
+    };
+
+    const onUp = async ev => {
+      clearTimeout(_ingDragTimer);
+      const wasActive = _ingDragActive;
+      const srcId = _ingDragSrcId, overId = _ingDragOverId;
+      _ingDragSrcId = null; _ingDragOverId = null; _ingDragActive = false;
+      cleanup(ev);
+      if (wasActive && srcId && overId) {
+        await _ingSetParent(srcId, overId);
+        _ingJustDragged = true;
+        setTimeout(() => { _ingJustDragged = false; }, 200);
+      }
+    };
+
+    const cleanup = ev => {
+      grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
+      try { grid.releasePointerCapture(ev.pointerId); } catch(_) {}
+      grid.removeEventListener('pointermove', onMove);
+      grid.removeEventListener('pointerup', onUp);
+      grid.removeEventListener('pointercancel', onUp);
+    };
+
+    grid.addEventListener('pointermove', onMove, { passive: false });
+    grid.addEventListener('pointerup', onUp);
+    grid.addEventListener('pointercancel', onUp);
+  });
+}
+
+async function _ingSetParent(childId, parentId) {
+  const child  = _ingAll.find(i => i.id === childId);
+  const parent = _ingAll.find(i => i.id === parentId);
+  if (!child || !parent) return;
+  // Anti-cycle côté client
+  const isDesc = (id, targetId, visited) => {
+    visited = visited || new Set();
+    if (id === targetId || visited.has(id)) return false;
+    visited.add(id);
+    const node = _ingAll.find(i => i.id === id);
+    return node && node.parent_id ? (node.parent_id === targetId || isDesc(node.parent_id, targetId, visited)) : false;
+  };
+  if (isDesc(parentId, childId)) { _ingToast('Impossible : créerait une boucle'); return; }
+  try {
+    const r = await fetch('/api/ingredients/' + child._dbId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent_id: parent._dbId })
+    });
+    if (!r.ok) { const d = await r.json(); _ingToast(d.error || 'Erreur'); return; }
+    _ingToast('Lien créé');
+    await _ingLoadData();
+  } catch(_) { _ingToast('Erreur réseau'); }
 }
 
 function _ingRenderDoublons() {
@@ -7681,6 +7826,7 @@ function _ingUpdateSelectModeUI() {
 }
 
 function _ingOnCardClick(id, e) {
+  if (_ingJustDragged) return;
   if (_ingSelectMode) {
     if (e && e.shiftKey && _ingLastSelectedId && _ingLastSelectedId !== id) {
       // Sélection par plage : tous les items entre le dernier cliqué et celui-ci
@@ -8030,6 +8176,16 @@ function _ingOpenEditPanel(id, e) {
   _ingSaisonActive = new Set(editSaison);
   _ingBuildSaisonBar('ing-editSaisonBar', 'ing-editSaisonLabels', 'ing-editSaisonSummary', _ingSaisonActive, true);
 
+  // Section "Rattaché à"
+  const parentSection = document.getElementById('ing-editParentSection');
+  if (ing.parent_id) {
+    const parentIng = _ingAll.find(p => p.id === ing.parent_id);
+    document.getElementById('ing-editParentName').textContent = parentIng ? parentIng.name : '?';
+    parentSection.style.display = '';
+  } else {
+    parentSection.style.display = 'none';
+  }
+
   document.getElementById('ing-editPanel').classList.add('open');
 }
 
@@ -8107,6 +8263,23 @@ async function _ingSaveIngredient() {
     _ingCloseEditPanel();
     _ingToast('Ingrédient mis à jour');
   } catch(e) { _ingToast('Erreur sauvegarde'); }
+}
+
+async function _ingDissociateParent() {
+  const id = document.getElementById('ing-editIngId').value;
+  const ing = _ingAll.find(i => i.id === id);
+  if (!ing) return;
+  try {
+    const r = await fetch('/api/ingredients/' + ing._dbId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent_id: null })
+    });
+    if (!r.ok) { _ingToast('Erreur'); return; }
+    ing.parent_id = null;
+    document.getElementById('ing-editParentSection').style.display = 'none';
+    _ingToast('Lien supprimé');
+    await _ingLoadData();
+  } catch(_) { _ingToast('Erreur réseau'); }
 }
 
 async function _ingDeleteIngredient() {
@@ -8503,6 +8676,7 @@ window.ingOpenEditPanel    = _ingOpenEditPanel;
 window.ingCloseEditPanel   = _ingCloseEditPanel;
 window.ingSaveIngredient   = _ingSaveIngredient;
 window.ingDeleteIngredient = _ingDeleteIngredient;
+window.ingDissociateParent = _ingDissociateParent;
 window.ingSelectRayon      = _ingSelectRayon;
 window.ingTriggerImageUpload = _ingTriggerImageUpload;
 window.ingHandleImageFile  = _ingHandleImageFile;
