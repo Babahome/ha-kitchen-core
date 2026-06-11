@@ -2003,10 +2003,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .mch-rayons-label { font-size: .73rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
 .mch-rayons-label span:last-child { font-weight: 600; text-transform: none; letter-spacing: 0; }
 .mch-rayon-list { display: flex; flex-direction: column; gap: 4px; }
-.mch-rayon-row { display: flex; align-items: center; gap: 10px; background: var(--grey-l); border-radius: 10px; padding: 9px 10px; cursor: grab; user-select: none; touch-action: none; transition: background .15s, box-shadow .15s; border: 2px solid transparent; }
+.mch-rayon-row { display: flex; align-items: center; gap: 10px; background: var(--grey-l); border-radius: 10px; padding: 9px 10px; user-select: none; transition: background .15s, box-shadow .15s; border: 2px solid transparent; }
 .mch-rayon-row.dragging { opacity: .45; cursor: grabbing; }
 .mch-rayon-row.drag-over { background: var(--orange-l); border-color: var(--orange); }
-.mch-rayon-handle { color: var(--grey-d); font-size: 1.1rem; flex-shrink: 0; line-height: 1; }
+.mch-rayon-handle { color: var(--grey-d); font-size: 1.1rem; flex-shrink: 0; line-height: 1; cursor: grab; touch-action: none; padding: 4px 6px; margin: -4px -6px; }
 .mch-rayon-emoji { font-size: 1.2rem; flex-shrink: 0; }
 .mch-rayon-nom { flex: 1; font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mch-rayon-actions { display: flex; gap: 4px; }
@@ -8556,7 +8556,7 @@ function _mchRenderMarchand(m) {
 }
 
 function _mchRenderRayon(mId, r) {
-  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}" draggable="true">
+  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}">
     <div class="mch-rayon-handle">⠿</div>
     <div class="mch-rayon-emoji">${r.emoji}</div>
     <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
@@ -8798,7 +8798,9 @@ function _mchInitDragDrop(mId) {
   let dragSrc = null;
 
   list.querySelectorAll('.mch-rayon-row').forEach(row => {
+    row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
     row.addEventListener('dragstart', e => {
+      if (!row.draggable) { e.preventDefault(); return; }
       dragSrc = row; row.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
     });
