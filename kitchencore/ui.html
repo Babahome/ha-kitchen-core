@@ -5795,6 +5795,7 @@ async function openDetail(id) {
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
     ${steps?`<div class="d-sec"><div class="d-sec-ttl">Préparation</div>${steps}</div>`:''}
     ${r.remarque?`<div class="d-sec"><div class="d-sec-ttl">Remarques</div><div style="font-size:.88rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;padding:0 4px">${r.remarque.replace(/</g,'&lt;')}</div></div>`:''}
+    ${r.source?`<div class="d-sec"><div class="d-sec-ttl">Source</div><div style="font-size:.88rem;color:var(--text2);padding:0 4px">${/^https?:\/\//.test(r.source)?`<a href="${r.source.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="color:var(--orange);word-break:break-all">${r.source.replace(/</g,'&lt;')}</a>`:r.source.replace(/</g,'&lt;')}</div></div>`:''}
     <div style="height:30px"></div>
   `;
   document.getElementById('panel-detail').classList.add('open');
