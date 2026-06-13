@@ -4621,7 +4621,7 @@ function _renderScanList() {
   fab.textContent = `✓ Ajouter ${totalQty} au stock`;
 
   list.innerHTML = _scanList.map((item, idx) => {
-    const photoSrc = item.photoOFF || (item.photo && item.photo.startsWith('http') ? item.photo : null) || (item.photo && item.photo.startsWith('data:') ? item.photo : null);
+    const photoSrc = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/') || item.photo.startsWith('data:')) ? item.photo : null);
     const photoHtml = photoSrc
       ? `<img src="${photoSrc}">`
       : `📦`;
