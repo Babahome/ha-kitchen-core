@@ -3290,13 +3290,10 @@ function _stockCard(s) {
     ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#bbb\\'>${initiales}</div>'">`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#bbb">${initiales}</div>`;
   const sel = _stockSelectedIds.has(s.produit_id);
-  const cbHtml = _stockSelectMode
-    ? `<div class="stock-checkbox${sel ? ' checked' : ''}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`
-    : '';
-  const clickAttr = _stockSelectMode
-    ? `onclick="stockToggleCard(${s.produit_id},event)"`
-    : `onclick="_stockOpenDetail(${s.produit_id})"`;
-  return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" ${clickAttr} style="position:relative">
+  const cbHtml = `<div class="stock-checkbox${sel ? ' checked' : ''}" data-cb-id="${s.produit_id}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`;
+  const hasPct = s.pourcentage !== null && s.pourcentage !== undefined;
+  const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
+  return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
     ${cbHtml}
     ${_dlcBadge(s.dlc)}
     <div class="prod-img-placeholder" style="overflow:hidden">${imgHtml}</div>
@@ -3307,15 +3304,10 @@ function _stockCard(s) {
       ${_stockPctBar(s.pourcentage)}
       <div class="prod-controls">
         <div class="prod-qty">
-          ${_stockSelectMode ? '' : (() => {
-            const hasPct = s.pourcentage !== null && s.pourcentage !== undefined;
-            const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
-            const pctTxt   = '%';
-            return `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">${pctTxt}</div>`;
-          })()}
-          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>−</div>
+          <div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">%</div>
+          <div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>
           <div><div class="qty-val">${qty}</div><div class="qty-unit">unité${qty > 1 ? 's' : ''}</div></div>
-          <div class="qty-btn" onclick="${_stockSelectMode ? '' : `event.stopPropagation();stockChangeQty(${s.produit_id},1,this)`}"${_stockSelectMode ? ' style="pointer-events:none;opacity:.4"' : ''}>+</div>
+          <div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},1,this)">+</div>
         </div>
       </div>
     </div>
@@ -3358,22 +3350,30 @@ function stockHideMainHdmenu() {
   document.getElementById('stock-main-hdmenu')?.classList.remove('on');
 }
 
-function _stockUpdateSelectUI() {
-  const n = _stockSelectedIds.size;
-  const label = document.getElementById('stock-hd-sel-label');
-  if (label) label.textContent = `${n} sélectionné(s)`;
-  const delBtn = document.getElementById('stock-hd-delete');
-  if (delBtn) delBtn.style.display = n > 0 ? '' : 'none';
-  const coursesBtn = document.getElementById('stock-hd-courses');
-  if (coursesBtn) coursesBtn.style.display = n > 0 ? '' : 'none';
+function _stockUpdateFab() {
+  const n = document.querySelector('.page.active')?.id === 'page-stock' ? _stockSelectedIds.size : 0;
+  const fab = document.getElementById('main-fab');
+  if (!fab) return;
+  if (n > 0) {
+    fab.textContent = '🛒';
+    fab.title = `Ajouter ${n} produit(s) aux courses`;
+  } else {
+    fab.textContent = '+';
+    fab.title = '';
+  }
 }
 
 function stockToggleCard(id, e) {
   if (e) e.stopPropagation();
   if (_stockSelectedIds.has(id)) _stockSelectedIds.delete(id);
   else _stockSelectedIds.add(id);
-  _stockUpdateSelectUI();
-  _stockRender();
+  // Mise à jour DOM en place (pas de re-render complet)
+  const card = document.querySelector(`.prod-card[data-id="${id}"]`);
+  const cb   = document.querySelector(`.stock-checkbox[data-cb-id="${id}"]`);
+  const sel  = _stockSelectedIds.has(id);
+  if (card) card.classList.toggle('selected', sel);
+  if (cb)   { cb.classList.toggle('checked', sel); cb.textContent = sel ? '✓' : ''; }
+  _stockUpdateFab();
 }
 
 async function stockDeleteSelected() {
@@ -3409,9 +3409,10 @@ async function stockAddSelectedToCourses() {
         origin: 'stock'
       })
     })));
-    _stockSelectMode = false;
     _stockSelectedIds.clear();
-    _stockRender();
+    document.querySelectorAll('.prod-card.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.stock-checkbox.checked').forEach(cb => { cb.classList.remove('checked'); cb.textContent = ''; });
+    _stockUpdateFab();
     showToast(`${items.length} produit(s) ajouté(s) aux courses`);
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
@@ -3422,6 +3423,7 @@ window.stockHideMainHdmenu        = stockHideMainHdmenu;
 window.stockToggleCard            = stockToggleCard;
 window.stockDeleteSelected        = stockDeleteSelected;
 window.stockAddSelectedToCourses  = stockAddSelectedToCourses;
+window._stockUpdateFab            = _stockUpdateFab;
 
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — Panels Détail & Édition produit
@@ -4133,7 +4135,7 @@ function switchPage(tab, page, title) {
 
   // FAB principal
   const fab = document.getElementById('main-fab');
-  if (fab) fab.style.display = cfg.fab ? 'grid' : 'none';
+  if (fab) { fab.style.display = cfg.fab ? 'grid' : 'none'; if (page !== 'stock') { fab.textContent = '+'; fab.title = ''; } }
 
   // FAB search
   const fabSearch = document.getElementById('fab-search');
@@ -4192,7 +4194,7 @@ function fabAction() {
   const active = document.querySelector('.page.active');
   if (!active) return;
   const page = active.id.replace('page-', '');
-  if (page === 'stock')     { if(typeof openScanner==='function') openScanner(); return; }
+  if (page === 'stock')     { if (_stockSelectedIds.size > 0) { stockAddSelectedToCourses(); } else if(typeof openScanner==='function') openScanner(); return; }
   if (page === 'courses')   { clFabAction(); return; }
   if (page === 'marchands')           { _mchOpenModalMarchand(); return; }
   if (page === 'suggestion-config')   { _sgcAddRule(); return; }
