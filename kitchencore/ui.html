@@ -6125,7 +6125,7 @@ function renderList() {
   const q  = document.getElementById('search-input')?.value.trim().toLowerCase()||'';
   const filtered = _rv.filter(r=>{
     const matchTag = _filter==='tout' || (r.tags||[]).includes(_filter);
-    const matchQ   = !q || r.nom.toLowerCase().includes(q);
+    const matchQ   = !q || r.nom.toLowerCase().includes(q) || (r.ingredients_text||'').toLowerCase().includes(q);
     return matchTag && matchQ;
   });
   document.getElementById('sec-count').textContent = filtered.length+' recette'+(filtered.length>1?'s':'');

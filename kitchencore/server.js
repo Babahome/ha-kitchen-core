@@ -925,9 +925,10 @@ app.get('/api/recettes', (_req, res) => {
   const rows = db.prepare(`
     SELECT r.*,
       COUNT(DISTINCT ri.id) AS nb_ingredients,
-      COUNT(DISTINCT re.id) AS nb_etapes
+      COUNT(DISTINCT re.id) AS nb_etapes,
+      GROUP_CONCAT(ri.nom, '|') AS ingredients_text
     FROM recettes r
-    LEFT JOIN recette_ingredients ri ON ri.recette_id=r.id
+    LEFT JOIN recette_ingredients ri ON ri.recette_id=r.id AND ri.type != 'sous_recette'
     LEFT JOIN recette_etapes      re ON re.recette_id=r.id
     GROUP BY r.id ORDER BY r.updated_at DESC
   `).all();
