@@ -3536,7 +3536,7 @@ function _stockCard(s) {
   const totalMasse = showUnit ? `${qty * s.contenance}${s.unite}` : '';
   // Bouton gauche : % si qty=0, sinon −
   const leftBtn = qty === 0
-    ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">%</div>`
+    ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};border-color:${pctColor}">%</div>`
     : `<div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
     ${cbHtml}
@@ -3546,14 +3546,13 @@ function _stockCard(s) {
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       ${(s.rayon_nom || s.ingredient_rayon_nom) ? `<div style="font-size:.6rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.rayon_emoji || s.ingredient_rayon_emoji || '📦'} ${s.rayon_nom || s.ingredient_rayon_nom}</div>` : ''}
-      ${qty === 1 ? _stockPctBar(s.pourcentage) : ''}
-      <div class="prod-controls">
+      ${qty >= 1 ? _stockPctBar(s.pourcentage) : ''}
+      <div class="prod-controls" style="justify-content:center">
         <div class="prod-qty">
           ${leftBtn}
-          <div>
+          <div style="text-align:center">
             <div class="qty-val">${qty}</div>
-            <div class="qty-unit">unité${qty > 1 ? 's' : ''}</div>
-            ${totalMasse ? `<div style="font-size:.55rem;color:#bbb;text-align:center;line-height:1.1">${totalMasse}</div>` : ''}
+            ${totalMasse ? `<div style="font-size:.55rem;color:#bbb;line-height:1.1">${totalMasse}</div>` : ''}
           </div>
           <div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},1,this)">+</div>
         </div>
