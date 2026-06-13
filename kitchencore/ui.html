@@ -6117,15 +6117,15 @@ function renderChips() {
 function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
 function fmt(s) { return s<60?s+'s':s<3600?Math.round(s/60)+'min':Math.floor(s/3600)+'h'+(s%3600?Math.round((s%3600)/60)+'min':''); }
-
+function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 
 // ── LISTE ─────────────────────────────────────────────────────────────────────
 function renderList() {
   const el = document.getElementById('rv-list');
-  const q  = document.getElementById('search-input')?.value.trim().toLowerCase()||'';
+  const q  = norm(document.getElementById('search-input')?.value.trim()||'');
   const filtered = _rv.filter(r=>{
     const matchTag = _filter==='tout' || (r.tags||[]).includes(_filter);
-    const matchQ   = !q || r.nom.toLowerCase().includes(q) || (r.ingredients_text||'').toLowerCase().includes(q);
+    const matchQ   = !q || norm(r.nom).includes(q) || norm(r.ingredients_text).includes(q);
     return matchTag && matchQ;
   });
   document.getElementById('sec-count').textContent = filtered.length+' recette'+(filtered.length>1?'s':'');
