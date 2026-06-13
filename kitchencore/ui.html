@@ -2714,17 +2714,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
 
-  <!-- MENU ⋮ STOCK (mode normal) -->
+  <!-- MENU ⋮ STOCK (unique, contextuel) -->
   <div class="m-hdmenu" id="stock-main-hdmenu" onclick="event.stopPropagation()">
-    <div class="m-hdmenu-item" onclick="stockHideMainHdmenu();stockToggleSelectMode()"><span>☑️</span><span>Sélectionner</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px;display:none">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item" id="stock-hd-courses" style="display:none" onclick="stockAddSelectedToCourses();stockHideMainHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-cook" style="display:none" onclick="stockCookWith();stockHideMainHdmenu()"><span>🍳</span><span>Cuisiner avec</span></div>
+    <div class="m-hdmenu-item danger" id="stock-hd-delete" style="display:none" onclick="stockDeleteSelected();stockHideMainHdmenu()"><span>🗑</span><span>Supprimer</span></div>
     <div class="m-hdmenu-item" onclick="stockHideMainHdmenu();zsOpen()"><span>🗂</span><span>Gérer les zones</span></div>
-  </div>
-
-  <!-- MENU ⋮ STOCK (mode sélection) -->
-  <div class="m-hdmenu" id="stock-hdmenu" onclick="event.stopPropagation()">
-    <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
-    <div class="m-hdmenu-item" id="stock-hd-courses" onclick="stockAddSelectedToCourses();stockHideHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
-    <div class="m-hdmenu-item danger" id="stock-hd-delete" onclick="stockDeleteSelected();stockHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
   </div>
 
   <!-- MENU ⋮ COURSES -->
@@ -3339,12 +3335,10 @@ function stockToggleSelectMode() {
   if (!_stockSelectMode) _stockSelectedIds.clear();
   _stockUpdateSelectUI();
   _stockRender();
-  const m = document.getElementById('stock-hdmenu');
-  if (_stockSelectMode && m) m.classList.add('on');
 }
 
 function stockHideHdmenu() {
-  document.getElementById('stock-hdmenu')?.classList.remove('on');
+  stockHideMainHdmenu();
 }
 function stockHideMainHdmenu() {
   document.getElementById('stock-main-hdmenu')?.classList.remove('on');
@@ -3353,14 +3347,21 @@ function stockHideMainHdmenu() {
 function _stockUpdateFab() {
   const n = document.querySelector('.page.active')?.id === 'page-stock' ? _stockSelectedIds.size : 0;
   const fab = document.getElementById('main-fab');
-  if (!fab) return;
-  if (n > 0) {
-    fab.textContent = '🛒';
-    fab.title = `Ajouter ${n} produit(s) aux courses`;
-  } else {
-    fab.textContent = '+';
-    fab.title = '';
+  if (fab) {
+    fab.textContent = n > 0 ? '🛒' : '+';
+    fab.title = n > 0 ? `Ajouter ${n} produit(s) aux courses` : '';
   }
+  const hasSel = n > 0;
+  const label = document.getElementById('stock-hd-sel-label');
+  if (label) { label.textContent = `${n} sélectionné(s)`; label.style.display = hasSel ? '' : 'none'; }
+  ['stock-hd-courses','stock-hd-cook','stock-hd-delete'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hasSel ? '' : 'none';
+  });
+}
+
+function stockCookWith() {
+  showToast('Bientôt disponible', 'warn');
 }
 
 function stockToggleCard(id, e) {
@@ -3424,6 +3425,7 @@ window.stockToggleCard            = stockToggleCard;
 window.stockDeleteSelected        = stockDeleteSelected;
 window.stockAddSelectedToCourses  = stockAddSelectedToCourses;
 window._stockUpdateFab            = _stockUpdateFab;
+window.stockCookWith              = stockCookWith;
 
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — Panels Détail & Édition produit
@@ -6841,13 +6843,8 @@ function mHeaderDotsClick(){
     return;
   }
   if(page === 'stock'){
-    if(_stockSelectMode){
-      const m = document.getElementById('stock-hdmenu');
-      if(m) m.classList.toggle('on');
-    } else {
-      const m = document.getElementById('stock-main-hdmenu');
-      if(m) m.classList.toggle('on');
-    }
+    const m = document.getElementById('stock-main-hdmenu');
+    if(m) m.classList.toggle('on');
     return;
   }
   if(page === 'courses'){
@@ -7257,7 +7254,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
     document.getElementById('ing-hdmenu')?.classList.remove('on');
     clHideHdmenu();
