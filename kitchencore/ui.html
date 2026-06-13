@@ -4673,9 +4673,15 @@ async function openScanner() {
     const all = await navigator.mediaDevices.enumerateDevices();
     _videoDevices = all.filter(d => d.kind === 'videoinput');
 
-    const envIdx = _videoDevices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
-    if (envIdx > 0) { const e = _videoDevices.splice(envIdx, 1); _videoDevices.unshift(e[0]); }
-    _videoDeviceIndex = 0;
+    const savedId = localStorage.getItem('kc_scanner_camera');
+    const savedIdx = savedId ? _videoDevices.findIndex(d => d.deviceId === savedId) : -1;
+    if (savedIdx > 0) {
+      _videoDeviceIndex = savedIdx;
+    } else {
+      const envIdx = _videoDevices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
+      if (envIdx > 0) { const e = _videoDevices.splice(envIdx, 1); _videoDevices.unshift(e[0]); }
+      _videoDeviceIndex = 0;
+    }
 
     document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
     document.getElementById('scanner-mode-btn').style.display = ('BarcodeDetector' in window) ? '' : 'none';
@@ -5187,6 +5193,7 @@ function closeScanner() {
 async function flipCamera() {
   if (_videoDevices.length < 2) return;
   _videoDeviceIndex = (_videoDeviceIndex + 1) % _videoDevices.length;
+  localStorage.setItem('kc_scanner_camera', _videoDevices[_videoDeviceIndex]?.deviceId || '');
   _torchOn = false;
   document.getElementById('torch-btn').classList.remove('on');
   try { await _startScanner(); }

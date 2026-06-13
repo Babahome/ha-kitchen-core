@@ -240,10 +240,19 @@ async function initCameras() {
       opt.textContent = d.label || `Caméra ${i + 1}`;
       sel.appendChild(opt);
     });
-    // Privilégier la caméra arrière
-    const envIdx = devices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
-    if (envIdx >= 0) { devIdx = envIdx; sel.value = envIdx; }
-    sel.onchange = () => { devIdx = +sel.value; if (scanning) startScan(); };
+    // Restaurer la caméra mémorisée, sinon privilégier la caméra arrière
+    const savedId = localStorage.getItem('kc_scanner_camera');
+    const savedIdx = savedId ? devices.findIndex(d => d.deviceId === savedId) : -1;
+    if (savedIdx >= 0) { devIdx = savedIdx; sel.value = savedIdx; }
+    else {
+      const envIdx = devices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
+      if (envIdx >= 0) { devIdx = envIdx; sel.value = envIdx; }
+    }
+    sel.onchange = () => {
+      devIdx = +sel.value;
+      localStorage.setItem('kc_scanner_camera', devices[devIdx]?.deviceId || '');
+      if (scanning) startScan();
+    };
     document.getElementById('btn-flip').onclick = () => {
       devIdx = (devIdx + 1) % devices.length;
       sel.value = devIdx;
