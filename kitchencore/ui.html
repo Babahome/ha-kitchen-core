@@ -1630,17 +1630,18 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .frame > .stock-sf-sheet {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 350;
     background: white; border-radius: 20px 20px 0 0;
-    padding: 0 0 env(safe-area-inset-bottom, 0);
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.34, 1.1, 0.64, 1);
-    max-height: 85%; overflow-y: auto; display: none;
+    max-height: 85%; display: none;
+    flex-direction: column;
   }
-  .frame > .stock-sf-sheet.open { display: block; transform: translateY(0); }
+  .frame > .stock-sf-sheet.open { display: flex; transform: translateY(0); }
   .frame > .stock-sf-overlay {
     position: absolute; inset: 0; z-index: 349;
     background: rgba(0,0,0,0.35); display: none;
   }
   .frame > .stock-sf-overlay.open { display: block; }
+  .stock-sf-scrollable { overflow-y: auto; flex: 1; }
   .stock-sf-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--grey); margin: 12px auto 0; }
   .stock-sf-header { padding: 14px 20px 0; display: flex; align-items: center; justify-content: space-between; }
   .stock-sf-title { font-size: 17px; font-weight: 800; }
@@ -1648,7 +1649,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .stock-sf-tabs { display: flex; margin: 14px 20px 0; border-bottom: 2px solid var(--grey-l); }
   .stock-sf-tab { flex: 1; text-align: center; padding: 8px 4px; font-size: .9rem; font-weight: 600; color: var(--grey-d); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
   .stock-sf-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
-  .stock-sf-pane { display: none; padding: 16px 20px 24px; }
+  .stock-sf-pane { display: none; padding: 16px 20px 100px; }
   .stock-sf-pane.active { display: block; }
   .stock-sf-section { margin-bottom: 20px; }
   .stock-sf-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--grey-d); margin-bottom: 10px; }
@@ -1661,9 +1662,21 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .stock-sf-opt.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); font-weight: 700; }
   .stock-sf-opt .sf-check { opacity: 0; font-size: .8rem; }
   .stock-sf-opt.active .sf-check { opacity: 1; }
-  .stock-sf-actions { display: flex; gap: 10px; padding: 0 20px 20px; }
-  .stock-sf-reset { flex: 1; padding: 12px; border: 1.5px solid var(--grey); border-radius: 12px; background: white; font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--text2); }
-  .stock-sf-apply { flex: 2; padding: 12px; border: none; border-radius: 12px; background: var(--orange); color: white; font-size: .9rem; font-weight: 700; cursor: pointer; }
+  /* FABs dans la sheet (position absolue par rapport à la sheet elle-même) */
+  .stock-sf-fab-apply {
+    position: absolute; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 20px;
+    width: 56px; height: 56px; border-radius: 50%; border: none;
+    background: var(--orange); color: white; font-size: 22px;
+    box-shadow: 0 4px 16px rgba(232,103,26,.45);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2;
+  }
+  .stock-sf-fab-reset {
+    position: absolute; bottom: calc(16px + 56px + 12px + env(safe-area-inset-bottom, 0px)); right: 20px;
+    width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--grey);
+    background: white; color: var(--text2); font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2;
+  }
   /* Bouton tri/filtre dans la barre de pills */
   .stock-sf-btn {
     display: flex; align-items: center; gap: 5px; padding: 6px 12px;
@@ -2563,68 +2576,73 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- STOCK TRI/FILTRE BOTTOM SHEET -->
   <div class="stock-sf-overlay" id="stock-sf-overlay" onclick="stockSfClose()"></div>
   <div class="stock-sf-sheet" id="stock-sf-sheet">
-    <div class="stock-sf-handle"></div>
-    <div class="stock-sf-header">
-      <div class="stock-sf-title">Trier &amp; Filtrer</div>
-      <button class="stock-sf-close" onclick="stockSfClose()">✕</button>
-    </div>
-    <div class="stock-sf-tabs">
-      <div class="stock-sf-tab active" id="stock-sf-tab-sort" onclick="stockSfSwitchTab('sort')">Trier</div>
-      <div class="stock-sf-tab" id="stock-sf-tab-filter" onclick="stockSfSwitchTab('filter')">Filtrer <span id="stock-sf-filter-badge" style="display:none" class="stock-sf-badge">0</span></div>
-    </div>
-    <!-- ONGLET TRI -->
-    <div class="stock-sf-pane active" id="stock-sf-pane-sort">
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Trier par</div>
-        <div class="stock-sf-options" id="stock-sf-sort-opts">
-          <div class="stock-sf-opt active" data-sort="nom" onclick="stockSfPickSort(this,'nom')"><span class="sf-check">✓</span> Nom</div>
-          <div class="stock-sf-opt" data-sort="date_ajout" onclick="stockSfPickSort(this,'date_ajout')"><span class="sf-check">✓</span> Date d'ajout</div>
-          <div class="stock-sf-opt" data-sort="dlc" onclick="stockSfPickSort(this,'dlc')"><span class="sf-check">✓</span> Expiration</div>
-          <div class="stock-sf-opt" data-sort="rayon" onclick="stockSfPickSort(this,'rayon')"><span class="sf-check">✓</span> Rayon</div>
-          <div class="stock-sf-opt" data-sort="zone" onclick="stockSfPickSort(this,'zone')"><span class="sf-check">✓</span> Zone</div>
-          <div class="stock-sf-opt" data-sort="quantite" onclick="stockSfPickSort(this,'quantite')"><span class="sf-check">✓</span> Quantité</div>
+    <div class="stock-sf-scrollable">
+      <div class="stock-sf-handle"></div>
+      <div class="stock-sf-header">
+        <div class="stock-sf-title">Trier &amp; Filtrer</div>
+        <button class="stock-sf-close" onclick="stockSfClose()">✕</button>
+      </div>
+      <div class="stock-sf-tabs">
+        <div class="stock-sf-tab active" id="stock-sf-tab-sort" onclick="stockSfSwitchTab('sort')">Trier</div>
+        <div class="stock-sf-tab" id="stock-sf-tab-filter" onclick="stockSfSwitchTab('filter')">Filtrer <span id="stock-sf-filter-badge" style="display:none" class="stock-sf-badge">0</span></div>
+      </div>
+      <!-- ONGLET TRI -->
+      <div class="stock-sf-pane active" id="stock-sf-pane-sort">
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Trier par</div>
+          <div class="stock-sf-options" id="stock-sf-sort-opts">
+            <div class="stock-sf-opt" data-sort="nom" onclick="stockSfPickSort(this,'nom')"><span class="sf-check">✓</span> Nom</div>
+            <div class="stock-sf-opt" data-sort="date_ajout" onclick="stockSfPickSort(this,'date_ajout')"><span class="sf-check">✓</span> Date d'ajout</div>
+            <div class="stock-sf-opt" data-sort="dlc" onclick="stockSfPickSort(this,'dlc')"><span class="sf-check">✓</span> Expiration</div>
+            <div class="stock-sf-opt" data-sort="rayon" onclick="stockSfPickSort(this,'rayon')"><span class="sf-check">✓</span> Rayon</div>
+            <div class="stock-sf-opt active" data-sort="zone" onclick="stockSfPickSort(this,'zone')"><span class="sf-check">✓</span> Zone</div>
+            <div class="stock-sf-opt" data-sort="quantite" onclick="stockSfPickSort(this,'quantite')"><span class="sf-check">✓</span> Quantité</div>
+          </div>
+        </div>
+        <div class="stock-sf-section" id="stock-sf-order-section">
+          <div class="stock-sf-label">Ordre</div>
+          <div class="stock-sf-options" id="stock-sf-order-opts">
+            <div class="stock-sf-opt active" data-order="asc" onclick="stockSfPickOrder(this,'asc')"><span class="sf-check">✓</span> Croissant</div>
+            <div class="stock-sf-opt" data-order="desc" onclick="stockSfPickOrder(this,'desc')"><span class="sf-check">✓</span> Décroissant</div>
+          </div>
         </div>
       </div>
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Ordre</div>
-        <div class="stock-sf-options" id="stock-sf-order-opts">
-          <div class="stock-sf-opt active" data-order="asc" onclick="stockSfPickOrder(this,'asc')"><span class="sf-check">✓</span> Croissant</div>
-          <div class="stock-sf-opt" data-order="desc" onclick="stockSfPickOrder(this,'desc')"><span class="sf-check">✓</span> Décroissant</div>
+      <!-- ONGLET FILTRE -->
+      <div class="stock-sf-pane" id="stock-sf-pane-filter">
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Zone de stockage</div>
+          <div class="stock-sf-options" id="stock-sf-f-zones"></div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Rayon</div>
+          <div class="stock-sf-options" id="stock-sf-f-rayons"></div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Expiration</div>
+          <div class="stock-sf-options">
+            <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> 🔴 Expiré</div>
+            <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check">✓</span> 🟠 Bientôt (&lt;7j)</div>
+            <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check">✓</span> 🟢 OK</div>
+            <div class="stock-sf-opt" data-fexp="none" onclick="stockSfToggleFexp(this,'none')"><span class="sf-check">✓</span> Sans date</div>
+          </div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Quantité</div>
+          <div class="stock-sf-options">
+            <div class="stock-sf-opt" data-fqty="zero" onclick="stockSfToggleFqty(this,'zero')"><span class="sf-check">✓</span> Stock vide</div>
+            <div class="stock-sf-opt" data-fqty="low" onclick="stockSfToggleFqty(this,'low')"><span class="sf-check">✓</span> Faible (≤1)</div>
+            <div class="stock-sf-opt" data-fqty="ok" onclick="stockSfToggleFqty(this,'ok')"><span class="sf-check">✓</span> OK (&gt;1)</div>
+          </div>
         </div>
       </div>
     </div>
-    <!-- ONGLET FILTRE -->
-    <div class="stock-sf-pane" id="stock-sf-pane-filter">
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Zone de stockage</div>
-        <div class="stock-sf-options" id="stock-sf-f-zones"></div>
-      </div>
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Rayon</div>
-        <div class="stock-sf-options" id="stock-sf-f-rayons"></div>
-      </div>
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Expiration</div>
-        <div class="stock-sf-options">
-          <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> 🔴 Expiré</div>
-          <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check">✓</span> 🟠 Bientôt (&lt;7j)</div>
-          <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check">✓</span> 🟢 OK</div>
-          <div class="stock-sf-opt" data-fexp="none" onclick="stockSfToggleFexp(this,'none')"><span class="sf-check">✓</span> Sans date</div>
-        </div>
-      </div>
-      <div class="stock-sf-section">
-        <div class="stock-sf-label">Quantité</div>
-        <div class="stock-sf-options">
-          <div class="stock-sf-opt" data-fqty="zero" onclick="stockSfToggleFqty(this,'zero')"><span class="sf-check">✓</span> Stock vide</div>
-          <div class="stock-sf-opt" data-fqty="low" onclick="stockSfToggleFqty(this,'low')"><span class="sf-check">✓</span> Faible (≤1)</div>
-          <div class="stock-sf-opt" data-fqty="ok" onclick="stockSfToggleFqty(this,'ok')"><span class="sf-check">✓</span> OK (&gt;1)</div>
-        </div>
-      </div>
-    </div>
-    <div class="stock-sf-actions">
-      <button class="stock-sf-reset" onclick="stockSfReset()">Réinitialiser</button>
-      <button class="stock-sf-apply" onclick="stockSfApply()">Appliquer</button>
-    </div>
+    <!-- FABs toujours visibles (hors zone scroll) -->
+    <button class="stock-sf-fab-reset" onclick="stockSfReset()" title="Réinitialiser">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
+    <button class="stock-sf-fab-apply" onclick="stockSfApply()" title="Appliquer">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
   </div>
 
   <!-- FAB -->
@@ -3271,7 +3289,7 @@ let STOCK_ZONES = [
 ];
 let _stockFilter      = 'all';
 let _stockGroupBy     = 'zone';
-let _stockSort        = 'nom';
+let _stockSort        = 'zone';
 let _stockOrder       = 'asc';
 let _stockFZones      = new Set();
 let _stockFRayons     = new Set();
@@ -3371,7 +3389,9 @@ function _stockRender() {
   if (!el) return;
 
   const baseItems = _stockSortItems(_stockFilterItems(_stockItems));
+  const emptyHtml = `<div style="padding:40px 20px;text-align:center;color:#aaa"><div style="font-size:2.5rem;margin-bottom:12px">📦</div><div style="font-weight:700;margin-bottom:6px">Stock vide</div><div style="font-size:.85rem">Scanne un produit avec le bouton + pour commencer</div></div>`;
 
+  // Tri rayon → groupement par rayon
   if (_stockGroupBy === 'rayon') {
     const byRayon = {};
     baseItems.forEach(s => {
@@ -3382,9 +3402,8 @@ function _stockRender() {
       byRayon[key].items.push(s);
     });
     const keys = Object.keys(byRayon).sort((a, b) => a === 'Sans rayon' ? 1 : b === 'Sans rayon' ? -1 : a.localeCompare(b, 'fr'));
-    const keysToShow = _stockFilter === 'all' ? keys : keys.filter(k => byRayon[k].id === _stockFilter);
     let html = '';
-    keysToShow.forEach(key => {
+    keys.forEach(key => {
       const { emoji, items } = byRayon[key];
       html += `<div class="zone-section">
         <div class="zone-header">
@@ -3394,48 +3413,41 @@ function _stockRender() {
         <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
       </div>`;
     });
-    if (!html) html = `<div style="padding:40px 20px;text-align:center;color:#aaa"><div style="font-size:2.5rem;margin-bottom:12px">📦</div><div style="font-weight:700;margin-bottom:6px">Stock vide</div><div style="font-size:.85rem">Scanne un produit avec le bouton + pour commencer</div></div>`;
-    el.innerHTML = html + '<div style="height:80px"></div>';
+    el.innerHTML = (html || emptyHtml) + '<div style="height:80px"></div>';
     return;
   }
 
-  const byZone = {};
-  baseItems.forEach(s => {
-    const z = s.zone || 'Autre';
-    if (!byZone[z]) byZone[z] = [];
-    byZone[z].push(s);
-  });
-
-  const allZones = [...STOCK_ZONES.map(z => z.key), ...Object.keys(byZone).filter(k => !STOCK_ZONES.find(z => z.key === k))];
-  const zonesToShow = _stockFilter === 'all' ? allZones : [_stockFilter];
-
-  let html = '';
-  let total = 0;
-  zonesToShow.forEach(zoneKey => {
-    const items = byZone[zoneKey] || [];
-    if (_stockFilter === 'all' && items.length === 0) return;
-    const zoneMeta = STOCK_ZONES.find(z => z.key === zoneKey) || { emoji: '📦' };
-    total += items.length;
-    html += `<div class="zone-section">
-      <div class="zone-header">
-        <div class="zone-title"><span>${zoneMeta.emoji}</span> ${zoneKey} <span class="zone-count">${items.length}</span></div>
-        <div class="zone-collapse" onclick="toggleZone(this)">−</div>
-      </div>
-      <div class="product-grid">
-        ${items.length ? items.map(s => _stockCard(s)).join('') : '<div style="padding:16px;color:#aaa;font-size:.85rem">Aucun produit dans cette zone</div>'}
-      </div>
-    </div>`;
-  });
-
-  if (total === 0) {
-    html = `<div style="padding:40px 20px;text-align:center;color:#aaa">
-      <div style="font-size:2.5rem;margin-bottom:12px">📦</div>
-      <div style="font-weight:700;margin-bottom:6px">Stock vide</div>
-      <div style="font-size:.85rem">Scanne un produit avec le bouton + pour commencer</div>
-    </div>`;
+  // Tri zone → groupement par zone
+  if (_stockGroupBy === 'zone') {
+    const byZone = {};
+    baseItems.forEach(s => {
+      const z = s.zone || 'Autre';
+      if (!byZone[z]) byZone[z] = [];
+      byZone[z].push(s);
+    });
+    const allZones = [...STOCK_ZONES.map(z => z.key), ...Object.keys(byZone).filter(k => !STOCK_ZONES.find(z => z.key === k))];
+    let html = '';
+    let total = 0;
+    allZones.forEach(zoneKey => {
+      const items = byZone[zoneKey] || [];
+      if (items.length === 0) return;
+      const zoneMeta = STOCK_ZONES.find(z => z.key === zoneKey) || { emoji: '📦' };
+      total += items.length;
+      html += `<div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-title"><span>${zoneMeta.emoji}</span> ${zoneKey} <span class="zone-count">${items.length}</span></div>
+          <div class="zone-collapse" onclick="toggleZone(this)">−</div>
+        </div>
+        <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
+      </div>`;
+    });
+    el.innerHTML = (total ? html : emptyHtml) + '<div style="height:80px"></div>';
+    return;
   }
 
-  el.innerHTML = html + '<div style="height:80px"></div>';
+  // Tous les autres tris → liste plate
+  if (!baseItems.length) { el.innerHTML = emptyHtml + '<div style="height:80px"></div>'; return; }
+  el.innerHTML = `<div class="product-grid" style="padding:12px 16px">${baseItems.map(s => _stockCard(s)).join('')}</div><div style="height:80px"></div>`;
 }
 
 function _dlcBadge(dlc) {
@@ -3872,10 +3884,15 @@ function _stockRebuildFilterPills() {
   const fp = document.querySelector('#page-stock .stock-filters');
   if (!fp) return;
   const isRayon = _stockGroupBy === 'rayon';
-  const toggleBtn = `<div class="filter-pill${isRayon ? ' active' : ''}" id="stock-groupByBtn" onclick="stockSetGroupBy(${isRayon ? "'zone'" : "'rayon'"})" title="${isRayon ? 'Vue par zone' : 'Vue par rayon'}">${isRayon ? '📦' : '🏷️'}</div>`;
+  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + _stockFQty.size;
+  const hasSortActive = _stockSort !== 'zone' || _stockOrder !== 'asc';
+  const sfActive = activeFilters > 0 || hasSortActive;
+  const sfBadge = activeFilters > 0 ? `<span class="stock-sf-badge">${activeFilters}</span>` : '';
+  const sfBtn = `<div class="stock-sf-btn${sfActive ? ' has-active' : ''}" onclick="stockSfOpen()">⇅ ${sfBadge}</div>`;
   const sep = `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>`;
 
-  let pills;
+  // Pills de navigation rapide : zones si groupBy=zone, rayons si groupBy=rayon, rien sinon
+  let pills = '';
   if (isRayon) {
     const seen = new Map();
     _stockItems.forEach(s => {
@@ -3889,17 +3906,12 @@ function _stockRebuildFilterPills() {
       sorted.map(([id, { nom, emoji }]) =>
         `<div class="filter-pill" onclick="stockFilterRayon(this,${id})">${emoji} ${nom}</div>`
       ).join('');
-  } else {
+  } else if (_stockGroupBy === 'zone') {
     pills = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
       STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
   }
-  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + _stockFQty.size;
-  const hasSortActive = _stockSort !== 'nom' || _stockOrder !== 'asc';
-  const sfActive = activeFilters > 0 || hasSortActive;
-  const sfBadge = activeFilters > 0 ? `<span class="stock-sf-badge">${activeFilters}</span>` : '';
-  const sfBtn = `<div class="stock-sf-btn${sfActive ? ' has-active' : ''}" onclick="stockSfOpen()">⇅ ${sfBadge}</div>`;
-  const sep2 = `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>`;
-  fp.innerHTML = sfBtn + sep2 + toggleBtn + sep + pills;
+
+  fp.innerHTML = sfBtn + (pills ? sep + pills : '');
 }
 
 function stockSetGroupBy(mode) {
@@ -4283,6 +4295,8 @@ function stockSfOpen() {
   // Remettre les sélections tri en état
   document.querySelectorAll('#stock-sf-sort-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.sort === _stockSort));
   document.querySelectorAll('#stock-sf-order-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.order === _stockOrder));
+  const orderSec = document.getElementById('stock-sf-order-section');
+  if (orderSec) orderSec.style.display = (_stockSort === 'zone' || _stockSort === 'rayon') ? 'none' : '';
   // Remettre états filtres exp/qty
   document.querySelectorAll('[data-fexp]').forEach(o => o.classList.toggle('active', _stockFExp.has(o.dataset.fexp)));
   document.querySelectorAll('[data-fqty]').forEach(o => o.classList.toggle('active', _stockFQty.has(o.dataset.fqty)));
@@ -4308,6 +4322,11 @@ function stockSfPickSort(el, val) {
   document.querySelectorAll('#stock-sf-sort-opts .stock-sf-opt').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
   _stockSort = val;
+  // zone/rayon → groupement ; tout autre tri → liste plate
+  _stockGroupBy = (val === 'zone') ? 'zone' : (val === 'rayon') ? 'rayon' : 'flat';
+  // masquer l'ordre pour zone/rayon (le groupement définit déjà l'ordre visuel)
+  const orderSec = document.getElementById('stock-sf-order-section');
+  if (orderSec) orderSec.style.display = (val === 'zone' || val === 'rayon') ? 'none' : '';
 }
 
 function stockSfPickOrder(el, val) {
@@ -4322,7 +4341,7 @@ function stockSfToggleFexp(el, val)   { el.classList.toggle('active'); _stockFEx
 function stockSfToggleFqty(el, val)   { el.classList.toggle('active'); _stockFQty.has(val) ? _stockFQty.delete(val) : _stockFQty.add(val); }
 
 function stockSfReset() {
-  _stockSort = 'nom'; _stockOrder = 'asc';
+  _stockSort = 'zone'; _stockOrder = 'asc'; _stockGroupBy = 'zone';
   _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQty.clear();
   stockSfClose();
   _stockRebuildFilterPills();
@@ -4340,14 +4359,14 @@ function stockSfApply() {
 }
 
 function stockFilterZone(pill, zone) {
-  document.querySelectorAll('#page-stock .filter-pill:not(#stock-groupByBtn)').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-stock .filter-pill').forEach(p => p.classList.remove('active'));
   pill.classList.add('active');
   _stockFilter = zone;
   _stockRender();
 }
 
 function stockFilterRayon(pill, rayonId) {
-  document.querySelectorAll('#page-stock .filter-pill:not(#stock-groupByBtn)').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-stock .filter-pill').forEach(p => p.classList.remove('active'));
   pill.classList.add('active');
   _stockFilter = rayonId;
   _stockRender();
