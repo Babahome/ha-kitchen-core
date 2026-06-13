@@ -5776,7 +5776,9 @@ function clShowSuggestions(items, q) {
   const list = document.getElementById('cl-suggest-list'); if(!list) return;
   if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient trouvé</div>'; list.classList.add('visible'); return; }
   const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  list.innerHTML = items.map(it=>{
+  // Stocke les données dans _clSuggestData pour éviter les problèmes d'apostrophes dans les onclick inline
+  window._clSuggestData = items.map(it=>({nom:it.nom, rayon:it.rayon_nom||'', icone:it.icone||''}));
+  list.innerHTML = items.map((it,idx)=>{
     const hl  = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
     const r   = it.rayon_nom||'';
     const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
@@ -5784,13 +5786,17 @@ function clShowSuggestions(items, q) {
     const avatar = isUrl
       ? `<img src="${it.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.6rem;font-weight:800;color:var(--grey-d)\\'>${ini}</span>'">`
       : `<span style="font-size:.6rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
-    return `<div class="cl-suggest-item" onclick='clPickSuggestion(${JSON.stringify(it.nom)},${JSON.stringify(r)},${JSON.stringify(it.icone||'')})'>
+    return `<div class="cl-suggest-item" onclick="clPickSuggestionIdx(${idx})">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${avatar}</div>
       <div class="cl-suggest-name">${hl}</div>
       ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
     </div>`;
   }).join('');
   list.classList.add('visible');
+}
+function clPickSuggestionIdx(idx) {
+  const d = window._clSuggestData?.[idx]; if(!d) return;
+  clPickSuggestion(d.nom, d.rayon, d.icone);
 }
 function clHideSuggestions(){ document.getElementById('cl-suggest-list')?.classList.remove('visible'); }
 async function clPickSuggestion(nom, rayon, icone) {
