@@ -2509,7 +2509,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   </div>
 
   <!-- FAB -->
-  <div class="fab" id="main-fab" onclick="fabAction()">+</div>
+  <div class="fab" id="main-fab" onclick="fabAction()"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
 
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
@@ -3344,11 +3344,14 @@ function stockHideMainHdmenu() {
   document.getElementById('stock-main-hdmenu')?.classList.remove('on');
 }
 
+const _SVG_FAB_PLUS = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+const _SVG_FAB_CART = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/><line x1="12" y1="13" x2="12" y2="19"/><polyline points="9 16 12 19 15 16"/></svg>`;
+
 function _stockUpdateFab() {
   const n = document.querySelector('.page.active')?.id === 'page-stock' ? _stockSelectedIds.size : 0;
   const fab = document.getElementById('main-fab');
   if (fab) {
-    fab.textContent = n > 0 ? '🛒' : '+';
+    fab.innerHTML = n > 0 ? _SVG_FAB_CART : _SVG_FAB_PLUS;
     fab.title = n > 0 ? `Ajouter ${n} produit(s) aux courses` : '';
   }
   const hasSel = n > 0;
@@ -4137,7 +4140,7 @@ function switchPage(tab, page, title) {
 
   // FAB principal
   const fab = document.getElementById('main-fab');
-  if (fab) { fab.style.display = cfg.fab ? 'grid' : 'none'; if (page !== 'stock') { fab.textContent = '+'; fab.title = ''; } }
+  if (fab) { fab.style.display = cfg.fab ? 'grid' : 'none'; if (page !== 'stock') { fab.innerHTML = _SVG_FAB_PLUS || '+'; fab.title = ''; } }
 
   // FAB search
   const fabSearch = document.getElementById('fab-search');
