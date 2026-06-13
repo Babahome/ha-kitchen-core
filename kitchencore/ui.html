@@ -828,6 +828,19 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                       width:0;transition:width .25s ease;padding:0; }
 .cl-fab-search-input.expanded{ width:160px; }
 .cl-fab-search-input::placeholder{ color:var(--grey-d); }
+/* fab-search stock */
+.st-fab-search{ position:absolute;bottom:calc(var(--bottom-h) + 16px);left:16px;
+                height:46px;border-radius:23px;background:white;color:var(--text2);
+                display:none;align-items:center;gap:8px;padding:0 16px 0 12px;
+                box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer;z-index:20;
+                border:1px solid var(--grey);font-size:.88rem;font-weight:600;font-family:var(--font); }
+.st-fab-search.visible{ display:flex; }
+.st-fab-search.open{ cursor:text; }
+.st-fab-search-input{ background:transparent;border:none;outline:none;color:var(--text);
+                      font-family:var(--font);font-size:.88rem;font-weight:600;
+                      width:0;transition:width .25s ease;padding:0; }
+.st-fab-search-input.expanded{ width:160px; }
+.st-fab-search-input::placeholder{ color:var(--grey-d); }
 /* Suggestions autocomplétion Courses */
 .cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
   background:white;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);
@@ -2574,6 +2587,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
   </div>
 
+  <!-- fab-search stock -->
+  <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
+    <span class="st-fab-search-icon">🔍</span>
+    <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque…"
+      onclick="event.stopPropagation()"
+      oninput="_stockSearch=this.value;_stockRender()">
+  </div>
+
   <!-- STOCK TRI/FILTRE BOTTOM SHEET -->
   <div class="stock-sf-overlay" id="stock-sf-overlay" onclick="stockSfClose()"></div>
   <div class="stock-sf-sheet" id="stock-sf-sheet">
@@ -3301,6 +3322,27 @@ let _RAYONS           = [];
 let _stockEditRayonId = null;
 let _stockSelectMode  = false;
 let _stockSelectedIds = new Set();
+let _stockSearch      = '';
+let _stockSearchOpen  = false;
+
+function stockToggleSearch() {
+  const pill = document.getElementById('st-fab-search');
+  const inp  = document.getElementById('st-search-input');
+  if (!pill || !inp) return;
+  _stockSearchOpen = !_stockSearchOpen;
+  if (_stockSearchOpen) {
+    pill.classList.add('open');
+    inp.classList.add('expanded');
+    setTimeout(() => inp.focus(), 50);
+  } else {
+    pill.classList.remove('open');
+    inp.classList.remove('expanded');
+    inp.value = '';
+    _stockSearch = '';
+    _stockRender();
+    inp.blur();
+  }
+}
 
 async function _stockLoadZones() {
   try {
@@ -3360,6 +3402,12 @@ function _stockSortItems(items) {
 
 function _stockFilterItems(items) {
   return items.filter(s => {
+    if (_stockSearch) {
+      const q = _stockSearch.toLowerCase();
+      const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
+      const marque = (s.marque || '').toLowerCase();
+      if (!nom.includes(q) && !marque.includes(q)) return false;
+    }
     if (_stockFZones.size > 0 && !_stockFZones.has(s.zone || '')) return false;
     if (_stockFRayons.size > 0) {
       const rn = s.rayon_nom || s.ingredient_rayon_nom || null;
@@ -4467,6 +4515,19 @@ function switchPage(tab, page, title) {
   // Bouton tri/filtre stock
   const sfHdrBtn = document.getElementById('stock-sf-header-btn');
   if (sfHdrBtn) sfHdrBtn.style.display = page === 'stock' ? 'grid' : 'none';
+  // fab-search stock
+  const stFs = document.getElementById('st-fab-search');
+  if (stFs) {
+    if (page === 'stock') {
+      stFs.classList.add('visible');
+    } else {
+      stFs.classList.remove('visible', 'open');
+      const si = document.getElementById('st-search-input');
+      if (si) { si.value = ''; si.classList.remove('expanded'); }
+      _stockSearch = '';
+      _stockSearchOpen = false;
+    }
+  }
   // Build menu timeline
   if (page === 'menu' && typeof _mLoad === 'function') _mLoad();
   // Charger les recettes depuis l'API
