@@ -2723,6 +2723,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- MENU ⋮ STOCK (mode sélection) -->
   <div class="m-hdmenu" id="stock-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item" id="stock-hd-courses" onclick="stockAddSelectedToCourses();stockHideHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
     <div class="m-hdmenu-item danger" id="stock-hd-delete" onclick="stockDeleteSelected();stockHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
   </div>
 
@@ -3363,6 +3364,8 @@ function _stockUpdateSelectUI() {
   if (label) label.textContent = `${n} sélectionné(s)`;
   const delBtn = document.getElementById('stock-hd-delete');
   if (delBtn) delBtn.style.display = n > 0 ? '' : 'none';
+  const coursesBtn = document.getElementById('stock-hd-courses');
+  if (coursesBtn) coursesBtn.style.display = n > 0 ? '' : 'none';
 }
 
 function stockToggleCard(id, e) {
@@ -3386,11 +3389,39 @@ async function stockDeleteSelected() {
   } catch(e) { showToast('Erreur suppression', 'error'); }
 }
 
-window.stockToggleSelectMode = stockToggleSelectMode;
-window.stockHideHdmenu       = stockHideHdmenu;
-window.stockHideMainHdmenu   = stockHideMainHdmenu;
-window.stockToggleCard       = stockToggleCard;
-window.stockDeleteSelected   = stockDeleteSelected;
+async function stockAddSelectedToCourses() {
+  const ids = [..._stockSelectedIds];
+  if (!ids.length) return;
+  const defaultM = (_clMarchands && _clMarchands[0]) ? String(_clMarchands[0].id) : '0';
+  const items = _stockItems.filter(s => ids.includes(s.produit_id));
+  try {
+    await Promise.all(items.map(s => fetch('/api/courses/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        n: s.produit_nom || s.ingredient_nom || '?',
+        icone: s.icone || null,
+        m: defaultM,
+        r: s.rayon_nom || s.ingredient_rayon_nom || 'Autre',
+        qty: 1,
+        unit: '',
+        done: false,
+        origin: 'stock'
+      })
+    })));
+    _stockSelectMode = false;
+    _stockSelectedIds.clear();
+    _stockRender();
+    showToast(`${items.length} produit(s) ajouté(s) aux courses`);
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
+window.stockToggleSelectMode      = stockToggleSelectMode;
+window.stockHideHdmenu            = stockHideHdmenu;
+window.stockHideMainHdmenu        = stockHideMainHdmenu;
+window.stockToggleCard            = stockToggleCard;
+window.stockDeleteSelected        = stockDeleteSelected;
+window.stockAddSelectedToCourses  = stockAddSelectedToCourses;
 
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — Panels Détail & Édition produit
