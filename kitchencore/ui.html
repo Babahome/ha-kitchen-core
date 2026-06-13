@@ -449,6 +449,16 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 }
 .fab-search-input.expanded { width: 160px; }
 .fab-search-input::placeholder { color: var(--grey-d); }
+/* Bouton ✕ effacer — commun aux 3 barres de recherche pill */
+.fab-clear-btn {
+  display: none; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: var(--grey); color: var(--text2); font-size: 11px;
+  cursor: pointer; flex-shrink: 0; line-height: 1; padding: 0;
+}
+.fab-search-input.expanded    ~ .fab-clear-btn,
+.cl-fab-search-input.expanded ~ .fab-clear-btn,
+.st-fab-search-input.expanded ~ .fab-clear-btn { display: flex; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    PAGE MENU / PROFIL (placeholder)
@@ -2258,6 +2268,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="cl-fab-search-input" id="cl-search-input" placeholder="Ajouter un article…"
           onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
           onkeydown="if(event.key==='Escape')clToggleSearch()">
+        <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
       </div>
 
     </div>
@@ -2585,6 +2596,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="fab-search" id="fab-search" onclick="toggleSearch()">
     <span>🔍</span>
     <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
+    <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer">✕</button>
   </div>
 
   <!-- fab-search stock -->
@@ -2593,6 +2605,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockRender()">
+    <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer">✕</button>
   </div>
 
   <!-- STOCK TRI/FILTRE BOTTOM SHEET -->
