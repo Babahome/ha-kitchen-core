@@ -3531,6 +3531,13 @@ function _stockCard(s) {
   const cbHtml = `<div class="stock-checkbox${sel ? ' checked' : ''}" data-cb-id="${s.produit_id}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`;
   const hasPct = s.pourcentage !== null && s.pourcentage !== undefined;
   const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
+  // Ligne de masse/volume sous la qty (ex: "1000g" pour 2×500g)
+  const showUnit = s.unite && s.unite !== 'unité' && s.contenance > 0;
+  const totalMasse = showUnit ? `${qty * s.contenance}${s.unite}` : '';
+  // Bouton gauche : % si qty=0, sinon −
+  const leftBtn = qty === 0
+    ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">%</div>`
+    : `<div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
     ${cbHtml}
     ${_dlcBadge(s.dlc)}
@@ -3539,12 +3546,15 @@ function _stockCard(s) {
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       ${(s.rayon_nom || s.ingredient_rayon_nom) ? `<div style="font-size:.6rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.rayon_emoji || s.ingredient_rayon_emoji || '📦'} ${s.rayon_nom || s.ingredient_rayon_nom}</div>` : ''}
-      ${_stockPctBar(s.pourcentage)}
+      ${qty === 1 ? _stockPctBar(s.pourcentage) : ''}
       <div class="prod-controls">
         <div class="prod-qty">
-          <div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};min-width:26px;padding:0 3px;border-color:${pctColor}">%</div>
-          <div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>
-          <div><div class="qty-val">${qty}</div><div class="qty-unit">unité${qty > 1 ? 's' : ''}</div></div>
+          ${leftBtn}
+          <div>
+            <div class="qty-val">${qty}</div>
+            <div class="qty-unit">unité${qty > 1 ? 's' : ''}</div>
+            ${totalMasse ? `<div style="font-size:.55rem;color:#bbb;text-align:center;line-height:1.1">${totalMasse}</div>` : ''}
+          </div>
           <div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},1,this)">+</div>
         </div>
       </div>
@@ -5368,7 +5378,8 @@ async function saveNewProduit() {
     code_barres: code || null,
     zone: _pnpZone,
     contenance: parseFloat(document.getElementById('pnp-contenance').value) || 1,
-    unite: document.getElementById('pnp-unite').value.trim() || 'unité'
+    unite: document.getElementById('pnp-unite').value.trim() || 'unité',
+    pourcentage: 100
   };
 
   try {
