@@ -2171,6 +2171,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="ing-header-actions" id="ing-headerActions">
       <button class="ing-header-btn" id="ing-selectBtn" onclick="ingToggleSelectMode()">Sélectionner</button>
     </div>
+    <div class="header-icon" id="stock-sf-header-btn" style="display:none" onclick="stockSfOpen()">⇅</div>
     <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
   </div>
 
@@ -3887,8 +3888,10 @@ function _stockRebuildFilterPills() {
   const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + _stockFQty.size;
   const hasSortActive = _stockSort !== 'zone' || _stockOrder !== 'asc';
   const sfActive = activeFilters > 0 || hasSortActive;
-  const sfBadge = activeFilters > 0 ? `<span class="stock-sf-badge">${activeFilters}</span>` : '';
-  const sfBtn = `<div class="stock-sf-btn${sfActive ? ' has-active' : ''}" onclick="stockSfOpen()">⇅ ${sfBadge}</div>`;
+  // Mettre à jour l'icône du bouton header (badge visuel si filtres actifs)
+  const sfHdrBtn = document.getElementById('stock-sf-header-btn');
+  if (sfHdrBtn) sfHdrBtn.style.opacity = sfActive ? '1' : '0.7';
+
   const sep = `<div style="width:1px;background:#e0e0e0;height:16px;margin:0 2px;flex-shrink:0;align-self:center"></div>`;
 
   // Pills de navigation rapide : zones si groupBy=zone, rayons si groupBy=rayon, rien sinon
@@ -3911,7 +3914,7 @@ function _stockRebuildFilterPills() {
       STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
   }
 
-  fp.innerHTML = sfBtn + (pills ? sep + pills : '');
+  fp.innerHTML = pills ? pills : '';
 }
 
 function stockSetGroupBy(mode) {
@@ -4461,6 +4464,9 @@ function switchPage(tab, page, title) {
   // Bouton aujourd'hui (menu)
   const btnTod = document.getElementById('btn-tod');
   if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
+  // Bouton tri/filtre stock
+  const sfHdrBtn = document.getElementById('stock-sf-header-btn');
+  if (sfHdrBtn) sfHdrBtn.style.display = page === 'stock' ? 'grid' : 'none';
   // Build menu timeline
   if (page === 'menu' && typeof _mLoad === 'function') _mLoad();
   // Charger les recettes depuis l'API
