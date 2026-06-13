@@ -304,6 +304,7 @@ app.get('/', (req, res) => {
   const patched = HTML.replace('</head>', `<script>window._haIngressPath=${JSON.stringify(base)};</script></head>`);
   res.send(patched);
 });
+app.get('/scanner-debug.html', (_req, res) => res.sendFile(path.join(__dirname, 'scanner-debug.html')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.9.0' }));
 
 // ══════════════════════════════════════════════════════════════════════════════

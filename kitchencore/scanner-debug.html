@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Scanner Debug — KitchenCore</title>
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', system-ui, sans-serif; background: #111; color: #eee; font-size: 14px; }
+  h1 { font-size: 1rem; padding: 10px 12px; background: #E8671A; color: white; letter-spacing: .04em; }
+
+  #layout { display: flex; flex-direction: column; height: calc(100vh - 40px); }
+
+  /* ── Vidéo + canvas ── */
+  #video-section { position: relative; flex: 0 0 auto; background: #000; }
+  #video { width: 100%; display: block; max-height: 40vh; object-fit: contain; }
+  #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* ── Panneau info temps réel ── */
+  #info-bar {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    background: #1a1a1a; padding: 8px 10px;
+    font-size: .78rem; border-bottom: 1px solid #333;
+  }
+  .badge {
+    background: #2a2a2a; border: 1px solid #444;
+    border-radius: 4px; padding: 3px 8px;
+    display: flex; gap: 6px;
+  }
+  .badge .lbl { color: #888; }
+  .badge .val { color: #fff; font-weight: 700; }
+  #badge-sharp.ok .val { color: #4caf50; }
+  #badge-sharp.warn .val { color: #ff9800; }
+  #badge-sharp.bad .val { color: #f44336; }
+  #badge-engine.native .val { color: #2196f3; }
+  #badge-engine.zxing .val { color: #E8671A; }
+
+  /* ── Contrôles ── */
+  #controls {
+    background: #1a1a1a; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    border-bottom: 1px solid #333;
+  }
+  .ctrl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ctrl-row label { color: #aaa; font-size: .78rem; min-width: 80px; }
+  button {
+    background: #333; color: #eee; border: 1px solid #555;
+    border-radius: 6px; padding: 6px 12px; font-size: .8rem;
+    cursor: pointer; font-family: inherit;
+  }
+  button.active { background: #E8671A; border-color: #E8671A; color: white; }
+  button:disabled { opacity: .4; cursor: default; }
+  input[type=range] { flex: 1; accent-color: #E8671A; }
+  .range-val { color: #fff; font-weight: 700; min-width: 36px; text-align: right; font-size: .8rem; }
+  select {
+    background: #2a2a2a; color: #eee; border: 1px solid #555;
+    border-radius: 6px; padding: 5px 8px; font-size: .8rem;
+    font-family: inherit; flex: 1;
+  }
+
+  /* ── Log ── */
+  #log-section { flex: 1; overflow-y: auto; padding: 8px 10px; }
+  #log { font-size: .76rem; font-family: monospace; display: flex; flex-direction: column; gap: 3px; }
+  .log-entry { padding: 4px 8px; border-radius: 4px; border-left: 3px solid #333; }
+  .log-entry.success { border-color: #4caf50; background: rgba(76,175,80,.1); color: #4caf50; font-size: .88rem; font-weight: 700; }
+  .log-entry.warn  { border-color: #ff9800; background: rgba(255,152,0,.08); color: #ff9800; }
+  .log-entry.error { border-color: #f44336; background: rgba(244,67,54,.08); color: #f44336; }
+  .log-entry.info  { border-color: #444; color: #ccc; }
+  .log-entry.sharp-skip { border-color: #555; color: #666; }
+  .ts { color: #555; margin-right: 6px; }
+
+  /* ── Résultat flottant ── */
+  #result-banner {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #4caf50; color: white; font-weight: 800; font-size: 1.1rem;
+    padding: 12px 24px; border-radius: 12px; text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5); z-index: 999;
+    max-width: 90vw; word-break: break-all;
+  }
+</style>
+</head>
+<body>
+<h1>📷 Scanner Debug — KitchenCore</h1>
+<div id="layout">
+
+  <div id="video-section">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="canvas-overlay"></canvas>
+  </div>
+
+  <div id="info-bar">
+    <div class="badge" id="badge-engine"><span class="lbl">Moteur</span><span class="val" id="v-engine">—</span></div>
+    <div class="badge" id="badge-sharp"><span class="lbl">Netteté</span><span class="val" id="v-sharp">—</span></div>
+    <div class="badge"><span class="lbl">Résolution</span><span class="val" id="v-res">—</span></div>
+    <div class="badge"><span class="lbl">FPS</span><span class="val" id="v-fps">—</span></div>
+    <div class="badge"><span class="lbl">Conf.</span><span class="val" id="v-conf">0/0</span></div>
+    <div class="badge"><span class="lbl">Formats actifs</span><span class="val" id="v-formats">—</span></div>
+    <div class="badge"><span class="lbl">Focus</span><span class="val" id="v-focus">—</span></div>
+  </div>
+
+  <div id="controls">
+    <!-- Caméra & moteur -->
+    <div class="ctrl-row">
+      <label>Caméra</label>
+      <select id="sel-camera"><option>Chargement…</option></select>
+      <button id="btn-flip">🔄</button>
+    </div>
+    <div class="ctrl-row">
+      <label>Moteur</label>
+      <button id="btn-native" class="active" onclick="setEngine('native')">BarcodeDetector</button>
+      <button id="btn-zxing" onclick="setEngine('zxing')">ZXing</button>
+    </div>
+
+    <!-- Seuil netteté -->
+    <div class="ctrl-row">
+      <label>Seuil netteté</label>
+      <input type="range" id="rng-sharp" min="0" max="800" step="10" value="180" oninput="updateSharp()">
+      <span class="range-val" id="lbl-sharp">180</span>
+      <button onclick="document.getElementById('rng-sharp').value=0;updateSharp()">OFF</button>
+    </div>
+
+    <!-- Contraste ZXing -->
+    <div class="ctrl-row" id="row-contrast">
+      <label>Contraste ZXing</label>
+      <button id="btn-c0" class="active" onclick="setContrast([1.5,2.5,-1])">Auto (3 passes)</button>
+      <button id="btn-c1" onclick="setContrast([1.0])">Brut</button>
+      <button id="btn-c2" onclick="setContrast([2.5])">Fort</button>
+      <button id="btn-c3" onclick="setContrast([-1])">Inversé</button>
+    </div>
+
+    <!-- TRY_HARDER -->
+    <div class="ctrl-row">
+      <label>TRY_HARDER</label>
+      <button id="btn-harder" class="active" onclick="toggleHarder()">ON</button>
+    </div>
+
+    <!-- Confirmations requises -->
+    <div class="ctrl-row">
+      <label>Confirmations</label>
+      <input type="range" id="rng-confirm" min="1" max="5" step="1" value="2" oninput="updateConfirm()">
+      <span class="range-val" id="lbl-confirm">2</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="ctrl-row">
+      <button onclick="startScan()" id="btn-start">▶ Démarrer</button>
+      <button onclick="stopScan()" id="btn-stop" disabled>⏹ Stop</button>
+      <button onclick="clearLog()">🗑 Log</button>
+      <button onclick="snapFrame()">📸 Snapshot</button>
+    </div>
+  </div>
+
+  <div id="log-section">
+    <div id="log"></div>
+  </div>
+
+</div>
+
+<div id="result-banner" id="result-banner"></div>
+
+<script>
+// ── État global ──────────────────────────────────────────────────────────────
+let stream = null;
+let rafId = null;
+let zxing = null;
+let nativeDetector = null;
+let engine = 'native'; // 'native' | 'zxing'
+let scanning = false;
+
+let sharpThreshold = 180;
+let confirmNeeded = 2;
+let lastCode = null;
+let confirmCount = 0;
+let tryHarder = true;
+let contrastPasses = [1.5, 2.5, -1];
+
+let devices = [];
+let devIdx = 0;
+
+// FPS
+let fpsFrames = 0, fpsLast = performance.now();
+
+// Canvas de prétraitement ZXing
+const ppCanvas = document.createElement('canvas');
+const ppCtx = ppCanvas.getContext('2d', { willReadFrequently: true });
+
+// Canvas netteté
+const shCanvas = document.createElement('canvas');
+shCanvas.width = 160; shCanvas.height = 90;
+const shCtx = shCanvas.getContext('2d', { willReadFrequently: true });
+
+const video = document.getElementById('video');
+const overlayCanvas = document.getElementById('canvas-overlay');
+const overlayCtx = overlayCanvas.getContext('2d');
+
+// ── Logs ─────────────────────────────────────────────────────────────────────
+let sharpSkipCount = 0;
+function log(msg, type = 'info') {
+  if (type === 'sharp-skip') {
+    sharpSkipCount++;
+    // Mettre à jour ou créer l'entrée "floue"
+    let el = document.getElementById('log-sharp-skip');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'log-entry sharp-skip';
+      el.id = 'log-sharp-skip';
+      document.getElementById('log').prepend(el);
+    }
+    el.innerHTML = `<span class="ts">${ts()}</span>Image floue — skip × ${sharpSkipCount}`;
+    return;
+  }
+  sharpSkipCount = 0;
+  const el = document.createElement('div');
+  el.className = `log-entry ${type}`;
+  el.innerHTML = `<span class="ts">${ts()}</span>${msg}`;
+  const logEl = document.getElementById('log');
+  logEl.prepend(el);
+  // Garder max 200 lignes
+  while (logEl.children.length > 200) logEl.removeChild(logEl.lastChild);
+}
+function ts() {
+  const d = new Date();
+  return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}.${d.getMilliseconds().toString().padStart(3,'0')} `;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; sharpSkipCount = 0; }
+
+// ── Init caméras ─────────────────────────────────────────────────────────────
+async function initCameras() {
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+    tmp.getTracks().forEach(t => t.stop());
+    const all = await navigator.mediaDevices.enumerateDevices();
+    devices = all.filter(d => d.kind === 'videoinput');
+    const sel = document.getElementById('sel-camera');
+    sel.innerHTML = '';
+    devices.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = d.label || `Caméra ${i + 1}`;
+      sel.appendChild(opt);
+    });
+    // Privilégier la caméra arrière
+    const envIdx = devices.findIndex(d => /back|rear|arrière|environment/i.test(d.label));
+    if (envIdx >= 0) { devIdx = envIdx; sel.value = envIdx; }
+    sel.onchange = () => { devIdx = +sel.value; if (scanning) startScan(); };
+    document.getElementById('btn-flip').onclick = () => {
+      devIdx = (devIdx + 1) % devices.length;
+      sel.value = devIdx;
+      if (scanning) startScan();
+    };
+    document.getElementById('btn-flip').disabled = devices.length < 2;
+    log(`${devices.length} caméra(s) détectée(s)`, 'info');
+
+    // Vérifier BarcodeDetector
+    if ('BarcodeDetector' in window) {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      log(`BarcodeDetector dispo — formats : ${supported.join(', ')}`, 'info');
+      document.getElementById('v-formats').textContent = supported.filter(f => ['ean_13','ean_8','upc_a','upc_e','code_128','itf'].includes(f)).join(' ') || supported.join(' ');
+    } else {
+      log('BarcodeDetector NON disponible — seul ZXing utilisable', 'warn');
+      document.getElementById('btn-native').disabled = true;
+      setEngine('zxing');
+    }
+
+    // Vérifier ZXing
+    if (window.ZXing) {
+      log(`ZXing chargé — version ${ZXing.version || '?'}`, 'info');
+    } else {
+      log('ZXing NON chargé (CDN ?)', 'error');
+      document.getElementById('btn-zxing').disabled = true;
+    }
+
+  } catch(e) {
+    log(`Erreur init caméra : ${e.message}`, 'error');
+  }
+}
+
+// ── Netteté ──────────────────────────────────────────────────────────────────
+function calcSharpness(vid) {
+  if (!vid.videoWidth) return 0;
+  shCtx.drawImage(vid, 0, 0, 160, 90);
+  const d = shCtx.getImageData(0, 0, 160, 90).data;
+  const gray = new Uint8Array(160 * 90);
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  }
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < 89; y++) {
+    for (let x = 1; x < 159; x++) {
+      const lap = -4 * gray[y * 160 + x]
+        + gray[(y-1)*160+x] + gray[(y+1)*160+x]
+        + gray[y*160+x-1]   + gray[y*160+x+1];
+      sum += lap; sum2 += lap*lap; n++;
+    }
+  }
+  const mean = sum / n;
+  return Math.round((sum2/n) - mean*mean);
+}
+
+// ── Prétraitement ZXing ───────────────────────────────────────────────────────
+function preprocessFrame(contrast) {
+  ppCtx.drawImage(video, 0, 0);
+  const img = ppCtx.getImageData(0, 0, ppCanvas.width, ppCanvas.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    const c = contrast < 0
+      ? 255 - g
+      : Math.min(255, Math.max(0, contrast*(g-128)+128));
+    d[i] = d[i+1] = d[i+2] = c;
+  }
+  ppCtx.putImageData(img, 0, 0);
+}
+
+// ── Démarrage stream ──────────────────────────────────────────────────────────
+async function startStream() {
+  stopScan();
+  const deviceId = devices[devIdx]?.deviceId;
+  const constraints = deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    : { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } };
+
+  for (const extra of [
+    { advanced: [{ torch: false, focusMode: 'continuous' }] },
+    { advanced: [{ focusMode: 'continuous' }] },
+    {},
+  ]) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { ...constraints, ...extra } });
+      log(`Stream OK — contraintes : ${JSON.stringify(extra)}`, 'info');
+      break;
+    } catch(e) {
+      log(`Stream tentative échouée : ${e.message}`, 'warn');
+    }
+  }
+  if (!stream) { log('Impossible d\'ouvrir la caméra', 'error'); return false; }
+
+  video.srcObject = stream;
+  await video.play();
+
+  // Infos track
+  const track = stream.getVideoTracks()[0];
+  const settings = track.getSettings?.() || {};
+  const caps = track.getCapabilities?.() || {};
+  document.getElementById('v-res').textContent = `${settings.width}×${settings.height}`;
+  document.getElementById('v-focus').textContent = caps.focusMode ? caps.focusMode.join('/') : '—';
+  log(`Track : ${track.label} | ${settings.width}×${settings.height} | focus: ${caps.focusMode?.join('/') || 'n/a'}`, 'info');
+  if (caps.torch) log('Torche disponible sur ce track', 'info');
+
+  return true;
+}
+
+// ── Démarrage scan ────────────────────────────────────────────────────────────
+async function startScan() {
+  const ok = await startStream();
+  if (!ok) return;
+  scanning = true;
+  lastCode = null; confirmCount = 0;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+
+  if (engine === 'native') await startNative();
+  else await startZXing();
+}
+
+async function startNative() {
+  try {
+    const supported = await BarcodeDetector.getSupportedFormats();
+    const wanted = ['ean_13','ean_8','upc_a','upc_e','code_128','itf'];
+    const formats = wanted.filter(f => supported.includes(f));
+    nativeDetector = new BarcodeDetector({ formats: formats.length ? formats : supported });
+    document.getElementById('v-engine').textContent = 'BarcodeDetector';
+    document.getElementById('badge-engine').className = 'badge native';
+    log(`BarcodeDetector démarré — formats : ${formats.join(', ')}`, 'info');
+    loopNative();
+  } catch(e) {
+    log(`BarcodeDetector erreur : ${e.message}`, 'error');
+  }
+}
+
+async function loopNative() {
+  if (!scanning || !nativeDetector) return;
+  fpsFrames++;
+  const now = performance.now();
+  if (now - fpsLast >= 1000) {
+    document.getElementById('v-fps').textContent = fpsFrames;
+    fpsFrames = 0; fpsLast = now;
+  }
+
+  if (video.readyState >= 2) {
+    const sharp = calcSharpness(video);
+    updateSharpBadge(sharp);
+
+    if (sharpThreshold > 0 && sharp < sharpThreshold) {
+      log('', 'sharp-skip');
+      rafId = requestAnimationFrame(loopNative);
+      return;
+    }
+
+    try {
+      const results = await nativeDetector.detect(video);
+      drawOverlay(results);
+      if (results.length) {
+        const { rawValue: code, format, cornerPoints } = results[0];
+        log(`Détecté [${format}] ${code} — sharp:${sharp}`, 'info');
+        if (code === lastCode) {
+          confirmCount++;
+          document.getElementById('v-conf').textContent = `${confirmCount}/${confirmNeeded}`;
+          if (confirmCount >= confirmNeeded) {
+            onDetected(code, format, sharp);
+            return;
+          }
+        } else {
+          lastCode = code; confirmCount = 1;
+          document.getElementById('v-conf').textContent = `1/${confirmNeeded}`;
+        }
+      } else {
+        if (lastCode) { lastCode = null; confirmCount = 0; document.getElementById('v-conf').textContent = `0/${confirmNeeded}`; }
+      }
+    } catch(e) { /* rien détecté */ }
+  }
+  rafId = requestAnimationFrame(loopNative);
+}
+
+async function startZXing() {
+  if (!window.ZXing) { log('ZXing non disponible', 'error'); return; }
+  let hints;
+  try {
+    if (ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+      hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.ITF,
+      ]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, tryHarder);
+    }
+  } catch(e) { log(`Hints ZXing erreur : ${e.message}`, 'warn'); }
+
+  zxing = new ZXing.BrowserMultiFormatReader(hints);
+  document.getElementById('v-engine').textContent = 'ZXing';
+  document.getElementById('badge-engine').className = 'badge zxing';
+  log(`ZXing démarré — TRY_HARDER:${tryHarder} | contraste: ${JSON.stringify(contrastPasses)}`, 'info');
+  loopZXing();
+}
+
+function loopZXing() {
+  if (!scanning || !zxing) return;
+  fpsFrames++;
+  const now = performance.now();
+  if (now - fpsLast >= 1000) {
+    document.getElementById('v-fps').textContent = fpsFrames;
+    fpsFrames = 0; fpsLast = now;
+  }
+
+  if (video.readyState >= 2 && video.videoWidth > 0) {
+    const sharp = calcSharpness(video);
+    updateSharpBadge(sharp);
+
+    if (sharpThreshold > 0 && sharp < sharpThreshold) {
+      log('', 'sharp-skip');
+      rafId = requestAnimationFrame(loopZXing);
+      return;
+    }
+
+    ppCanvas.width = video.videoWidth;
+    ppCanvas.height = video.videoHeight;
+
+    for (const contrast of contrastPasses) {
+      try {
+        preprocessFrame(contrast);
+        const result = zxing.decodeFromCanvas(ppCanvas);
+        if (result) {
+          const code = result.getText();
+          const fmt = result.getBarcodeFormat?.() ?? '?';
+          log(`ZXing [contraste ${contrast < 0 ? 'INV' : contrast}] ${code} — sharp:${sharp}`, 'info');
+          if (code === lastCode) {
+            confirmCount++;
+            document.getElementById('v-conf').textContent = `${confirmCount}/${confirmNeeded}`;
+            if (confirmCount >= confirmNeeded) {
+              onDetected(code, fmt, sharp);
+              return;
+            }
+          } else {
+            lastCode = code; confirmCount = 1;
+            document.getElementById('v-conf').textContent = `1/${confirmNeeded}`;
+          }
+          break;
+        }
+      } catch(_) {}
+    }
+    if (!lastCode) { confirmCount = 0; document.getElementById('v-conf').textContent = `0/${confirmNeeded}`; }
+  }
+  rafId = requestAnimationFrame(loopZXing);
+}
+
+// ── Détection réussie ─────────────────────────────────────────────────────────
+function onDetected(code, format, sharp) {
+  scanning = false;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  log(`✅ CODE DÉTECTÉ : ${code} [${format}] — netteté:${sharp} — confirmations:${confirmNeeded}`, 'success');
+  const banner = document.getElementById('result-banner');
+  banner.textContent = `✅ ${code}`;
+  banner.style.display = 'block';
+  setTimeout(() => {
+    banner.style.display = 'none';
+    // Relancer automatiquement
+    lastCode = null; confirmCount = 0;
+    scanning = true;
+    if (engine === 'native') loopNative(); else loopZXing();
+  }, 2500);
+}
+
+// ── Overlay détection BarcodeDetector ────────────────────────────────────────
+function drawOverlay(results) {
+  overlayCanvas.width = video.offsetWidth;
+  overlayCanvas.height = video.offsetHeight;
+  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  if (!results.length) return;
+  const scaleX = video.offsetWidth / (video.videoWidth || 1);
+  const scaleY = video.offsetHeight / (video.videoHeight || 1);
+  for (const r of results) {
+    const pts = r.cornerPoints;
+    if (!pts?.length) continue;
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(pts[0].x * scaleX, pts[0].y * scaleY);
+    for (let i = 1; i < pts.length; i++) overlayCtx.lineTo(pts[i].x * scaleX, pts[i].y * scaleY);
+    overlayCtx.closePath();
+    overlayCtx.strokeStyle = '#4caf50';
+    overlayCtx.lineWidth = 3;
+    overlayCtx.stroke();
+  }
+}
+
+// ── Stop ─────────────────────────────────────────────────────────────────────
+function stopScan() {
+  scanning = false;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  nativeDetector = null;
+  if (zxing) { try { zxing.reset(); } catch(_) {} zxing = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+  log('Scan arrêté', 'info');
+}
+
+// ── Snapshot frame ────────────────────────────────────────────────────────────
+function snapFrame() {
+  if (!video.videoWidth) { log('Pas de vidéo active', 'warn'); return; }
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/jpeg', 0.92);
+  a.download = `scan_debug_${Date.now()}.jpg`;
+  a.click();
+  log(`Snapshot ${c.width}×${c.height} sauvegardé`, 'info');
+}
+
+// ── Netteté badge ─────────────────────────────────────────────────────────────
+function updateSharpBadge(v) {
+  document.getElementById('v-sharp').textContent = v;
+  const el = document.getElementById('badge-sharp');
+  el.className = 'badge ' + (v >= sharpThreshold && sharpThreshold > 0 ? 'ok' : (v >= sharpThreshold * 0.5 ? 'warn' : 'bad'));
+}
+
+// ── Contrôles ─────────────────────────────────────────────────────────────────
+function setEngine(e) {
+  engine = e;
+  document.getElementById('btn-native').classList.toggle('active', e === 'native');
+  document.getElementById('btn-zxing').classList.toggle('active', e === 'zxing');
+  document.getElementById('row-contrast').style.opacity = e === 'zxing' ? '1' : '.4';
+  if (scanning) startScan();
+}
+
+function updateSharp() {
+  sharpThreshold = +document.getElementById('rng-sharp').value;
+  document.getElementById('lbl-sharp').textContent = sharpThreshold;
+}
+
+function updateConfirm() {
+  confirmNeeded = +document.getElementById('rng-confirm').value;
+  document.getElementById('lbl-confirm').textContent = confirmNeeded;
+  document.getElementById('v-conf').textContent = `0/${confirmNeeded}`;
+}
+
+function toggleHarder() {
+  tryHarder = !tryHarder;
+  const btn = document.getElementById('btn-harder');
+  btn.textContent = tryHarder ? 'ON' : 'OFF';
+  btn.classList.toggle('active', tryHarder);
+  if (scanning && engine === 'zxing') startScan();
+}
+
+function setContrast(passes) {
+  contrastPasses = passes;
+  ['btn-c0','btn-c1','btn-c2','btn-c3'].forEach(id => document.getElementById(id).classList.remove('active'));
+  const map = { '[1.5,2.5,-1]': 'btn-c0', '[1]': 'btn-c1', '[2.5]': 'btn-c2', '[-1]': 'btn-c3' };
+  const key = JSON.stringify(passes);
+  if (map[key]) document.getElementById(map[key]).classList.add('active');
+  log(`Contraste : ${JSON.stringify(passes)}`, 'info');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+initCameras().then(() => startScan());
+</script>
+</body>
+</html>
