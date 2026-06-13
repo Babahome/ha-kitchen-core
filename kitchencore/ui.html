@@ -3534,8 +3534,8 @@ function _stockCard(s) {
   // Ligne de masse/volume sous la qty (ex: "1000g" pour 2×500g)
   const showUnit = s.unite && s.unite !== 'unité' && s.contenance > 0;
   const totalMasse = showUnit ? `${qty * s.contenance}${s.unite}` : '';
-  // Bouton gauche : % si qty=0, sinon −
-  const leftBtn = qty === 0
+  // Bouton gauche : % si qty<=1, sinon −
+  const leftBtn = qty <= 1
     ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};border-color:${pctColor}">%</div>`
     : `<div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
@@ -4011,6 +4011,20 @@ async function _stockPctSliderSave() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pourcentage: val })
     });
+    // Vide (0%) sur le dernier pack → consommer le stock
+    const item = _stockItems.find(i => i.produit_id === id);
+    const qty = item ? (item.packs_pleins || 0) + (item.unites_ouvert || 0) : 0;
+    if (val === 0 && qty === 1) {
+      await fetch(`/api/stocks/${id}/consommer`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+      });
+      if (item) {
+        if ((item.unites_ouvert || 0) > 0) item.unites_ouvert--;
+        else if ((item.packs_pleins || 0) > 0) item.packs_pleins--;
+      }
+      showToast('Stock vide', 'warn');
+      _stockRender();
+    }
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
