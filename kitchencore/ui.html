@@ -2766,14 +2766,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()">🔦</div>
     </div>
 
-    <!-- Zone cible -->
-    <div class="scanner-zone-bar">
-      <span class="scanner-zone-label">Zone</span>
-      <select class="scanner-zone-select" id="scanner-zone-select" onchange="_scanTargetZone = this.value || null">
-        <option value="">— Automatique —</option>
-      </select>
-    </div>
-
     <!-- Caméra -->
     <div class="scanner-view">
       <video id="scanner-video" playsinline muted></video>
@@ -2793,6 +2785,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <span class="scanner-manual-label">EAN</span>
       <input id="manual-barcode" type="tel" placeholder="Saisir manuellement…" onkeydown="if(event.key==='Enter')confirmManual()">
       <button class="scanner-manual-ok" onclick="confirmManual()">OK</button>
+    </div>
+
+    <!-- Zone cible -->
+    <div class="scanner-zone-bar">
+      <span class="scanner-zone-label">Zone</span>
+      <select class="scanner-zone-select" id="scanner-zone-select" onchange="_scanTargetZone = this.value || null">
+        <option value="">— Automatique —</option>
+      </select>
     </div>
 
     <!-- Liste scans (mode caisse) -->
