@@ -7133,9 +7133,11 @@ function mEdit(k,x){
 function mClose(){ document.getElementById('m-modal').classList.remove('on'); _mEditIdx=null; }
 function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
 function mSrch(v){
-  // Ne pas effacer _mP si la valeur correspond déjà à l'item sélectionné
-  // (évite que l'auto-focus iOS déclenche oninput et perde la sélection)
-  if(!(_mP && v === _mP.n)) _mP=null;
+  if(_mP && v === _mP.n){
+    // Valeur = sélection courante : masquer suggestions sans reset
+    document.getElementById('m-sg').className='m-sg'; return;
+  }
+  _mP=null;
   const q=v.trim(); const w=document.getElementById('m-sg');
   if(!q){w.className='m-sg';return;}
   if(_mMode==='ing'){ mSrchIng(v,w); return; }
