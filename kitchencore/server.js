@@ -626,17 +626,15 @@ app.post('/api/stocks/:id/ajouter', (req, res) => {
 
 app.post('/api/stocks/:id/consommer', (req, res) => {
   const { id } = req.params; const src = req.body.source || 'web';
-  const p = db.prepare('SELECT p.contenance,s.packs_pleins,s.unites_ouvert FROM produits p JOIN stocks s ON s.produit_id=p.id WHERE p.id=?').get(id);
+  const p = db.prepare('SELECT s.packs_pleins,s.unites_ouvert FROM stocks s WHERE s.produit_id=?').get(id);
   if (!p) return res.status(404).json({ error: 'Introuvable' });
-  let { packs_pleins, unites_ouvert, contenance } = p; let pd = false;
-  unites_ouvert -= 1;
-  if (unites_ouvert < 0) {
-    if (packs_pleins <= 0) return res.status(422).json({ error: 'Stock vide' });
-    packs_pleins--; unites_ouvert += contenance; pd = true;
-  }
+  let { packs_pleins, unites_ouvert } = p;
+  if (packs_pleins <= 0 && unites_ouvert <= 0) return res.status(422).json({ error: 'Stock vide' });
+  if (unites_ouvert > 0) unites_ouvert--;
+  else packs_pleins--;
   db.prepare("UPDATE stocks SET packs_pleins=?,unites_ouvert=?,updated_at=datetime('now') WHERE produit_id=?").run(packs_pleins, unites_ouvert, id);
   db.prepare("INSERT INTO mouvements(produit_id,type,delta,source) VALUES(?,'consommation',-1,?)").run(id, src);
-  res.json({ stock: db.prepare('SELECT * FROM stocks WHERE produit_id=?').get(id), pack_deballe: pd });
+  res.json({ stock: db.prepare('SELECT * FROM stocks WHERE produit_id=?').get(id) });
 });
 
 app.patch('/api/stocks/:id/dlc', (req, res) => {
