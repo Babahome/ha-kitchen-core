@@ -1701,6 +1701,22 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .stock-sf-opt.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); font-weight: 700; }
   .stock-sf-opt .sf-check { opacity: 0; font-size: .8rem; }
   .stock-sf-opt.active .sf-check { opacity: 1; }
+  /* Double slider quantité */
+  #stock-sf-qty-range input[type=range] { -webkit-appearance: none; appearance: none; }
+  #stock-sf-qty-range input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--orange); border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25); cursor: pointer;
+    pointer-events: auto;
+  }
+  #stock-sf-qty-range input[type=range]::-webkit-slider-runnable-track { background: transparent; }
+  #stock-sf-qty-range input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--orange); border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25); cursor: pointer;
+  }
+
   /* FABs dans la sheet (position absolue par rapport à la sheet elle-même) */
   .stock-sf-fab-apply {
     position: absolute; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 20px;
@@ -2679,10 +2695,25 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </div>
         <div class="stock-sf-section">
           <div class="stock-sf-label">Quantité</div>
-          <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-fqty="zero" onclick="stockSfToggleFqty(this,'zero')"><span class="sf-check">✓</span> Stock vide</div>
-            <div class="stock-sf-opt" data-fqty="low" onclick="stockSfToggleFqty(this,'low')"><span class="sf-check">✓</span> Faible (≤1)</div>
-            <div class="stock-sf-opt" data-fqty="ok" onclick="stockSfToggleFqty(this,'ok')"><span class="sf-check">✓</span> OK (&gt;1)</div>
+          <div id="stock-sf-qty-range" style="padding:4px 0 8px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--grey-d);font-weight:700;margin-bottom:2px">
+              <span>Min : <span id="stock-sf-qty-min-lbl" style="color:var(--orange)">0</span></span>
+              <span>Max : <span id="stock-sf-qty-max-lbl" style="color:var(--orange)">2+</span></span>
+            </div>
+            <div style="position:relative;height:36px;margin:0 4px">
+              <div id="stock-sf-qty-track" style="position:absolute;top:50%;transform:translateY(-50%);left:0;right:0;height:4px;border-radius:2px;background:var(--grey-l)">
+                <div id="stock-sf-qty-fill" style="position:absolute;height:100%;background:var(--orange);border-radius:2px"></div>
+              </div>
+              <input type="range" id="stock-sf-qty-min" min="0" max="5" step="1" value="0"
+                style="position:absolute;width:100%;top:0;left:0;-webkit-appearance:none;appearance:none;background:transparent;height:36px;accent-color:var(--orange);pointer-events:auto"
+                oninput="stockSfQtyChange()">
+              <input type="range" id="stock-sf-qty-max" min="0" max="5" step="1" value="5"
+                style="position:absolute;width:100%;top:0;left:0;-webkit-appearance:none;appearance:none;background:transparent;height:36px;accent-color:var(--orange);pointer-events:auto"
+                oninput="stockSfQtyChange()">
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#bbb;margin-top:2px;padding:0 2px">
+              <span>0</span><span>¼</span><span>½</span><span>¾</span><span>1</span><span>2+</span>
+            </div>
           </div>
         </div>
       </div>
@@ -3361,10 +3392,13 @@ let _stockFilter      = 'all';
 let _stockGroupBy     = 'zone';
 let _stockSort        = 'zone';
 let _stockOrder       = 'asc';
+const QTY_STEPS = [0, 0.25, 0.5, 0.75, 1, 2];
+const QTY_LABELS = ['0', '¼', '½', '¾', '1', '2+'];
 let _stockFZones      = new Set();
 let _stockFRayons     = new Set();
 let _stockFExp        = new Set();
-let _stockFQty        = new Set();
+let _stockFQtyMin     = 0;
+let _stockFQtyMax     = 5;
 let _stockItems       = [];
 let _RAYONS           = [];
 let _stockEditRayonId = null;
@@ -3440,8 +3474,8 @@ function _stockSortItems(items) {
     } else if (_stockSort === 'zone') {
       va = (a.zone || 'zzz').toLowerCase(); vb = (b.zone || 'zzz').toLowerCase();
     } else if (_stockSort === 'quantite') {
-      va = (a.packs_pleins || 0) + (a.unites_ouvert || 0);
-      vb = (b.packs_pleins || 0) + (b.unites_ouvert || 0);
+      va = _stockQtyValue(a);
+      vb = _stockQtyValue(b);
     }
     const cmp = typeof va === 'string' ? va.localeCompare(vb, 'fr') : (va < vb ? -1 : va > vb ? 1 : 0);
     return _stockOrder === 'desc' ? -cmp : cmp;
@@ -3472,10 +3506,11 @@ function _stockFilterItems(items) {
       }
       if (!_stockFExp.has(expKey)) return false;
     }
-    if (_stockFQty.size > 0) {
-      const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
-      let qKey = qty === 0 ? 'zero' : qty <= 1 ? 'low' : 'ok';
-      if (!_stockFQty.has(qKey)) return false;
+    if (_stockFQtyMin > 0 || _stockFQtyMax < 5) {
+      const v = _stockQtyValue(s);
+      const lo = QTY_STEPS[_stockFQtyMin];
+      const hi = _stockFQtyMax === 5 ? Infinity : QTY_STEPS[_stockFQtyMax];
+      if (v < lo || v > hi) return false;
     }
     return true;
   });
@@ -3990,7 +4025,7 @@ function _stockRebuildFilterPills() {
   const fp = document.querySelector('#page-stock .stock-filters');
   if (!fp) return;
   const isRayon = _stockGroupBy === 'rayon';
-  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + _stockFQty.size;
+  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0);
   const hasSortActive = _stockSort !== 'zone' || _stockOrder !== 'asc';
   const sfActive = activeFilters > 0 || hasSortActive;
   // Mettre à jour l'icône du bouton header (badge visuel si filtres actifs)
@@ -4421,7 +4456,7 @@ function stockSfOpen() {
   if (orderSec) orderSec.style.display = (_stockSort === 'zone' || _stockSort === 'rayon') ? 'none' : '';
   // Remettre états filtres exp/qty
   document.querySelectorAll('[data-fexp]').forEach(o => o.classList.toggle('active', _stockFExp.has(o.dataset.fexp)));
-  document.querySelectorAll('[data-fqty]').forEach(o => o.classList.toggle('active', _stockFQty.has(o.dataset.fqty)));
+  _stockSfQtyUpdateUI();
   stockSfSwitchTab(_stockSfActiveTab);
   document.getElementById('stock-sf-overlay').classList.add('open');
   document.getElementById('stock-sf-sheet').classList.add('open');
@@ -4460,11 +4495,39 @@ function stockSfPickOrder(el, val) {
 function stockSfToggleFzone(el, val) { el.classList.toggle('active'); _stockFZones.has(val) ? _stockFZones.delete(val) : _stockFZones.add(val); }
 function stockSfToggleFrayon(el, val) { el.classList.toggle('active'); _stockFRayons.has(val) ? _stockFRayons.delete(val) : _stockFRayons.add(val); }
 function stockSfToggleFexp(el, val)   { el.classList.toggle('active'); _stockFExp.has(val) ? _stockFExp.delete(val) : _stockFExp.add(val); }
-function stockSfToggleFqty(el, val)   { el.classList.toggle('active'); _stockFQty.has(val) ? _stockFQty.delete(val) : _stockFQty.add(val); }
+
+function _stockQtyValue(s) {
+  const packs = s.packs_pleins || 0;
+  const ouvert = s.unites_ouvert || 0;
+  if (packs === 0 && ouvert === 0) return 0;
+  const pct = (s.pourcentage !== null && s.pourcentage !== undefined) ? s.pourcentage / 100 : 1;
+  return packs + ouvert * pct;
+}
+
+function _stockSfQtyUpdateUI() {
+  const minEl = document.getElementById('stock-sf-qty-min');
+  const maxEl = document.getElementById('stock-sf-qty-max');
+  if (!minEl || !maxEl) return;
+  minEl.value = _stockFQtyMin;
+  maxEl.value = _stockFQtyMax;
+  document.getElementById('stock-sf-qty-min-lbl').textContent = QTY_LABELS[_stockFQtyMin];
+  document.getElementById('stock-sf-qty-max-lbl').textContent = QTY_LABELS[_stockFQtyMax];
+  const pct = n => (n / 5) * 100;
+  const fill = document.getElementById('stock-sf-qty-fill');
+  if (fill) { fill.style.left = pct(_stockFQtyMin) + '%'; fill.style.width = (pct(_stockFQtyMax) - pct(_stockFQtyMin)) + '%'; }
+}
+
+function stockSfQtyChange() {
+  let mn = parseInt(document.getElementById('stock-sf-qty-min').value);
+  let mx = parseInt(document.getElementById('stock-sf-qty-max').value);
+  if (mn > mx) { const t = mn; mn = mx; mx = t; }
+  _stockFQtyMin = mn; _stockFQtyMax = mx;
+  _stockSfQtyUpdateUI();
+}
 
 function stockSfReset() {
   _stockSort = 'zone'; _stockOrder = 'asc'; _stockGroupBy = 'zone';
-  _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQty.clear();
+  _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQtyMin = 0; _stockFQtyMax = 5;
   stockSfClose();
   _stockRebuildFilterPills();
   _stockRender();
@@ -4475,7 +4538,7 @@ function stockSfApply() {
   _stockRebuildFilterPills();
   _stockRender();
   // Mettre à jour le badge filtre dans l'onglet
-  const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + _stockFQty.size;
+  const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0);
   const badge = document.getElementById('stock-sf-filter-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
 }
