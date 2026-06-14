@@ -5633,7 +5633,7 @@ function clItemHTML(item) {
   const qLabel = qty + (unit ? ' '+unit : '');
   const recipe = item.recipeId ? _clRecipes.find(r=>String(r.id)===String(item.recipeId)) : null;
   const recIni = recipe ? (recipe.nom||'?').trim().slice(0,2).toUpperCase() : '';
-  const recPhoto = recipe && recipe.photo && (recipe.photo.startsWith('http') || recipe.photo.startsWith('/'));
+  const recPhoto = recipe && recipe.photo && (recipe.photo.startsWith('http') || recipe.photo.startsWith('/') || recipe.photo.startsWith('data:'));
   const badgeContent = recPhoto
     ? `<img src="${recipe.photo}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='${recIni}'">`
     : recIni;
