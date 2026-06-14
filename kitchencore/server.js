@@ -534,7 +534,7 @@ app.post('/api/produits', (req, res) => {
 
 app.patch('/api/produits/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','marque','code_barres','contenance','unite','ingredient_id','pourcentage','rayon_id'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','marque','code_barres','contenance','unite','ingredient_id','pourcentage','rayon_id','zone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   try {
