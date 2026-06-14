@@ -7115,14 +7115,6 @@ function mEdit(k,x){
   _mKey=k; _mEditIdx=x;
   _mP={n:item.n,e:item.e};
   _mPortions = item.portions || 2;
-  // Toujours réinitialiser en mode recette pour éviter que le mode ingrédient
-  // stale ne déclenche mSrchIng sur oninput et remette _mP à null
-  _mMode='recipe';
-  const sq=document.getElementById('m-mode-sq');
-  if(sq){sq.textContent='🍳';sq.classList.remove('ing');}
-  document.getElementById('m-port-grp').style.display='';
-  document.getElementById('m-rd').style.display='';
-  document.getElementById('m-si').placeholder='Recette ou note libre…';
   // Label du jour
   const d=new Date(k+'T00:00:00');
   const lbl=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
@@ -7141,7 +7133,10 @@ function mEdit(k,x){
 function mClose(){ document.getElementById('m-modal').classList.remove('on'); _mEditIdx=null; }
 function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
 function mSrch(v){
-  _mP=null; const q=v.trim(); const w=document.getElementById('m-sg');
+  // Ne pas effacer _mP si la valeur correspond déjà à l'item sélectionné
+  // (évite que l'auto-focus iOS déclenche oninput et perde la sélection)
+  if(!(_mP && v === _mP.n)) _mP=null;
+  const q=v.trim(); const w=document.getElementById('m-sg');
   if(!q){w.className='m-sg';return;}
   if(_mMode==='ing'){ mSrchIng(v,w); return; }
   const rvList=(typeof _rv!=='undefined')?_rv:[];
