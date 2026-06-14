@@ -7115,6 +7115,14 @@ function mEdit(k,x){
   _mKey=k; _mEditIdx=x;
   _mP={n:item.n,e:item.e};
   _mPortions = item.portions || 2;
+  // Toujours réinitialiser en mode recette pour éviter que le mode ingrédient
+  // stale ne déclenche mSrchIng sur oninput et remette _mP à null
+  _mMode='recipe';
+  const sq=document.getElementById('m-mode-sq');
+  if(sq){sq.textContent='🍳';sq.classList.remove('ing');}
+  document.getElementById('m-port-grp').style.display='';
+  document.getElementById('m-rd').style.display='';
+  document.getElementById('m-si').placeholder='Recette ou note libre…';
   // Label du jour
   const d=new Date(k+'T00:00:00');
   const lbl=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
@@ -7226,7 +7234,8 @@ async function mRnd(){
 async function mAdd(){
   const v=document.getElementById('m-si').value.trim();
   if(!v){showToast('Entrez une recette ou un ingrédient','warn');return;}
-  const item={...(_mP||{n:v,e:'📝'}),t:_mT,portions:_mPortions};
+  const origE = _mEditIdx !== null ? (_md[_mKey]?.[_mEditIdx]?.e || '📝') : '📝';
+  const item={...(_mP||{n:v,e:origE}),t:_mT,portions:_mPortions};
   if(!_md[_mKey])_md[_mKey]=[];
   try{
     if(_mEditIdx!==null){
