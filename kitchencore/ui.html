@@ -5721,7 +5721,7 @@ function clRecipesSectionHTML() {
     const done  = items.filter(i=>i.done).length;
     const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.n}</span>`).join('');
     const rIni  = (rec.nom||'?').trim().slice(0,2).toUpperCase();
-    const rIco  = (rec.photo && (rec.photo.startsWith('http') || rec.photo.startsWith('/')))
+    const rIco  = (rec.photo && (rec.photo.startsWith('http') || rec.photo.startsWith('/') || rec.photo.startsWith('data:')))
       ? `<img src="${rec.photo}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-size:.9rem;font-weight:800;color:white\\'>${rIni}</span>'">`
       : `<span style="font-size:.9rem;font-weight:800;color:white">${rIni}</span>`;
     return `<div class="cl-rl-card">
