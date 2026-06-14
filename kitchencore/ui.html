@@ -2253,7 +2253,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="cl-ctx-menu" id="cl-ctx-menu">
         <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
         <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
-        <div class="cl-ctx-item" onclick="clCtxEdit()"><span>✏️</span> Modifier qté / unité</div>
+        <div class="cl-ctx-item" onclick="clCtxEdit()"><span>✏️</span> <span id="cl-ctx-edit-lbl">Modifier qté / unité</span></div>
         <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span>🥕</span> Créer comme ingrédient</div>
         <div class="cl-ctx-item danger" onclick="clCtxDel()"><span>🗑</span> Supprimer</div>
       </div>
@@ -3093,8 +3093,19 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="cl-edit-modal" id="cl-edit-modal" onclick="if(event.target===this)clCloseEditModal()">
     <div class="cl-msheet" onclick="event.stopPropagation()">
       <div class="m-hn"></div>
-      <div style="font-size:1rem;font-weight:900;margin-bottom:2px">Quantité &amp; unité</div>
+      <div style="font-size:1rem;font-weight:900;margin-bottom:2px" id="cl-edit-modal-title">Quantité &amp; unité</div>
       <div style="font-size:.8rem;color:var(--grey-d);margin-bottom:18px" id="cl-edit-modal-name"></div>
+
+      <!-- Nom (saisie libre uniquement) -->
+      <div id="cl-edit-nom-wrap" style="display:none;margin-bottom:22px">
+        <div class="edit-field-label">Nom</div>
+        <input id="cl-edit-nom" type="text" placeholder="Nom de l'article…"
+          style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
+                 font-size:.95rem;font-weight:700;font-family:var(--font);
+                 outline:none;color:var(--text);background:var(--grey-l);box-sizing:border-box;"
+          onfocus="this.style.borderColor='var(--orange)'"
+          onblur="this.style.borderColor='var(--grey)'" />
+      </div>
 
       <!-- Quantité -->
       <div class="edit-field-label">Quantité</div>
@@ -5622,8 +5633,12 @@ function clItemHTML(item) {
   const qLabel = qty + (unit ? ' '+unit : '');
   const recipe = item.recipeId ? _clRecipes.find(r=>String(r.id)===String(item.recipeId)) : null;
   const recIni = recipe ? (recipe.nom||'?').trim().slice(0,2).toUpperCase() : '';
+  const recPhoto = recipe && recipe.photo && (recipe.photo.startsWith('http') || recipe.photo.startsWith('/'));
+  const badgeContent = recPhoto
+    ? `<img src="${recipe.photo}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='${recIni}'">`
+    : recIni;
   const badge  = recipe
-    ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${recIni}</div>`
+    ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')" style="overflow:hidden">${badgeContent}</div>`
     : '';
   const ini    = (item.n||'?').trim().slice(0,2).toUpperCase();
   const icone  = item.icone;
@@ -5639,7 +5654,7 @@ function clItemHTML(item) {
     <div class="cl-emoji">${icoContent}</div>
     <div class="cl-body">
       <div class="cl-name">${item.n}</div>
-      <div class="cl-origin">${item.origin||'manuel'}${recipe?' · '+recipe.nom:''}</div>
+      <div class="cl-origin">${item.origin||'manuel'}</div>
     </div>
     <div class="cl-actions">
       ${badge}
@@ -5896,6 +5911,10 @@ function clOpenCtx(e, id) {
   const spaceBelow=appRect.bottom-bRect.bottom;
   if(spaceBelow<180){ menu.style.bottom=(appRect.bottom-bRect.top+4)+'px'; menu.style.top='auto'; }
   else { menu.style.top=(bRect.bottom-appRect.top+4)+'px'; menu.style.bottom='auto'; }
+  const item = _cl.find(i => i.id === id);
+  const isNote = item && item.origin === 'manuel' && !item.ingredientId;
+  const lbl = document.getElementById('cl-ctx-edit-lbl');
+  if (lbl) lbl.textContent = isNote ? 'Modifier le nom / qté' : 'Modifier qté / unité';
   menu.classList.add('open');
   setTimeout(()=>document.addEventListener('click',clCloseCtx,{once:true}),10);
 }
@@ -5934,14 +5953,19 @@ function clCtxEdit() {
   clCloseCtx();
   _clEditingId = item.id;
   _clEditQty   = item.qty || 1;
-  document.getElementById('cl-edit-modal-name').textContent = item.n;
+  const isNote = item.origin === 'manuel' && !item.ingredientId;
+  document.getElementById('cl-edit-modal-title').textContent = isNote ? 'Modifier l\'article' : 'Quantité & unité';
+  document.getElementById('cl-edit-modal-name').textContent = isNote ? '' : item.n;
+  const nomWrap = document.getElementById('cl-edit-nom-wrap');
+  nomWrap.style.display = isNote ? '' : 'none';
+  if (isNote) document.getElementById('cl-edit-nom').value = item.n;
   const qtyInput = document.getElementById('cl-edit-qty');
   qtyInput.value = _clEditQty;
   const unitInput = document.getElementById('cl-edit-unit');
   unitInput.value = item.unit || '';
   clRenderUnitChips(item.unit || '');
   document.getElementById('cl-edit-modal').classList.add('on');
-  setTimeout(() => qtyInput.focus(), 150);
+  setTimeout(() => (isNote ? document.getElementById('cl-edit-nom') : qtyInput).focus(), 150);
 }
 
 function clRenderUnitChips(cur) {
@@ -5976,15 +6000,23 @@ function clEditPickUnit(u) {
 
 function clConfirmEdit() {
   const item = _cl.find(i => i.id === _clEditingId); if (!item) return;
+  const isNote  = item.origin === 'manuel' && !item.ingredientId;
   const rawQty  = parseFloat(document.getElementById('cl-edit-qty').value);
   const rawUnit = document.getElementById('cl-edit-unit').value.trim();
   if (isNaN(rawQty) || rawQty <= 0) { showToast('Quantité invalide','warn'); return; }
-  item.qty  = Math.round(rawQty * 10) / 10;
+  const payload = { qty: Math.round(rawQty * 10) / 10, unit: rawUnit };
+  item.qty  = payload.qty;
   item.unit = rawUnit;
+  if (isNote) {
+    const rawNom = document.getElementById('cl-edit-nom').value.trim();
+    if (!rawNom) { showToast('Nom requis','warn'); return; }
+    payload.n = rawNom;
+    item.n = rawNom;
+  }
   fetch('/api/courses/items/' + item.id, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({qty: item.qty, unit: item.unit})
+    body: JSON.stringify(payload)
   }).catch(() => {});
   clRender();
   clCloseEditModal();
