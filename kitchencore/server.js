@@ -1073,7 +1073,11 @@ app.get('/api/courses', (_req, res) => {
     qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel',
     recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null
   }));
-  const recipes = db.prepare('SELECT * FROM courses_recipes').all().map(r => ({
+  const recipes = db.prepare(`
+    SELECT cr.recipe_id, cr.nom, COALESCE(r.photo, cr.photo) AS photo, cr.portions
+    FROM courses_recipes cr
+    LEFT JOIN recettes r ON CAST(r.id AS TEXT) = cr.recipe_id
+  `).all().map(r => ({
     id: r.recipe_id, nom: r.nom, photo: r.photo||null, portions: r.portions
   }));
   res.json({ items, recipes });
