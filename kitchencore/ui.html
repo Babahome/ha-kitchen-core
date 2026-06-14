@@ -7115,6 +7115,14 @@ function mEdit(k,x){
   _mKey=k; _mEditIdx=x;
   _mP={n:item.n,e:item.e};
   _mPortions = item.portions || 2;
+  // Restaurer le mode depuis l'emoji de l'item (sans appeler mSetMode qui efface _mP et l'input)
+  const isIng = item.e === '🥕';
+  _mMode = isIng ? 'ing' : 'recipe';
+  const sq=document.getElementById('m-mode-sq');
+  if(sq){sq.textContent=isIng?'🥕':'🍳';sq.classList.toggle('ing',isIng);}
+  document.getElementById('m-port-grp').style.display=isIng?'none':'';
+  document.getElementById('m-rd').style.display=isIng?'none':'';
+  document.getElementById('m-si').placeholder=isIng?'Rechercher un ingrédient…':'Recette ou note libre…';
   // Label du jour
   const d=new Date(k+'T00:00:00');
   const lbl=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
