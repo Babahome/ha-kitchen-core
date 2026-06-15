@@ -4497,11 +4497,10 @@ function stockSfToggleFrayon(el, val) { el.classList.toggle('active'); _stockFRa
 function stockSfToggleFexp(el, val)   { el.classList.toggle('active'); _stockFExp.has(val) ? _stockFExp.delete(val) : _stockFExp.add(val); }
 
 function _stockQtyValue(s) {
-  const packs = s.packs_pleins || 0;
-  const ouvert = s.unites_ouvert || 0;
-  if (packs === 0 && ouvert === 0) return 0;
+  const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+  if (qty === 0) return 0;
   const pct = (s.pourcentage !== null && s.pourcentage !== undefined) ? s.pourcentage / 100 : 1;
-  return packs + ouvert * pct;
+  return (qty - 1) + pct;
 }
 
 function _stockSfQtyUpdateUI() {
