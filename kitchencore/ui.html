@@ -2685,6 +2685,13 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <div class="stock-sf-options" id="stock-sf-f-rayons"></div>
         </div>
         <div class="stock-sf-section">
+          <div class="stock-sf-label">Ingrédient lié</div>
+          <div class="stock-sf-options">
+            <div class="stock-sf-opt" data-inglink="with" onclick="stockSfPickIngLink(this,'with')"><span class="sf-check">✓</span> 🔗 Avec ingrédient</div>
+            <div class="stock-sf-opt" data-inglink="without" onclick="stockSfPickIngLink(this,'without')"><span class="sf-check">✓</span> ✕ Sans ingrédient</div>
+          </div>
+        </div>
+        <div class="stock-sf-section">
           <div class="stock-sf-label">Expiration</div>
           <div class="stock-sf-options">
             <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> 🔴 Expiré</div>
@@ -3397,6 +3404,7 @@ const QTY_LABELS = ['0', '¼', '½', '¾', '1', '2+'];
 let _stockFZones      = new Set();
 let _stockFRayons     = new Set();
 let _stockFExp        = new Set();
+let _stockFIngLink    = null; // null=tous, 'with'=avec ingrédient, 'without'=sans
 let _stockFQtyMin     = 0;
 let _stockFQtyMax     = 5;
 let _stockItems       = [];
@@ -3512,6 +3520,8 @@ function _stockFilterItems(items) {
       const hi = _stockFQtyMax === 5 ? Infinity : QTY_STEPS[_stockFQtyMax];
       if (v < lo || v > hi) return false;
     }
+    if (_stockFIngLink === 'with' && !s.ingredient_nom) return false;
+    if (_stockFIngLink === 'without' && s.ingredient_nom) return false;
     return true;
   });
 }
@@ -4025,7 +4035,7 @@ function _stockRebuildFilterPills() {
   const fp = document.querySelector('#page-stock .stock-filters');
   if (!fp) return;
   const isRayon = _stockGroupBy === 'rayon';
-  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0);
+  const activeFilters = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0) + (_stockFIngLink ? 1 : 0);
   const hasSortActive = _stockSort !== 'zone' || _stockOrder !== 'asc';
   const sfActive = activeFilters > 0 || hasSortActive;
   // Mettre à jour l'icône du bouton header (badge visuel si filtres actifs)
@@ -4454,6 +4464,8 @@ function stockSfOpen() {
   document.querySelectorAll('#stock-sf-order-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.order === _stockOrder));
   const orderSec = document.getElementById('stock-sf-order-section');
   if (orderSec) orderSec.style.display = (_stockSort === 'zone' || _stockSort === 'rayon') ? 'none' : '';
+  // Remettre état filtre ingrédient lié
+  document.querySelectorAll('[data-inglink]').forEach(o => o.classList.toggle('active', o.dataset.inglink === _stockFIngLink));
   // Remettre états filtres exp/qty
   document.querySelectorAll('[data-fexp]').forEach(o => o.classList.toggle('active', _stockFExp.has(o.dataset.fexp)));
   _stockSfQtyUpdateUI();
@@ -4495,6 +4507,11 @@ function stockSfPickOrder(el, val) {
 function stockSfToggleFzone(el, val) { el.classList.toggle('active'); _stockFZones.has(val) ? _stockFZones.delete(val) : _stockFZones.add(val); }
 function stockSfToggleFrayon(el, val) { el.classList.toggle('active'); _stockFRayons.has(val) ? _stockFRayons.delete(val) : _stockFRayons.add(val); }
 function stockSfToggleFexp(el, val)   { el.classList.toggle('active'); _stockFExp.has(val) ? _stockFExp.delete(val) : _stockFExp.add(val); }
+function stockSfPickIngLink(el, val) {
+  const already = el.classList.contains('active');
+  document.querySelectorAll('[data-inglink]').forEach(o => o.classList.remove('active'));
+  if (already) { _stockFIngLink = null; } else { el.classList.add('active'); _stockFIngLink = val; }
+}
 
 function _stockQtyValue(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
@@ -4526,7 +4543,7 @@ function stockSfQtyChange() {
 
 function stockSfReset() {
   _stockSort = 'zone'; _stockOrder = 'asc'; _stockGroupBy = 'zone';
-  _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQtyMin = 0; _stockFQtyMax = 5;
+  _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQtyMin = 0; _stockFQtyMax = 5; _stockFIngLink = null;
   stockSfClose();
   _stockRebuildFilterPills();
   _stockRender();
@@ -4537,7 +4554,7 @@ function stockSfApply() {
   _stockRebuildFilterPills();
   _stockRender();
   // Mettre à jour le badge filtre dans l'onglet
-  const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0);
+  const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0) + (_stockFIngLink ? 1 : 0);
   const badge = document.getElementById('stock-sf-filter-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
 }
