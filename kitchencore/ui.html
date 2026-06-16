@@ -4805,6 +4805,7 @@ async function openScanner() {
   _scanCooldown = {};
   _scanTargetZone = null;
   _renderScanList();
+  _videoDevices = []; // empêche resetScan() de lancer _startScanner() prématurément
   resetScan();
 
   // Peupler le dropdown des zones
