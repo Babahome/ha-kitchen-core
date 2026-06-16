@@ -867,6 +867,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                       width:0;transition:width .25s ease;padding:0; }
 .st-fab-search-input.expanded{ width:160px; }
 .st-fab-search-input::placeholder{ color:var(--grey-d); }
+/* bouton scan-recherche stock */
+.st-fab-scan-search{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
+                     width:42px;height:42px;border-radius:50%;background:white;
+                     display:none;align-items:center;justify-content:center;
+                     box-shadow:0 4px 14px rgba(0,0,0,.13);cursor:pointer;z-index:20;
+                     border:1.5px solid var(--grey); }
+.st-fab-scan-search.visible{ display:flex; }
 /* Suggestions autocomplétion Courses */
 .cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
   background:white;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);
@@ -2629,6 +2636,17 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <span>🔍</span>
     <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
     <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer">✕</button>
+  </div>
+
+  <!-- bouton scan-recherche stock -->
+  <div class="st-fab-scan-search" id="st-fab-scan-search" onclick="stockOpenScanSearch()" title="Rechercher par code-barres">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="5" width="3" height="14"/><rect x="7" y="5" width="1" height="14"/>
+      <rect x="10" y="5" width="2" height="14"/><rect x="14" y="5" width="1" height="14"/>
+      <rect x="17" y="5" width="3" height="14"/>
+      <line x1="1" y1="3" x2="4" y2="3"/><line x1="1" y1="21" x2="4" y2="21"/>
+      <line x1="20" y1="3" x2="23" y2="3"/><line x1="20" y1="21" x2="23" y2="21"/>
+    </svg>
   </div>
 
   <!-- fab-search stock -->
@@ -4678,6 +4696,12 @@ function switchPage(tab, page, title) {
       _stockSearchOpen = false;
     }
   }
+  // bouton scan-recherche stock
+  const stScanBtn = document.getElementById('st-fab-scan-search');
+  if (stScanBtn) {
+    if (page === 'stock') stScanBtn.classList.add('visible');
+    else stScanBtn.classList.remove('visible');
+  }
   // Build menu timeline
   if (page === 'menu' && typeof _mLoad === 'function') _mLoad();
   // Charger les recettes depuis l'API
@@ -4725,6 +4749,7 @@ function closeRecetteMenu() { closeCtx && closeCtx(); }
   document.querySelector('.header').style.background = 'var(--orange)';
   document.getElementById('fab-search')?.classList.remove('visible');
   document.getElementById('st-fab-search')?.classList.add('visible');
+  document.getElementById('st-fab-scan-search')?.classList.add('visible');
 })();
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -4741,6 +4766,7 @@ let _scanDone = false;
 let _lastCode = null;       // pour double confirmation ZXing
 let _confirmCount = 0;
 const _CONFIRM_NEEDED = 2;  // lectures ZXing requises (fallback uniquement)
+let _stockScanSearchMode = false; // true = scanner recherche dans le stock (pas ajout)
 
 async function _stopScanner() {
   if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
@@ -4811,6 +4837,38 @@ async function openScanner() {
   } catch(err) {
     document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
     console.warn('Scanner error:', err.message);
+  }
+}
+
+// Ouvre le scanner en mode "rechercher dans le stock"
+async function stockOpenScanSearch() {
+  _stockScanSearchMode = true;
+  document.querySelector('#scanner-modal .scanner-title').textContent = 'Rechercher dans le stock';
+  document.getElementById('scanner-modal').classList.add('open');
+  _scanList = [];
+  _scanCooldown = {};
+  _scanTargetZone = null;
+  // Masquer les éléments inutiles en mode recherche
+  document.querySelector('.scan-list-area').style.display = 'none';
+  document.getElementById('scan-validate-fab').style.display = 'none';
+  document.querySelector('.scanner-zone-bar').style.display = 'none';
+  document.querySelector('.scanner-manual').style.display = 'none';
+  document.querySelector('.scanner-hint').textContent = 'Scannez un produit pour le trouver dans votre stock';
+  resetScan();
+  _scannerMode = 'native';
+  try {
+    const first = await navigator.mediaDevices.getUserMedia({ video: true });
+    first.getTracks().forEach(t => t.stop());
+    const all = await navigator.mediaDevices.enumerateDevices();
+    _videoDevices = all.filter(d => d.kind === 'videoinput');
+    const saved = localStorage.getItem('kc_scanner_camera');
+    const savedIdx = _videoDevices.findIndex(d => d.deviceId === saved);
+    _videoDeviceIndex = savedIdx >= 0 ? savedIdx : Math.max(0, _videoDevices.length - 1);
+    document.getElementById('flip-btn').style.display = _videoDevices.length > 1 ? '' : 'none';
+    document.getElementById('scanner-mode-btn').style.display = ('BarcodeDetector' in window) ? '' : 'none';
+    await _startScanner();
+  } catch(err) {
+    document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible';
   }
 }
 
@@ -5086,7 +5144,29 @@ async function onCodeDetected(code) {
     _scanDone = false; return;
   }
   _scanCooldown[code] = now;
-  _scanDone = false; // relance la boucle de détection
+  _scanDone = false;
+
+  // Mode recherche stock : trouver le produit dans la liste et le surligner
+  if (_stockScanSearchMode) {
+    if (navigator.vibrate) navigator.vibrate(80);
+    _flashFrame();
+    const found = (_stockItems || []).find(s => s.code_barres === code);
+    closeScanner();
+    if (found) {
+      const card = document.querySelector(`.stock-card[data-id="${found.produit_id}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.transition = 'outline .1s';
+        card.style.outline = '3px solid var(--orange)';
+        card.style.borderRadius = '14px';
+        setTimeout(() => { card.style.outline = ''; card.style.borderRadius = ''; }, 1800);
+      }
+      showToast(`${found.produit_nom || found.ingredient_nom || code} trouvé`, 'ok');
+    } else {
+      showToast('Produit non trouvé dans le stock', 'warn');
+    }
+    return;
+  }
   if (navigator.vibrate) navigator.vibrate(80);
 
   document.getElementById('manual-barcode').value = code;
@@ -5318,6 +5398,16 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   document.getElementById('manual-barcode').value = '';
+  // Remettre les éléments masqués en mode recherche
+  if (_stockScanSearchMode) {
+    _stockScanSearchMode = false;
+    document.querySelector('#scanner-modal .scanner-title').textContent = 'Scanner un produit';
+    document.querySelector('.scan-list-area').style.display = '';
+    document.getElementById('scan-validate-fab').style.display = '';
+    document.querySelector('.scanner-zone-bar').style.display = '';
+    document.querySelector('.scanner-manual').style.display = '';
+    document.querySelector('.scanner-hint').textContent = 'Placez le code-barres dans le cadre';
+  }
 }
 
 async function flipCamera() {
