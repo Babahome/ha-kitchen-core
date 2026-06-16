@@ -223,6 +223,7 @@ try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES 
 try { db.exec(`ALTER TABLE produits ADD COLUMN icone TEXT`); } catch(_) {}
 try { db.exec(`ALTER TABLE produits ADD COLUMN pourcentage INTEGER`); } catch(_) {}
 try { db.exec(`ALTER TABLE stocks ADD COLUMN dlc TEXT`); } catch(_) {}
+try { db.exec(`ALTER TABLE ingredients ADD COLUMN duree_conservation_jours INTEGER`); } catch(_) {}
 const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
@@ -354,7 +355,7 @@ app.patch('/api/ingredients/:id', (req, res) => {
       return res.status(400).json({ error: 'Cycle détecté' });
   }
   const f=[], v=[];
-  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel','parent_id'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel','parent_id','duree_conservation_jours'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
@@ -601,7 +602,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
     SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage, p.rayon_id,
-           a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.icone AS ingredient_icone, a.seuil_alerte, a.categorie,
+           a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.icone AS ingredient_icone, a.seuil_alerte, a.categorie, a.duree_conservation_jours AS ingredient_conservation_jours,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites,
            r.nom AS rayon_nom, r.emoji AS rayon_emoji,
            a.rayon_id AS ingredient_rayon_id, ir.nom AS ingredient_rayon_nom, ir.emoji AS ingredient_rayon_emoji

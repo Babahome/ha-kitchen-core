@@ -3021,6 +3021,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ing-saison-labels" id="ing-detailSaisonLabels"></div>
         <div class="ing-saison-summary" id="ing-detailSaisonSummary">Saison non définie</div>
       </div>
+      <div class="ing-panel-section" id="ing-detailConservationSection" style="display:none">
+        <span class="ing-panel-label">Durée de conservation</span>
+        <div class="ing-panel-value" id="ing-detailConservation"></div>
+      </div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Utilisé dans</span>
         <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
@@ -3053,6 +3057,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom au pluriel <span style="font-weight:400;color:var(--grey-d);font-size:12px">(affiché si quantité > 1)</span></label>
         <input class="ing-panel-input" id="ing-editNomPluriel" placeholder="ex: Tomates cerises">
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Durée de conservation <span style="font-weight:400;color:var(--grey-d);font-size:12px">(jours — pré-remplit la DLC des produits)</span></label>
+        <input class="ing-panel-input" id="ing-editConservation" type="number" min="1" step="1" placeholder="ex: 7">
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Alias <span style="font-weight:400;color:var(--grey-d);font-size:12px">(autres noms pour la recherche et l'import)</span></label>
@@ -4013,7 +4021,14 @@ function _stockOpenEdit(id) {
   // Contenance + unité
   document.getElementById('stock-editContenance').value = s.contenance || '';
   document.getElementById('stock-editUnite').value = s.unite || '';
-  document.getElementById('stock-editDlc').value = s.dlc || '';
+  if (s.dlc) {
+    document.getElementById('stock-editDlc').value = s.dlc;
+  } else if (s.ingredient_conservation_jours) {
+    const d = new Date(); d.setDate(d.getDate() + s.ingredient_conservation_jours);
+    document.getElementById('stock-editDlc').value = d.toISOString().slice(0, 10);
+  } else {
+    document.getElementById('stock-editDlc').value = '';
+  }
 
   // Ingrédient
   document.getElementById('stock-editIngId').value = s.ingredient_id || '';
@@ -8681,6 +8696,15 @@ function _ingOpenDetailPanel(id) {
   const detailSaison = (() => { try { return JSON.parse(ing.saison || '[]'); } catch(e) { return []; } })();
   _ingBuildSaisonBar('ing-detailSaisonBar', 'ing-detailSaisonLabels', 'ing-detailSaisonSummary', new Set(detailSaison), false);
 
+  // Durée de conservation
+  const conservSection = document.getElementById('ing-detailConservationSection');
+  if (ing.duree_conservation_jours) {
+    document.getElementById('ing-detailConservation').textContent = ing.duree_conservation_jours + ' jour' + (ing.duree_conservation_jours > 1 ? 's' : '');
+    conservSection.style.display = '';
+  } else {
+    conservSection.style.display = 'none';
+  }
+
   document.getElementById('ing-detailPanel').classList.add('open');
 }
 
@@ -8814,6 +8838,7 @@ function _ingOpenEditPanel(id, e) {
   document.getElementById('ing-editTitle').textContent = ing.name;
   document.getElementById('ing-editName').value = ing.name;
   document.getElementById('ing-editNomPluriel').value = ing.nom_pluriel || '';
+  document.getElementById('ing-editConservation').value = ing.duree_conservation_jours || '';
   document.getElementById('ing-editImageUrl').value = ing.imageUrl || '';
   document.getElementById('ing-aliasInput').value = '';
 
@@ -8920,7 +8945,8 @@ async function _ingSaveIngredient() {
     }
 
     const nomPluriel = document.getElementById('ing-editNomPluriel').value.trim();
-    const body = { nom: newName, rayon_id: newRayon, saison: JSON.stringify([..._ingSaisonActive].sort((a,b)=>a-b)), nom_pluriel: nomPluriel || null };
+    const conservationRaw = document.getElementById('ing-editConservation').value.trim();
+    const body = { nom: newName, rayon_id: newRayon, saison: JSON.stringify([..._ingSaisonActive].sort((a,b)=>a-b)), nom_pluriel: nomPluriel || null, duree_conservation_jours: conservationRaw ? parseInt(conservationRaw) : null };
     if (imageUrl) body.icone = imageUrl;
     const res = await fetch('/api/ingredients/'+ing._dbId, {
       method: 'PATCH',
