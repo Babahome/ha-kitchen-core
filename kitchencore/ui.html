@@ -5128,20 +5128,37 @@ async function onCodeDetected(code) {
   _scanCooldown[code] = now;
   _scanDone = false;
 
-  // Mode recherche stock : trouver le produit dans la liste, garder scanner ouvert
+  // Mode recherche stock : ferme scanner, filtre par nom, scroll vers la card
   if (_stockScanSearchMode) {
     if (navigator.vibrate) navigator.vibrate(80);
     _flashFrame();
     const found = (_stockItems || []).find(s => s.code_barres === code);
-    const hint = document.querySelector('.scanner-hint');
+    closeScanner();
     if (found) {
-      const nom = found.produit_nom || found.ingredient_nom || code;
-      _stockScanSearchLastId = found.produit_id;
-      if (hint) hint.textContent = `✓ ${nom} — fermer pour y accéder`;
+      const nom = found.produit_nom || found.ingredient_nom || '';
+      // Ouvrir la pill recherche et filtrer
+      const pill = document.getElementById('st-fab-search');
+      const inp  = document.getElementById('st-search-input');
+      if (pill && inp) {
+        pill.classList.add('open');
+        inp.classList.add('expanded');
+        inp.value = nom;
+        _stockSearchOpen = true;
+        _stockSearch = nom;
+        _stockRender();
+      }
+      // Scroll vers la card après rendu
+      setTimeout(() => {
+        const card = document.querySelector(`.prod-card[data-id="${found.produit_id}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.outline = '3px solid var(--orange)';
+          card.style.borderRadius = '14px';
+          setTimeout(() => { card.style.outline = ''; card.style.borderRadius = ''; }, 1800);
+        }
+      }, 100);
     } else {
-      _stockScanSearchLastId = null;
-      if (hint) hint.textContent = `❌ Produit non trouvé dans le stock`;
-      setTimeout(() => { if (_stockScanSearchMode && hint) hint.textContent = 'Scannez un produit pour le trouver dans votre stock'; }, 2000);
+      showToast('Produit non trouvé dans le stock', 'warn');
     }
     return;
   }
