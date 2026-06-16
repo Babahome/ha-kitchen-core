@@ -3059,10 +3059,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <input class="ing-panel-input" id="ing-editNomPluriel" placeholder="ex: Tomates cerises">
       </div>
       <div class="ing-panel-section">
-        <label class="ing-panel-label">Durée de conservation <span style="font-weight:400;color:var(--grey-d);font-size:12px">(jours — pré-remplit la DLC des produits)</span></label>
-        <input class="ing-panel-input" id="ing-editConservation" type="number" min="1" step="1" placeholder="ex: 7">
-      </div>
-      <div class="ing-panel-section">
         <label class="ing-panel-label">Alias <span style="font-weight:400;color:var(--grey-d);font-size:12px">(autres noms pour la recherche et l'import)</span></label>
         <div id="ing-aliasChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
         <div style="display:flex;gap:6px">
@@ -3079,6 +3075,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ing-saison-bar" id="ing-editSaisonBar"></div>
         <div class="ing-saison-labels" id="ing-editSaisonLabels"></div>
         <div class="ing-saison-summary" id="ing-editSaisonSummary">Saison non définie</div>
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Durée de conservation <span style="font-weight:400;color:var(--grey-d);font-size:12px">(jours — pré-remplit la DLC des produits)</span></label>
+        <input class="ing-panel-input" id="ing-editConservation" type="number" min="1" step="1" placeholder="ex: 7">
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Recettes liées</label>
@@ -3291,7 +3291,12 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="ing-panel-section" id="stock-detailDlcSection">
         <span class="ing-panel-label">Date limite de conso.</span>
-        <div class="ing-panel-value" id="stock-detailDlc"></div>
+        <div class="ing-panel-value" id="stock-detailDlc" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="ing-panel-input" id="stock-detailDlcInput" type="date" style="flex:1;margin:0">
+          <button onclick="stockDetailSaveDlc()" style="flex-shrink:0;background:var(--orange);color:#fff;border:none;border-radius:10px;padding:0 16px;height:42px;font-size:15px;font-weight:700;cursor:pointer">✓</button>
+        </div>
+        <div id="stock-detailDlcQuick" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px"></div>
       </div>
       <div class="ing-panel-section" id="stock-detailBarcodeSection">
         <span class="ing-panel-label">Code-barres</span>
@@ -3868,7 +3873,6 @@ function _stockOpenDetail(id) {
   }
 
   // DLC
-  const dlcSection = document.getElementById('stock-detailDlcSection');
   if (s.dlc) {
     const d = new Date(s.dlc); d.setHours(12);
     const today = new Date(); today.setHours(0,0,0,0);
@@ -3878,9 +3882,23 @@ function _stockOpenDetail(id) {
     const color = diff < 0 ? '#c0392b' : diff <= 3 ? '#e67e22' : diff <= 7 ? '#f39c12' : '';
     document.getElementById('stock-detailDlc').innerHTML =
       `<span${color ? ` style="color:${color};font-weight:600"` : ''}>${label}${note}</span>`;
-    dlcSection.style.display = '';
   } else {
-    dlcSection.style.display = 'none';
+    document.getElementById('stock-detailDlc').innerHTML = '<span style="color:var(--grey-d);font-size:13px">Non définie</span>';
+  }
+  document.getElementById('stock-detailDlcInput').value = s.dlc || '';
+  // Chips raccourcis si l'ingrédient a une durée de conservation
+  const quickDiv = document.getElementById('stock-detailDlcQuick');
+  const conservDays = s.ingredient_conservation_jours;
+  if (conservDays) {
+    quickDiv.style.display = 'flex';
+    const makeChip = (label, days) => {
+      const d2 = new Date(); d2.setDate(d2.getDate() + days);
+      const val = d2.toISOString().slice(0, 10);
+      return `<button onclick="document.getElementById('stock-detailDlcInput').value='${val}'" style="background:var(--orange-l);color:var(--orange);border:1px solid var(--orange);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">${label}</button>`;
+    };
+    quickDiv.innerHTML = makeChip(`+${conservDays} j`, conservDays);
+  } else {
+    quickDiv.style.display = 'none';
   }
 
   // Code-barres
@@ -3973,6 +3991,16 @@ async function stockDetailChangeQty(delta) {
 function stockOpenEditFromDetail() {
   stockCloseDetail();
   setTimeout(() => _stockOpenEdit(_stockDetailId), 100);
+}
+
+async function stockDetailSaveDlc() {
+  const val = document.getElementById('stock-detailDlcInput').value || null;
+  await fetch(`/api/stocks/${_stockDetailId}/dlc`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dlc: val })
+  });
+  await _stockLoad();
+  const s = _stockItems.find(i => i.produit_id === _stockDetailId);
+  if (s) _stockOpenDetail(s.produit_id);
 }
 
 function _stockOpenEdit(id) {
