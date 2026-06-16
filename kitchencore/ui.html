@@ -4766,7 +4766,8 @@ let _scanDone = false;
 let _lastCode = null;       // pour double confirmation ZXing
 let _confirmCount = 0;
 const _CONFIRM_NEEDED = 2;  // lectures ZXing requises (fallback uniquement)
-let _stockScanSearchMode = false; // true = scanner recherche dans le stock (pas ajout)
+let _stockScanSearchMode = false;   // true = scanner recherche dans le stock (pas ajout)
+let _stockScanSearchLastId = null;  // dernier produit_id trouvé en mode recherche
 
 async function _stopScanner() {
   if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
@@ -5127,24 +5128,20 @@ async function onCodeDetected(code) {
   _scanCooldown[code] = now;
   _scanDone = false;
 
-  // Mode recherche stock : trouver le produit dans la liste et le surligner
+  // Mode recherche stock : trouver le produit dans la liste, garder scanner ouvert
   if (_stockScanSearchMode) {
     if (navigator.vibrate) navigator.vibrate(80);
     _flashFrame();
     const found = (_stockItems || []).find(s => s.code_barres === code);
-    closeScanner();
+    const hint = document.querySelector('.scanner-hint');
     if (found) {
-      const card = document.querySelector(`.stock-card[data-id="${found.produit_id}"]`);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.style.transition = 'outline .1s';
-        card.style.outline = '3px solid var(--orange)';
-        card.style.borderRadius = '14px';
-        setTimeout(() => { card.style.outline = ''; card.style.borderRadius = ''; }, 1800);
-      }
-      showToast(`${found.produit_nom || found.ingredient_nom || code} trouvé`, 'ok');
+      const nom = found.produit_nom || found.ingredient_nom || code;
+      _stockScanSearchLastId = found.produit_id;
+      if (hint) hint.textContent = `✓ ${nom} — fermer pour y accéder`;
     } else {
-      showToast('Produit non trouvé dans le stock', 'warn');
+      _stockScanSearchLastId = null;
+      if (hint) hint.textContent = `❌ Produit non trouvé dans le stock`;
+      setTimeout(() => { if (_stockScanSearchMode && hint) hint.textContent = 'Scannez un produit pour le trouver dans votre stock'; }, 2000);
     }
     return;
   }
@@ -5379,15 +5376,28 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   document.getElementById('manual-barcode').value = '';
-  // Remettre les éléments masqués en mode recherche
+  // Remettre les éléments masqués en mode recherche + scroller vers la card trouvée
   if (_stockScanSearchMode) {
+    const lastId = _stockScanSearchLastId;
     _stockScanSearchMode = false;
+    _stockScanSearchLastId = null;
     document.querySelector('#scanner-modal .scanner-title').textContent = 'Scanner un produit';
     document.querySelector('.scan-list-area').style.display = '';
     document.getElementById('scan-validate-fab').style.display = '';
     document.querySelector('.scanner-zone-bar').style.display = '';
     document.querySelector('.scanner-manual').style.display = '';
     document.querySelector('.scanner-hint').textContent = 'Placez le code-barres dans le cadre';
+    if (lastId) {
+      setTimeout(() => {
+        const card = document.querySelector(`.prod-card[data-id="${lastId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.outline = '3px solid var(--orange)';
+          card.style.borderRadius = '14px';
+          setTimeout(() => { card.style.outline = ''; card.style.borderRadius = ''; }, 1800);
+        }
+      }, 150);
+    }
   }
 }
 
