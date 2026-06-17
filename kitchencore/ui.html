@@ -3635,6 +3635,8 @@ function _dlcBadge(dlc) {
 
 function _stockPctBar(pct) {
   if (pct === null || pct === undefined) return '';
+  if (pct === 0) return `<div style="margin:4px 0 0;height:4px;border-radius:2px;background:#e0e0e0;overflow:hidden"><div style="height:100%;width:0%;background:#e74c3c;border-radius:2px"></div></div><div style="font-size:.62rem;color:#e74c3c;font-weight:700;text-align:right;line-height:1.2">Vide</div>`;
+
   const color = pct >= 50 ? '#27ae60' : pct >= 25 ? '#e67e22' : '#e74c3c';
   const label = pct === 100 ? 'Plein' : pct === 75 ? '¾' : pct === 50 ? '½' : pct === 25 ? '¼' : 'Vide';
   return `<div style="margin:4px 0 0;height:4px;border-radius:2px;background:#e0e0e0;overflow:hidden">
