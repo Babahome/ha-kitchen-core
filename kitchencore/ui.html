@@ -4226,8 +4226,11 @@ function _stockPctClosePopup() {
 // Fermer sur clic en dehors du popup et des boutons %
 document.addEventListener('click', e => {
   if (!_pctPopupOpen) return;
-  if (!e.target.closest('#stock-pctPopup') && !e.target.closest('.pct-open-btn')) _stockPctClosePopup();
-});
+  if (!e.target.closest('#stock-pctPopup') && !e.target.closest('.pct-open-btn')) {
+    e.stopPropagation();
+    _stockPctClosePopup();
+  }
+}, true);
 
 async function stockSearchIng(q) {
   const box = document.getElementById('stock-editIngSuggest');
