@@ -3699,8 +3699,11 @@ async function stockChangeQty(id, delta, btn) {
     });
     const item = _stockItems.find(s => s.produit_id === id);
     if (item) {
-      if (delta > 0) item.packs_pleins = (item.packs_pleins || 0) + 1;
-      else { if (item.unites_ouvert > 0) item.unites_ouvert--; else if (item.packs_pleins > 0) item.packs_pleins--; }
+      if (delta > 0) {
+        item.packs_pleins = (item.packs_pleins || 0) + 1;
+        item.pourcentage = 100;
+        fetch(`/api/produits/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pourcentage: 100 }) });
+      } else { if (item.unites_ouvert > 0) item.unites_ouvert--; else if (item.packs_pleins > 0) item.packs_pleins--; }
     }
     _stockRender();
     if (delta < 0 && qty - 1 === 0) showToast('Stock vide', 'warn');
@@ -3934,15 +3937,23 @@ async function stockDetailPickPct(val) {
   const s = _stockItems.find(i => i.produit_id === id);
   if (!s) return;
   s.pourcentage = val;
-  _stockRenderHeroStats((s.packs_pleins || 0) + (s.unites_ouvert || 0), val);
-  _stockRender();
+  const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   try {
-    await fetch(`/api/produits/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pourcentage: val })
-    });
+    await fetch(`/api/produits/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pourcentage: val }) });
+    if (val === 0 && qty > 0) {
+      for (let i = 0; i < qty; i++) {
+        await fetch(`/api/stocks/${id}/consommer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      }
+      s.packs_pleins = 0; s.unites_ouvert = 0;
+      showToast('Stock vide', 'warn');
+    } else if (val > 0 && qty === 0) {
+      await fetch(`/api/stocks/${id}/ajouter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unites: 1 }) });
+      s.unites_ouvert = 1;
+    }
   } catch(e) { showToast('Erreur réseau', 'error'); }
+  const newQty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+  _stockRenderHeroStats(newQty, val);
+  _stockRender();
 }
 
 function _stockRenderHeroStats(qty, pourcentage) {
@@ -3980,8 +3991,11 @@ async function stockDetailChangeQty(delta) {
     await fetch(`/api/stocks/${_stockDetailId}/${endpoint}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
-    if (delta > 0) s.packs_pleins = (s.packs_pleins || 0) + 1;
-    else { if ((s.unites_ouvert || 0) > 0) s.unites_ouvert--; else if ((s.packs_pleins || 0) > 0) s.packs_pleins--; }
+    if (delta > 0) {
+      s.packs_pleins = (s.packs_pleins || 0) + 1;
+      s.pourcentage = 100;
+      fetch(`/api/produits/${_stockDetailId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pourcentage: 100 }) });
+    } else { if ((s.unites_ouvert || 0) > 0) s.unites_ouvert--; else if ((s.packs_pleins || 0) > 0) s.packs_pleins--; }
     const newQty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
     const s2 = _stockItems.find(i => i.produit_id === _stockDetailId);
     _stockRenderHeroStats(newQty, s2 ? s2.pourcentage : null);
@@ -4167,18 +4181,18 @@ async function _stockPctSliderSave() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pourcentage: val })
     });
-    // Vide (0%) sur le dernier pack → consommer le stock
     const item = _stockItems.find(i => i.produit_id === id);
     const qty = item ? (item.packs_pleins || 0) + (item.unites_ouvert || 0) : 0;
-    if (val === 0 && qty === 1) {
-      await fetch(`/api/stocks/${id}/consommer`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
-      });
-      if (item) {
-        if ((item.unites_ouvert || 0) > 0) item.unites_ouvert--;
-        else if ((item.packs_pleins || 0) > 0) item.packs_pleins--;
+    if (val === 0 && qty > 0) {
+      for (let i = 0; i < qty; i++) {
+        await fetch(`/api/stocks/${id}/consommer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
       }
+      if (item) { item.packs_pleins = 0; item.unites_ouvert = 0; }
       showToast('Stock vide', 'warn');
+      _stockRender();
+    } else if (val > 0 && qty === 0) {
+      await fetch(`/api/stocks/${id}/ajouter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unites: 1 }) });
+      if (item) item.unites_ouvert = 1;
       _stockRender();
     }
   } catch(e) { showToast('Erreur réseau', 'error'); }
