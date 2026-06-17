@@ -3672,7 +3672,7 @@ function _stockCard(s) {
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       ${(s.rayon_nom || s.ingredient_rayon_nom) ? `<div style="font-size:.6rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.rayon_emoji || s.ingredient_rayon_emoji || '📦'} ${s.rayon_nom || s.ingredient_rayon_nom}</div>` : ''}
-      ${qty >= 1 ? _stockPctBar(s.pourcentage) : ''}
+      ${(qty >= 1 || (s.pourcentage !== null && s.pourcentage !== undefined)) ? _stockPctBar(s.pourcentage) : ''}
       <div class="prod-controls" style="justify-content:center">
         <div class="prod-qty">
           ${leftBtn}
