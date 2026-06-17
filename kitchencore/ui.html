@@ -3856,7 +3856,7 @@ function _stockOpenDetail(id) {
   if (s.ingredient_nom) {
     const ingHasPhoto = s.ingredient_icone && (s.ingredient_icone.startsWith('http') || s.ingredient_icone.startsWith('/'));
     document.getElementById('stock-detailIng').innerHTML =
-      `<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="stockCloseDetail();setTimeout(()=>{ switchPage('ingredients'); _ingLoadData().then(()=>_ingOpenDetailPanel(${s.ingredient_id})); },150)">` +
+      `<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="stockCloseDetail();setTimeout(()=>{ switchPage(null,'ingredients','Ingrédients'); _ingLoadData().then(()=>_ingOpenDetailPanel(${s.ingredient_id})); },150)">` +
       (ingHasPhoto ? `<img src="${s.ingredient_icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : '') +
       `<span class="rayon-chip active" style="pointer-events:none">${s.ingredient_nom}</span>` +
       `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>` +
