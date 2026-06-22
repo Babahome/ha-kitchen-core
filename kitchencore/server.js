@@ -1315,12 +1315,13 @@ app.patch('/api/tags/:id', (req, res) => {
   if (nom === tag.nom) return res.json(tag);
   const conflict = db.prepare('SELECT * FROM tags WHERE nom=? AND id!=?').get(nom, tag.id);
   if (conflict) return res.status(409).json({ error: 'Ce tag existe déjà' });
+  const tagNomLow = tag.nom.trim().toLowerCase();
   db.transaction(() => {
-    db.prepare("SELECT id, tags FROM recettes WHERE tags LIKE ?").all('%' + tag.nom + '%')
+    db.prepare("SELECT id, tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all()
       .forEach(r => {
         try {
           const arr = JSON.parse(r.tags || '[]');
-          const updated = arr.map(t => t === tag.nom ? nom : t);
+          const updated = arr.map(t => t.trim().toLowerCase() === tagNomLow ? nom : t);
           if (JSON.stringify(updated) !== JSON.stringify(arr))
             db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify(updated), r.id);
         } catch(_) {}
@@ -1343,7 +1344,7 @@ app.post('/api/tags/merge', (req, res) => {
         const arr = JSON.parse(r.tags || '[]');
         let changed = false;
         const updated = arr.map(t => {
-          if (sources.some(s => s.nom === t)) { changed = true; return target.nom; }
+          if (sources.some(s => s.nom.trim().toLowerCase() === t.trim().toLowerCase())) { changed = true; return target.nom; }
           return t;
         });
         if (changed) db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify([...new Set(updated)]), r.id);
@@ -1357,12 +1358,13 @@ app.post('/api/tags/merge', (req, res) => {
 app.delete('/api/tags/:id', (req, res) => {
   const tag = db.prepare('SELECT * FROM tags WHERE id=?').get(req.params.id);
   if (!tag) return res.status(404).json({ error: 'Tag introuvable' });
+  const tagNomLow = tag.nom.trim().toLowerCase();
   db.transaction(() => {
-    db.prepare("SELECT id, tags FROM recettes WHERE tags LIKE ?").all('%' + tag.nom + '%')
+    db.prepare("SELECT id, tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all()
       .forEach(r => {
         try {
           const arr = JSON.parse(r.tags || '[]');
-          const filtered = arr.filter(t => t !== tag.nom);
+          const filtered = arr.filter(t => t.trim().toLowerCase() !== tagNomLow);
           if (filtered.length !== arr.length)
             db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify(filtered), r.id);
         } catch(_) {}
