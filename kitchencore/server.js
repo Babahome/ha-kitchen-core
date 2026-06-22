@@ -1267,7 +1267,14 @@ app.put('/api/marchands/:id/rayons/order', (req, res) => {
 // TAGS
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/tags', (_req, res) => {
-  res.json(db.prepare('SELECT * FROM tags ORDER BY nom').all());
+  const tags = db.prepare('SELECT * FROM tags ORDER BY nom').all();
+  const recipes = db.prepare("SELECT tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all();
+  const counts = {};
+  recipes.forEach(r => {
+    try { JSON.parse(r.tags || '[]').forEach(t => { if (t) counts[t] = (counts[t] || 0) + 1; }); } catch(_) {}
+  });
+  tags.forEach(t => { t.count = counts[t.nom] || 0; });
+  res.json(tags);
 });
 
 app.post('/api/tags', (req, res) => {
@@ -1281,6 +1288,53 @@ app.post('/api/tags', (req, res) => {
     if (existing) return res.json(existing);
     res.status(500).json({ error: e.message });
   }
+});
+
+app.patch('/api/tags/:id', (req, res) => {
+  const tag = db.prepare('SELECT * FROM tags WHERE id=?').get(req.params.id);
+  if (!tag) return res.status(404).json({ error: 'Tag introuvable' });
+  const nom = (req.body.nom || '').trim().toLowerCase();
+  if (!nom) return res.status(400).json({ error: 'nom requis' });
+  if (nom === tag.nom) return res.json(tag);
+  const conflict = db.prepare('SELECT * FROM tags WHERE nom=? AND id!=?').get(nom, tag.id);
+  if (conflict) return res.status(409).json({ error: 'Ce tag existe déjà' });
+  db.transaction(() => {
+    db.prepare("SELECT id, tags FROM recettes WHERE tags LIKE ?").all('%' + tag.nom + '%')
+      .forEach(r => {
+        try {
+          const arr = JSON.parse(r.tags || '[]');
+          const updated = arr.map(t => t === tag.nom ? nom : t);
+          if (JSON.stringify(updated) !== JSON.stringify(arr))
+            db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify(updated), r.id);
+        } catch(_) {}
+      });
+    db.prepare('UPDATE tags SET nom=? WHERE id=?').run(nom, tag.id);
+  })();
+  res.json(db.prepare('SELECT * FROM tags WHERE id=?').get(tag.id));
+});
+
+app.post('/api/tags/merge', (req, res) => {
+  const { ids, targetId } = req.body;
+  if (!Array.isArray(ids) || !targetId) return res.status(400).json({ error: 'ids et targetId requis' });
+  const target = db.prepare('SELECT * FROM tags WHERE id=?').get(targetId);
+  if (!target) return res.status(404).json({ error: 'Tag cible introuvable' });
+  const sourceIds = ids.filter(id => String(id) !== String(targetId));
+  const sources = sourceIds.map(id => db.prepare('SELECT * FROM tags WHERE id=?').get(id)).filter(Boolean);
+  db.transaction(() => {
+    db.prepare("SELECT id, tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all().forEach(r => {
+      try {
+        const arr = JSON.parse(r.tags || '[]');
+        let changed = false;
+        const updated = arr.map(t => {
+          if (sources.some(s => s.nom === t)) { changed = true; return target.nom; }
+          return t;
+        });
+        if (changed) db.prepare('UPDATE recettes SET tags=? WHERE id=?').run(JSON.stringify([...new Set(updated)]), r.id);
+      } catch(_) {}
+    });
+    sources.forEach(s => db.prepare('DELETE FROM tags WHERE id=?').run(s.id));
+  })();
+  res.json({ ok: true, merged: sources.length });
 });
 
 app.delete('/api/tags/:id', (req, res) => {

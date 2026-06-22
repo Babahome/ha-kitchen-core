@@ -1180,6 +1180,26 @@ textarea.einput{ resize:none;min-height:60px; }
 .zs-card.drag-over  { border-top:3px solid var(--orange); }
 .zs-card.dragging   { opacity:.4; }
 
+/* ── Tags page ── */
+.tag-header-actions { display:none; align-items:center; gap:6px; }
+.tag-header-actions.visible { display:flex; }
+.tag-header-btn { background:none; border:1.5px solid rgba(255,255,255,.6); color:white; border-radius:20px; padding:5px 12px; font-size:.8rem; font-weight:700; font-family:inherit; cursor:pointer; }
+.tag-card { background:white; border-radius:12px; padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(0,0,0,.06); cursor:pointer; transition:background .12s; }
+.tag-card.selected { background:var(--orange-l); outline:2px solid var(--orange); }
+.tag-checkbox { width:22px; height:22px; border-radius:6px; border:2px solid var(--grey-d); display:grid; place-items:center; font-size:.85rem; font-weight:800; flex-shrink:0; color:var(--orange); }
+.tag-card.selected .tag-checkbox { background:var(--orange); border-color:var(--orange); color:white; }
+.tag-name { flex:1; font-weight:700; font-size:.95rem; }
+.tag-name input { font-family:inherit; font-size:.95rem; font-weight:700; border:none; border-bottom:2px solid var(--orange); outline:none; background:transparent; width:100%; }
+.tag-count { background:var(--grey-l); border-radius:20px; padding:3px 10px; font-size:.75rem; font-weight:700; color:var(--grey-d); flex-shrink:0; }
+.tag-merge-sheet { position:absolute; inset:auto 0 0 0; background:white; border-radius:20px 20px 0 0; padding:0 0 env(safe-area-inset-bottom); box-shadow:0 -4px 24px rgba(0,0,0,.12); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; }
+.tag-merge-sheet.open { transform:translateY(0); }
+.tag-merge-sheet-head { padding:18px 20px 10px; font-weight:800; font-size:1rem; }
+.tag-merge-option { padding:14px 20px; display:flex; align-items:center; gap:10px; font-size:.95rem; cursor:pointer; }
+.tag-merge-option:active { background:var(--grey-l); }
+.tag-merge-option.selected-target { background:var(--orange-l); font-weight:700; color:var(--orange); }
+.tag-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:119; }
+.tag-backdrop.open { opacity:1; pointer-events:all; }
+
 /* ══ PANEL EDIT v3 ══════════════════════════════════════════════════════════ */
 /* Le scroll du form */
 #panel-edit .ev3-form { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch; }
@@ -2233,6 +2253,9 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="ing-header-actions" id="ing-headerActions">
       <button class="ing-header-btn" id="ing-selectBtn" onclick="ingToggleSelectMode()">Sélectionner</button>
     </div>
+    <div class="tag-header-actions" id="tag-headerActions">
+      <button class="tag-header-btn" id="tag-selectBtn" onclick="tagToggleSelectMode()">Sélectionner</button>
+    </div>
     <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
     <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
   </div>
@@ -2417,6 +2440,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <!-- ══ PAGE ZONES STOCK ═══════════════════════════════════════════════════ -->
     <div id="page-zones-stock" class="page">
       <div id="zs-list" style="padding:12px 14px 80px"></div>
+    </div>
+
+    <!-- ══ PAGE TAGS ════════════════════════════════════════════════════════ -->
+    <div id="page-tags" class="page">
+      <div id="tag-list" style="padding:12px 14px 80px"></div>
     </div>
 
     <!-- ══ PAGE INGRÉDIENTS (v1.0) ═════════════════════════════════════════════ -->
@@ -2950,6 +2978,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon">🗂</div> Zones de stock</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'tags','Tags recettes')"><div class="d-icon">🏷</div> Tags recettes</div>
     </div>
     <div class="drawer-version">KitchenCore v0.8 · Home Assistant Add-on</div>
   </div>
@@ -2980,6 +3009,25 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" onclick="clEnterSelMode();clHideHdmenu()"><span>☑️</span><span>Sélectionner</span></div>
     <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span>🗑</span><span>Supprimer les cochés</span></div>
+  </div>
+
+  <!-- MENU ⋮ TAGS -->
+  <div class="m-hdmenu" id="tag-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" id="tag-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item" id="tag-hd-rename" onclick="tagRenameSelected();tagHideHdmenu()"><span>✏️</span><span>Renommer</span></div>
+    <div class="m-hdmenu-item danger" id="tag-hd-delete" onclick="tagDeleteSelected();tagHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
+    <div class="m-hdmenu-item" id="tag-hd-merge" onclick="tagOpenMergeSheet();tagHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
+  </div>
+
+  <!-- MERGE SHEET TAGS -->
+  <div class="tag-backdrop" id="tag-backdrop" onclick="tagCloseMergeSheet()"></div>
+  <div class="tag-merge-sheet" id="tag-mergeSheet">
+    <div class="tag-merge-sheet-head">Choisir le tag à conserver</div>
+    <div id="tag-mergeOptions"></div>
+    <div style="padding:12px 20px 16px;display:flex;gap:10px">
+      <button onclick="tagCloseMergeSheet()" style="flex:1;border:1.5px solid var(--grey-l);background:white;border-radius:10px;padding:12px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer">Annuler</button>
+      <button onclick="tagConfirmMerge()" style="flex:1;border:none;background:var(--orange);color:white;border-radius:10px;padding:12px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer">Fusionner</button>
+    </div>
   </div>
 
   <!-- MENU ⋮ INGRÉDIENTS (sélection multiple) -->
@@ -4520,6 +4568,237 @@ async function zsDelete(id, nom) {
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE TAGS
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _tagAll         = [];   // [{id, nom, count}]
+let _tagSelectedIds = new Set();
+let _tagSelectMode  = false;
+let _tagMergeTarget = null; // id du tag cible dans le sheet fusion
+let _tagRenaming    = null; // id du tag en cours de renommage inline
+
+async function _tagLoad() {
+  try {
+    const r = await fetch('/api/tags');
+    _tagAll = r.ok ? await r.json() : [];
+  } catch(e) { _tagAll = []; }
+  _tagRender();
+}
+
+function _tagRender() {
+  const el = document.getElementById('tag-list');
+  if (!el) return;
+  if (_tagAll.length === 0) {
+    el.innerHTML = `<div style="color:#aaa;padding:40px 0;text-align:center">Aucun tag</div>`;
+    return;
+  }
+  const sorted = [..._tagAll].sort((a,b) => a.nom.localeCompare(b.nom));
+  el.innerHTML = sorted.map(t => {
+    const sel = _tagSelectedIds.has(t.id);
+    const renaming = _tagRenaming === t.id;
+    return `<div class="tag-card${sel ? ' selected' : ''}" data-tag-id="${t.id}" onclick="tagOnCardClick(${t.id}, event)">
+      ${_tagSelectMode ? `<div class="tag-checkbox">${sel ? '✓' : ''}</div>` : ''}
+      <div class="tag-name">
+        ${renaming
+          ? `<input id="tag-rename-input-${t.id}" value="${t.nom.replace(/"/g,'&quot;')}" onclick="event.stopPropagation()"
+               onkeydown="if(event.key==='Enter')tagCommitRename(${t.id});if(event.key==='Escape')tagCancelRename()"
+               onblur="tagCommitRename(${t.id})">`
+          : `<span>${t.nom}</span>`}
+      </div>
+      <div class="tag-count">${t.count} recette${t.count !== 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('');
+  // Focus l'input si renommage
+  if (_tagRenaming !== null) {
+    const inp = document.getElementById(`tag-rename-input-${_tagRenaming}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+}
+
+function tagOnCardClick(id, e) {
+  if (_tagSelectMode) {
+    if (_tagSelectedIds.has(id)) _tagSelectedIds.delete(id);
+    else _tagSelectedIds.add(id);
+    _tagUpdateSelectUI();
+    _tagRender();
+  } else {
+    // Démarrer renommage inline
+    if (_tagRenaming === id) return;
+    _tagRenaming = id;
+    _tagRender();
+  }
+}
+
+async function tagCommitRename(id) {
+  if (_tagRenaming !== id) return;
+  const inp = document.getElementById(`tag-rename-input-${id}`);
+  if (!inp) { _tagRenaming = null; return; }
+  const newNom = inp.value.trim().toLowerCase();
+  const tag = _tagAll.find(t => t.id === id);
+  _tagRenaming = null;
+  if (!newNom || newNom === tag?.nom) { _tagRender(); return; }
+  try {
+    const r = await fetch(`/api/tags/${id}`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ nom: newNom })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Erreur', 'error'); _tagRender(); return; }
+    showToast(`Tag renommé en "${newNom}"`);
+    await _tagLoad();
+  } catch(e) { showToast('Erreur réseau', 'error'); _tagRender(); }
+}
+
+function tagCancelRename() {
+  _tagRenaming = null;
+  _tagRender();
+}
+
+function _tagToggleSelectMode() {
+  _tagSelectMode = !_tagSelectMode;
+  if (!_tagSelectMode) {
+    _tagSelectedIds.clear();
+    _tagRenaming = null;
+  }
+  _tagUpdateSelectUI();
+  _tagRender();
+}
+
+function _tagExitSelectMode() {
+  _tagSelectMode = false;
+  _tagSelectedIds.clear();
+  _tagRenaming = null;
+  _tagUpdateSelectUI();
+  _tagRender();
+}
+
+function _tagUpdateSelectUI() {
+  const btn = document.getElementById('tag-selectBtn');
+  const n = _tagSelectedIds.size;
+  if (btn) {
+    if (_tagSelectMode) {
+      btn.textContent = n > 0 ? `✕ Annuler (${n})` : '✕ Annuler';
+      btn.style.background = 'rgba(255,255,255,0.35)';
+    } else {
+      btn.textContent = 'Sélectionner';
+      btn.style.background = '';
+    }
+  }
+  const lbl = document.getElementById('tag-hd-sel-label');
+  if (lbl) lbl.textContent = `${n} sélectionné(s)`;
+  const mergeBtn = document.getElementById('tag-hd-merge');
+  if (mergeBtn) mergeBtn.style.display = n >= 2 ? '' : 'none';
+  const renameBtn = document.getElementById('tag-hd-rename');
+  if (renameBtn) renameBtn.style.display = n === 1 ? '' : 'none';
+}
+
+function tagHideHdmenu() {
+  document.getElementById('tag-hdmenu')?.classList.remove('on');
+}
+
+async function tagDeleteSelected() {
+  const ids = [..._tagSelectedIds];
+  if (!ids.length) return;
+  const tags = ids.map(id => _tagAll.find(t => t.id === id)).filter(Boolean);
+  const withRecipes = tags.filter(t => t.count > 0);
+  const msg = withRecipes.length
+    ? `Supprimer ${ids.length} tag(s) ? ${withRecipes.length} sont utilisés dans des recettes (ils seront retirés).`
+    : `Supprimer ${ids.length} tag(s) ?`;
+  if (!confirm(msg)) return;
+  let ok = 0;
+  for (const id of ids) {
+    try {
+      const r = await fetch(`/api/tags/${id}`, { method: 'DELETE' });
+      if (r.ok || r.status === 204) ok++;
+    } catch(e) {}
+  }
+  showToast(`${ok} tag(s) supprimé(s)`);
+  _tagSelectMode = false;
+  _tagSelectedIds.clear();
+  _tagUpdateSelectUI();
+  await _tagLoad();
+}
+
+async function tagRenameSelected() {
+  const ids = [..._tagSelectedIds];
+  if (ids.length !== 1) return;
+  _tagSelectMode = false;
+  _tagSelectedIds.clear();
+  _tagUpdateSelectUI();
+  _tagRenaming = ids[0];
+  _tagRender();
+}
+
+function tagOpenMergeSheet() {
+  const ids = [..._tagSelectedIds];
+  if (ids.length < 2) return;
+  _tagMergeTarget = ids[0];
+  const opts = document.getElementById('tag-mergeOptions');
+  if (opts) {
+    opts.innerHTML = ids.map(id => {
+      const tag = _tagAll.find(t => t.id === id);
+      if (!tag) return '';
+      const isTgt = id === _tagMergeTarget;
+      return `<div class="tag-merge-option${isTgt ? ' selected-target' : ''}" data-merge-id="${id}" onclick="tagSelectMergeTarget(${id})">
+        ${isTgt ? '✓ ' : ''}<strong>${tag.nom}</strong>
+        <span style="margin-left:auto;font-size:.8rem;color:var(--grey-d)">${tag.count} recette${tag.count!==1?'s':''}</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('tag-mergeSheet')?.classList.add('open');
+  document.getElementById('tag-backdrop')?.classList.add('open');
+}
+
+function tagSelectMergeTarget(id) {
+  _tagMergeTarget = id;
+  const opts = document.getElementById('tag-mergeOptions');
+  if (!opts) return;
+  opts.querySelectorAll('.tag-merge-option').forEach(el => {
+    const isTarget = Number(el.dataset.mergeId) === id;
+    el.classList.toggle('selected-target', isTarget);
+    el.innerHTML = el.innerHTML.replace(/^✓ /, '');
+    if (isTarget) el.innerHTML = '✓ ' + el.innerHTML;
+  });
+}
+
+function tagCloseMergeSheet() {
+  document.getElementById('tag-mergeSheet')?.classList.remove('open');
+  document.getElementById('tag-backdrop')?.classList.remove('open');
+}
+
+async function tagConfirmMerge() {
+  const ids = [..._tagSelectedIds];
+  if (!_tagMergeTarget || ids.length < 2) return;
+  try {
+    const r = await fetch('/api/tags/merge', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ids, targetId: _tagMergeTarget })
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Erreur', 'error'); return; }
+    const target = _tagAll.find(t => t.id === _tagMergeTarget);
+    showToast(`${data.merged} tag(s) fusionné(s) → "${target?.nom}"`);
+  } catch(e) { showToast('Erreur réseau', 'error'); return; }
+  tagCloseMergeSheet();
+  _tagSelectMode = false;
+  _tagSelectedIds.clear();
+  _tagMergeTarget = null;
+  _tagUpdateSelectUI();
+  await _tagLoad();
+}
+
+window.tagToggleSelectMode = _tagToggleSelectMode;
+window.tagOnCardClick      = tagOnCardClick;
+window.tagCommitRename     = tagCommitRename;
+window.tagCancelRename     = tagCancelRename;
+window.tagHideHdmenu       = tagHideHdmenu;
+window.tagDeleteSelected   = tagDeleteSelected;
+window.tagRenameSelected   = tagRenameSelected;
+window.tagOpenMergeSheet   = tagOpenMergeSheet;
+window.tagSelectMergeTarget= tagSelectMergeTarget;
+window.tagCloseMergeSheet  = tagCloseMergeSheet;
+window.tagConfirmMerge     = tagConfirmMerge;
+
 // ── Stock Sort/Filter bottom sheet ───────────────────────────────────────────
 let _stockSfActiveTab = 'sort';
 
@@ -4776,6 +5055,11 @@ function switchPage(tab, page, title) {
   if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
   if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
   if (page === 'zones-stock'        && typeof _zsLoad     === 'function') _zsLoad();
+  if (page === 'tags'               && typeof _tagLoad    === 'function') _tagLoad();
+  // Tags page header visibility
+  const tagHA = document.getElementById('tag-headerActions');
+  if (tagHA) tagHA.classList.toggle('visible', page === 'tags');
+  if (page !== 'tags' && typeof _tagExitSelectMode === 'function') _tagExitSelectMode();
   if (page === 'stock'              && typeof _stockLoad  === 'function') _stockLoad();
   if (page !== 'stock') {
     _stockSelectMode = false;
@@ -7587,6 +7871,11 @@ function mHeaderDotsClick(){
     if(m) m.classList.toggle('on');
     return;
   }
+  if(page === 'tags'){
+    const m = document.getElementById('tag-hdmenu');
+    if(m) m.classList.toggle('on');
+    return;
+  }
   if(_mSelMode){
     const m = document.getElementById('m-hdmenu');
     if(m) m.classList.toggle('on');
@@ -7989,9 +8278,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#tag-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
     document.getElementById('ing-hdmenu')?.classList.remove('on');
+    document.getElementById('tag-hdmenu')?.classList.remove('on');
     clHideHdmenu();
     stockHideHdmenu();
     stockHideMainHdmenu();
