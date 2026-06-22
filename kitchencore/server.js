@@ -273,6 +273,21 @@ db.exec(`UPDATE ingredients SET rayon_id=(
   }
 }
 
+// Helper : s'assurer que chaque tag d'une liste existe dans la table tags
+function syncTagsToTable(tags) {
+  if (!Array.isArray(tags)) return;
+  const ins = db.prepare('INSERT OR IGNORE INTO tags(nom) VALUES(?)');
+  tags.forEach(t => { if (t && typeof t === 'string') ins.run(t.trim().toLowerCase()); });
+}
+
+// Migration : synchroniser tous les tags présents dans recettes.tags mais absents de la table tags
+{
+  const ins = db.prepare('INSERT OR IGNORE INTO tags(nom) VALUES(?)');
+  db.prepare("SELECT tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all().forEach(r => {
+    try { JSON.parse(r.tags || '[]').forEach(t => { if (t) ins.run(t.trim().toLowerCase()); }); } catch(_) {}
+  });
+}
+
 // Seed zones_stock par défaut si vide
 if (db.prepare('SELECT COUNT(*) as n FROM zones_stock').get().n === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO zones_stock(nom,emoji,ordre) VALUES(?,?,?)');
@@ -877,6 +892,7 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     const existing = db.prepare('SELECT id FROM recettes WHERE nom=?').get(m.name);
     if (existing) return res.status(409).json({ error: `"${m.name}" existe déjà.`, existing_id: existing.id });
 
+    syncTagsToTable(tags);
     const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
     const info = ins.run(
       m.name||'Recette importée', '🍽️',
@@ -964,6 +980,7 @@ app.post('/api/recettes', (req, res) => {
           temps_prep=0, temps_cuisson=0, tags=[], favori=false,
           note=0, source='', remarque='', ingredients=[], etapes=[] } = req.body;
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
+  syncTagsToTable(tags);
   const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source,remarque) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
   const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(tags), favori?1:0, note, source, remarque);
   saveIngredients(info.lastInsertRowid, ingredients);
@@ -978,7 +995,7 @@ app.patch('/api/recettes/:id', (req, res) => {
   ['nom','emoji','photo','description','portions','temps_prep','temps_cuisson','favori','note','source','remarque'].forEach(k => {
     if (req.body[k] !== undefined) { sets.push(k+'=?'); vals.push(k==='favori'?(req.body[k]?1:0):req.body[k]); }
   });
-  if (req.body.tags !== undefined) { sets.push('tags=?'); vals.push(JSON.stringify(req.body.tags)); }
+  if (req.body.tags !== undefined) { syncTagsToTable(req.body.tags); sets.push('tags=?'); vals.push(JSON.stringify(req.body.tags)); }
   sets.push("updated_at=datetime('now')");
   if (sets.length > 1) { vals.push(id); db.prepare(`UPDATE recettes SET ${sets.join(',')} WHERE id=?`).run(...vals); }
   if (req.body.ingredients !== undefined) saveIngredients(id, req.body.ingredients);
