@@ -3309,7 +3309,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
       <div class="pnp-field">
         <div class="pnp-label">Ingrédient associé (optionnel)</div>
-        <input class="pnp-input" id="pnp-ing-search" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="pnpSearchIng(this.value)">
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="pnp-input" id="pnp-ing-search" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="pnpSearchIng(this.value)" style="flex:1;min-width:0">
+          <button onclick="pnpCreateIng('pnp')" title="Créer cet ingrédient" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--orange);border:none;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
         <div class="pnp-suggest" id="pnp-suggest" style="display:none"></div>
         <input type="hidden" id="pnp-ing-id">
       </div>
@@ -3409,6 +3412,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div style="display:flex;align-items:center;gap:8px">
           <img id="stock-editIngImg" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0;display:none" onerror="this.style.display='none'">
           <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)" style="flex:1;min-width:0">
+          <button onclick="pnpCreateIng('edit')" title="Créer cet ingrédient" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--orange);border:none;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
         </div>
         <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
         <input type="hidden" id="stock-editIngId">
@@ -4461,6 +4465,7 @@ window.stockSetGroupBy       = stockSetGroupBy;
 window.stockFilterRayon      = stockFilterRayon;
 window.stockSearchIng        = stockSearchIng;
 window.stockPickIng          = stockPickIng;
+window.pnpCreateIng          = pnpCreateIng;
 window.stockTriggerPhotoUpload = stockTriggerPhotoUpload;
 window.stockHandlePhotoFile  = stockHandlePhotoFile;
 window.stockSaveEdit         = stockSaveEdit;
@@ -6002,6 +6007,33 @@ function pnpPickIng(id, nom) {
   document.getElementById('pnp-ing-id').value = id;
   document.getElementById('pnp-ing-search').value = nom;
   document.getElementById('pnp-suggest').style.display = 'none';
+}
+
+async function pnpCreateIng(ctx) {
+  const inputId = ctx === 'edit' ? 'stock-editIngSearch' : 'pnp-ing-search';
+  const hiddenId = ctx === 'edit' ? 'stock-editIngId' : 'pnp-ing-id';
+  const suggestId = ctx === 'edit' ? 'stock-editIngSuggest' : 'pnp-suggest';
+  const nom = document.getElementById(inputId).value.trim();
+  if (!nom) { showToast('Saisis un nom d\'ingrédient', 'warn'); return; }
+  try {
+    const res = await fetch('/api/ingredients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, icone: '' })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur création', 'warn'); return; }
+    // Ajouter au cache local pour les futures recherches
+    _pnpIngredients.push({ id: data.id, nom: data.nom, icone: '' });
+    // Sélectionner l'ingrédient créé
+    document.getElementById(hiddenId).value = data.id;
+    document.getElementById(inputId).value = data.nom;
+    document.getElementById(suggestId).style.display = 'none';
+    if (ctx === 'edit') {
+      document.getElementById('stock-editIngImg').style.display = 'none';
+    }
+    showToast(`✓ « ${data.nom} » créé`);
+  } catch(e) { showToast('Erreur création', 'warn'); }
 }
 
 async function _ensurePnpIngredients() {
