@@ -52,7 +52,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   gap: 8px;
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
+  z-index: 130;
 }
 .header-burger {
   width: 40px; height: 40px;
@@ -5129,6 +5129,7 @@ function switchPage(tab, page, title) {
   const tagHA = document.getElementById('tag-headerActions');
   if (tagHA) tagHA.classList.toggle('visible', page === 'tags');
   if (page !== 'tags' && typeof _tagExitSelectMode === 'function') _tagExitSelectMode();
+  if (page !== 'tags' && typeof tagCloseMergeSheet === 'function') tagCloseMergeSheet();
   if (page === 'stock'              && typeof _stockLoad  === 'function') _stockLoad();
   if (page !== 'stock') {
     _stockSelectMode = false;
