@@ -2442,6 +2442,15 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div id="zs-list" style="padding:12px 14px 80px"></div>
     </div>
 
+    <!-- ══ PAGE GESTION PRODUITS ════════════════════════════════════════════ -->
+    <div id="page-produits" class="page">
+      <div style="padding:10px 14px 6px">
+        <input id="gp-search" type="text" placeholder="Rechercher…" oninput="_gpRender()"
+          style="width:100%;box-sizing:border-box;padding:9px 14px;border-radius:10px;border:1.5px solid var(--grey-l);font-size:.9rem;font-family:inherit;outline:none">
+      </div>
+      <div id="gp-list" style="padding:0 14px 80px"></div>
+    </div>
+
     <!-- ══ PAGE TAGS ════════════════════════════════════════════════════════ -->
     <div id="page-tags" class="page">
       <div id="tag-list" style="padding:12px 14px 80px"></div>
@@ -2978,6 +2987,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon">🗂</div> Zones de stock</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'produits','Gestion des produits')"><div class="d-icon">📦</div> Gestion des produits</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'tags','Tags recettes')"><div class="d-icon">🏷</div> Tags recettes</div>
     </div>
     <div class="drawer-version">KitchenCore v0.8 · Home Assistant Add-on</div>
@@ -3571,6 +3581,8 @@ function _stockSortItems(items) {
 
 function _stockFilterItems(items) {
   return items.filter(s => {
+    const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+    if (qty === 0) return false;
     if (_stockSearch) {
       const q = _stockSearch.toLowerCase();
       const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
@@ -4457,6 +4469,51 @@ window.stockDeleteFromEdit   = stockDeleteFromEdit;
 // ════════════════════════════════════════════════════════════════════════════
 // GESTION DES ZONES DE STOCK
 // ════════════════════════════════════════════════════════════════════════════
+// ── Gestion des produits ─────────────────────────────────────────────────────
+let _gpItems = [];
+
+async function _gpLoad() {
+  try {
+    const r = await fetch('/api/stocks');
+    _gpItems = r.ok ? await r.json() : [];
+  } catch(e) { _gpItems = []; }
+  _gpRender();
+}
+
+function _gpRender() {
+  const el = document.getElementById('gp-list');
+  if (!el) return;
+  const q = (document.getElementById('gp-search')?.value || '').toLowerCase();
+  const items = _gpItems.filter(s => {
+    if (!q) return true;
+    const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
+    const marque = (s.marque || '').toLowerCase();
+    return nom.includes(q) || marque.includes(q);
+  }).sort((a, b) => (a.produit_nom || a.ingredient_nom || '').localeCompare(b.produit_nom || b.ingredient_nom || '', 'fr'));
+
+  if (!items.length) {
+    el.innerHTML = '<div style="padding:40px 0;text-align:center;color:#aaa">Aucun produit trouvé</div>';
+    return;
+  }
+
+  el.innerHTML = items.map(s => {
+    const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
+    const statusColor = qty === 0 ? '#e57373' : qty <= 1 ? '#ffb74d' : '#81c784';
+    const initiales = (s.produit_nom || s.ingredient_nom || '?').substring(0, 2).toUpperCase();
+    const imgHtml = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'))
+      ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#bbb">${initiales}</div>`;
+    return `<div onclick="_stockOpenDetail(${s.produit_id})" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l);cursor:pointer">
+      <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--grey-l);flex-shrink:0">${imgHtml}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.produit_nom || s.ingredient_nom || '—'}</div>
+        <div style="font-size:.75rem;color:#999">${s.marque ? s.marque + ' · ' : ''}${s.zone || ''}</div>
+      </div>
+      <div style="font-size:.85rem;font-weight:800;color:${statusColor};flex-shrink:0">${qty}</div>
+    </div>`;
+  }).join('');
+}
+
 let _zsZones = [];
 
 function zsOpen() {
@@ -4968,6 +5025,7 @@ const PAGE_CONFIG = {
   marchands:            { title: '🏪 Marchands',           fab: true,  search: false, fabIcon: '+', dark: false },
   'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
   'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
+  'produits':           { title: '📦 Gestion des produits',    fab: false, search: false, fabIcon: '', dark: false },
 };
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
@@ -5055,6 +5113,7 @@ function switchPage(tab, page, title) {
   if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
   if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
   if (page === 'zones-stock'        && typeof _zsLoad     === 'function') _zsLoad();
+  if (page === 'produits'           && typeof _gpLoad     === 'function') _gpLoad();
   if (page === 'tags'               && typeof _tagLoad    === 'function') _tagLoad();
   // Tags page header visibility
   const tagHA = document.getElementById('tag-headerActions');
