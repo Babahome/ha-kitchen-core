@@ -1353,6 +1353,11 @@ textarea.einput{ resize:none;min-height:60px; }
 .m-day.tod .m-dlbl { color:var(--orange);font-weight:900;font-size:.92rem; }
 .m-dadd    { width:28px;height:28px;border-radius:50%;border:2px dashed var(--grey);display:grid;place-items:center;cursor:pointer;font-size:1.1rem;color:var(--grey-d);background:none;font-family:var(--font);transition:all .15s;flex-shrink:0; }
 .m-dadd:active { border-color:var(--orange);color:var(--orange);background:var(--orange-l); }
+.m-dlc-btns { display:flex;align-items:center;gap:4px;flex-shrink:0; }
+.m-dlc-btn  { width:28px;height:28px;border-radius:50%;border:2.5px solid #e53935;background:#fff;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative;padding:0;transition:transform .15s,box-shadow .15s; }
+.m-dlc-btn:active { transform:scale(.92); }
+.m-dlc-btn img { width:100%;height:100%;object-fit:cover; }
+.m-dlc-btn .m-dlc-ini { width:100%;height:100%;display:grid;place-items:center;font-size:.6rem;font-weight:900;color:#e53935;background:#ffeaea; }
 .m-zone    { display:flex;flex-direction:column;gap:7px;padding-left:10px;margin-bottom:4px;min-height:8px;border-radius:8px;transition:background .15s; }
 .m-zone.dz { background:var(--orange-l);min-height:40px; }
 .m-empty   { font-size:.78rem;color:var(--grey-d);font-style:italic;padding:4px 0; }
@@ -7668,10 +7673,26 @@ function mBuild(scrollY){
         </div>
       </div>`;
     }).join('');
+    // Produits qui périment ce jour
+    const kStr = k; // format YYYY-MM-DD
+    const expiringItems = (typeof _stockItems !== 'undefined' ? _stockItems : []).filter(it => it.dlc === kStr && (it.packs_pleins > 0 || it.unites_ouvert > 0));
+    const dlcBtnsHtml = expiringItems.length > 0
+      ? `<div class="m-dlc-btns">${expiringItems.map(it => {
+          const icone = it.icone || it.ingredient_icone || '';
+          const nom = it.produit_nom || it.ingredient_nom || '?';
+          const ini = nom.substring(0,2).toUpperCase();
+          const ingId = it.ingredient_id || '';
+          const inner = (icone && (icone.startsWith('http') || icone.startsWith('/')))
+            ? `<img src="${icone}" onerror="this.parentElement.innerHTML='<div class=\\'m-dlc-ini\\'>${ini}</div>'">`
+            : `<div class="m-dlc-ini">${ini}</div>`;
+          return `<button class="m-dlc-btn" title="${nom} — périme ce jour" onclick="mOpenExpiringIng(${ingId||'null'},'${nom.replace(/'/g,"\\'")}')">` + inner + `</button>`;
+        }).join('')}</div>`
+      : '';
     h+=`<div class="m-day${i===0?' tod':''}" id="mday-${k}">
       <div class="m-dh">
         <div class="m-dot"></div>
         <div class="m-dlbl">${l}</div>
+        ${dlcBtnsHtml}
         <button class="m-dadd" onclick="mOpen('${k}','${l.replace(/'/g,"\\'")}')">+</button>
       </div>
       <div class="m-zone" id="mz-${k}"
@@ -7691,6 +7712,13 @@ async function mDel(k,x){
   if(id) { try{ await fetch('/api/menu/'+id,{method:'DELETE'}); }catch(e){ showToast('Erreur réseau','error'); return; } }
   _md[k].splice(x,1); if(!_md[k].length) delete _md[k];
   mBuild();
+}
+function mOpenExpiringIng(ingredientId, nom){
+  switchPage('recettes');
+  setTimeout(()=>{
+    const si = document.getElementById('search-input') || document.getElementById('rec-search');
+    if(si){ si.value = nom; si.dispatchEvent(new Event('input')); }
+  }, 300);
 }
 function mToday(){
   const n=new Date();n.setHours(0,0,0,0);

@@ -616,7 +616,7 @@ app.delete('/api/zones-stock/:id', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/stocks', (_req, res) => {
   res.json(db.prepare(`
-    SELECT s.*, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage, p.rayon_id,
+    SELECT s.*, s.dlc, p.nom AS produit_nom, p.marque, p.ingredient_id, p.contenance, p.unite, p.code_barres, p.pourcentage, p.rayon_id,
            a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.icone AS ingredient_icone, a.seuil_alerte, a.categorie, a.duree_conservation_jours AS ingredient_conservation_jours,
            ((s.packs_pleins*p.contenance)+s.unites_ouvert) AS total_unites,
            r.nom AS rayon_nom, r.emoji AS rayon_emoji,
