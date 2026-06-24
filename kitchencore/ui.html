@@ -3017,7 +3017,16 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px;display:none">0 sélectionné(s)</div>
     <div class="m-hdmenu-item" id="stock-hd-courses" style="display:none" onclick="stockAddSelectedToCourses();stockHideMainHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
     <div class="m-hdmenu-item" id="stock-hd-cook" style="display:none" onclick="stockCookWith();stockHideMainHdmenu()"><span>🍳</span><span>Cuisiner avec</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-zone" style="display:none" onclick="stockOpenZonePicker();stockHideMainHdmenu()"><span>📦</span><span>Changer de zone</span></div>
     <div class="m-hdmenu-item danger" id="stock-hd-delete" style="display:none" onclick="stockDeleteSelected();stockHideMainHdmenu()"><span>🗑</span><span>Supprimer</span></div>
+  </div>
+
+  <!-- BOTTOM SHEET — changer zone stock multiselect -->
+  <div id="stock-zone-picker" style="display:none;position:absolute;inset:0;z-index:200;background:rgba(0,0,0,.45)" onclick="stockCloseZonePicker()" ontouchstart="stockCloseZonePicker()">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 16px 32px" onclick="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:12px">Choisir une zone</div>
+      <div id="stock-zone-picker-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
   </div>
 
   <!-- MENU ⋮ COURSES -->
@@ -3806,7 +3815,7 @@ function _stockUpdateFab() {
   const hasSel = n > 0;
   const label = document.getElementById('stock-hd-sel-label');
   if (label) { label.textContent = `${n} sélectionné(s)`; label.style.display = hasSel ? '' : 'none'; }
-  ['stock-hd-courses','stock-hd-cook','stock-hd-delete'].forEach(id => {
+  ['stock-hd-courses','stock-hd-cook','stock-hd-zone','stock-hd-delete'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = hasSel ? '' : 'none';
   });
@@ -3870,6 +3879,36 @@ async function stockAddSelectedToCourses() {
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
+function stockOpenZonePicker() {
+  const picker = document.getElementById('stock-zone-picker');
+  const chips  = document.getElementById('stock-zone-picker-chips');
+  if (!picker || !chips) return;
+  chips.innerHTML = STOCK_ZONES.filter(z => z.key !== 'À définir').map(z =>
+    `<div class="rayon-chip" onclick="stockChangeZoneSelected('${z.key}')">${z.emoji} ${z.key}</div>`
+  ).join('');
+  picker.style.display = '';
+}
+function stockCloseZonePicker() {
+  const picker = document.getElementById('stock-zone-picker');
+  if (picker) picker.style.display = 'none';
+}
+async function stockChangeZoneSelected(zone) {
+  stockCloseZonePicker();
+  const ids = [..._stockSelectedIds];
+  if (!ids.length) return;
+  try {
+    await Promise.all(ids.map(id => fetch(`/api/produits/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zone })
+    })));
+    _stockSelectedIds.clear();
+    _stockSelectMode = false;
+    await _stockLoad();
+    showToast(`Zone mise à jour : ${zone}`);
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
 window.stockToggleSelectMode      = stockToggleSelectMode;
 window.stockHideHdmenu            = stockHideHdmenu;
 window.stockHideMainHdmenu        = stockHideMainHdmenu;
@@ -3878,6 +3917,9 @@ window.stockDeleteSelected        = stockDeleteSelected;
 window.stockAddSelectedToCourses  = stockAddSelectedToCourses;
 window._stockUpdateFab            = _stockUpdateFab;
 window.stockCookWith              = stockCookWith;
+window.stockOpenZonePicker        = stockOpenZonePicker;
+window.stockCloseZonePicker       = stockCloseZonePicker;
+window.stockChangeZoneSelected    = stockChangeZoneSelected;
 
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — Panels Détail & Édition produit
