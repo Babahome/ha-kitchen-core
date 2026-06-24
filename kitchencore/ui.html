@@ -7720,9 +7720,10 @@ async function mDel(k,x){
   mBuild();
 }
 function mOpenExpiringIng(ingredientId, nom){
-  switchPage('recettes');
+  const tab = document.querySelector('.nav-tab[onclick*="recettes"]');
+  switchPage(tab, 'recettes', 'Recettes');
   setTimeout(()=>{
-    const si = document.getElementById('search-input') || document.getElementById('rec-search');
+    const si = document.getElementById('search-input');
     if(si){ si.value = nom; si.dispatchEvent(new Event('input')); }
   }, 300);
 }
