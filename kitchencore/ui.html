@@ -3897,10 +3897,10 @@ async function stockChangeZoneSelected(zone) {
   const ids = [..._stockSelectedIds];
   if (!ids.length) return;
   try {
-    await Promise.all(ids.map(id => fetch(`/api/produits/${id}`, {
-      method: 'PATCH',
+    await Promise.all(ids.map(id => fetch(`/api/stocks/${id}/ajouter`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zone })
+      body: JSON.stringify({ packs: 0, zone })
     })));
     _stockSelectedIds.clear();
     _stockSelectMode = false;
