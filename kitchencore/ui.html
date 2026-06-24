@@ -7720,12 +7720,14 @@ async function mDel(k,x){
   mBuild();
 }
 function mOpenExpiringIng(ingredientId, nom){
-  const tab = document.querySelector('.nav-tab[onclick*="recettes"]');
-  switchPage(tab, 'recettes', 'Recettes');
+  const now = new Date(); now.setHours(0,0,0,0);
+  const k = mdk(now);
+  const b = MD[now.getDay()]+' '+now.getDate()+' '+MM[now.getMonth()];
+  mOpen(k, '📍 Aujourd\'hui — '+b);
   setTimeout(()=>{
-    const si = document.getElementById('search-input');
+    const si = document.getElementById('m-si');
     if(si){ si.value = nom; si.dispatchEvent(new Event('input')); }
-  }, 300);
+  }, 250);
 }
 function mToday(){
   const n=new Date();n.setHours(0,0,0,0);
