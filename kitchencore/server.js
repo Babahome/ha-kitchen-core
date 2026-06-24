@@ -451,13 +451,29 @@ app.post('/api/ingredients/merge', (req, res) => {
     }
     // Aussi mettre à jour les lignes déjà liées à keep_id (au cas où le nom change)
     db.prepare('UPDATE recette_ingredients SET nom=? WHERE ingredient_id=?').run(name, keep_id);
+    const addAlias = db.prepare(
+      'INSERT OR IGNORE INTO ingredient_aliases(ingredient_id, alias) VALUES(?,?)'
+    );
+    // Si le nom de keep_id a changé, sauvegarder l'ancien nom comme alias
+    if (kept && kept.nom !== name) {
+      addAlias.run(keep_id, kept.nom);
+    }
     for (const id of merge_ids) {
-      const ing = db.prepare('SELECT nom FROM ingredients WHERE id=?').get(id);
+      const ing = db.prepare('SELECT nom, nom_pluriel FROM ingredients WHERE id=?').get(id);
       if (!ing) continue;
       db.prepare('UPDATE recette_ingredients SET nom=?, ingredient_id=? WHERE nom=? OR ingredient_id=?').run(name, keep_id, ing.nom, id);
       try { db.prepare('UPDATE produits SET ingredient_id=? WHERE ingredient_id=?').run(keep_id, id); } catch(_) {}
+      // Sauvegarder le nom (et nom_pluriel) de l'ingrédient supprimé comme alias
+      addAlias.run(keep_id, ing.nom);
+      if (ing.nom_pluriel) addAlias.run(keep_id, ing.nom_pluriel);
+      // Récupérer les alias de l'ingrédient supprimé et les rattacher à keep_id
+      const oldAliases = db.prepare('SELECT alias FROM ingredient_aliases WHERE ingredient_id=?').all(id);
+      for (const a of oldAliases) addAlias.run(keep_id, a.alias);
+      db.prepare('DELETE FROM ingredient_aliases WHERE ingredient_id=?').run(id);
       db.prepare('DELETE FROM ingredients WHERE id=?').run(id);
     }
+    // S'assurer que le nom final de keep_id n'est pas lui-même un alias
+    db.prepare('DELETE FROM ingredient_aliases WHERE ingredient_id=? AND alias=?').run(keep_id, name);
   });
 
   try {
