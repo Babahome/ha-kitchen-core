@@ -10153,14 +10153,15 @@ function _ryToggleCollapse(id) {
   _ryRender();
 }
 
-// ── Drag & drop (handle ⠿ → réordonner, avec clone touch comme marchands) ─────
+// ── Drag & drop dual-mode ─────────────────────────────────────────────────────
+// Handle ⠿ → réordonner  |  Tenir sur card body (300ms) → lier parent/enfant
 function _ryInitDragDrop() {
   const list = document.getElementById('ry-list');
   if (!list) return;
   let dragSrc = null;
 
   list.querySelectorAll('.ry-card').forEach(row => {
-    // Mouse drag
+    // ── Mouse : réordonner via handle ──
     row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
     row.addEventListener('dragstart', e => {
       if (!row.draggable) { e.preventDefault(); return; }
@@ -10182,61 +10183,126 @@ function _ryInitDragDrop() {
     });
     row.addEventListener('drop', e => e.preventDefault());
 
-    // Touch drag
-    let touchClone = null, touchTimer = null, touchDragging = false, touchOffsetY = 0;
+    // ── Touch ──
+    let touchClone = null, touchTimer = null, touchOffsetY = 0;
+    let touchMode = null; // 'reorder' | 'link' | null
+    let linkOverId = null;
+    let startX = 0, startY = 0;
+
     row.addEventListener('touchstart', e => {
-      if (!e.target.closest('.mch-rayon-handle')) return;
-      touchDragging = false;
-      touchTimer = setTimeout(() => {
-        touchDragging = true;
-        dragSrc = row;
-        row.classList.add('ry-dragging');
-        touchClone = row.cloneNode(true);
-        const rect = row.getBoundingClientRect();
-        const touch = e.touches[0];
-        touchOffsetY = touch.clientY - rect.top;
-        Object.assign(touchClone.style, {
-          position:'fixed', left:rect.left+'px', top:rect.top+'px',
-          width:rect.width+'px', opacity:'.85', zIndex:'9999',
-          pointerEvents:'none', borderRadius:'10px',
-          background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
-        });
-        document.body.appendChild(touchClone);
-      }, 250);
+      touchMode = null; linkOverId = null;
+      const onHandle = !!e.target.closest('.mch-rayon-handle');
+      const onBtn    = !!e.target.closest('.ry-btn');
+      if (onBtn) return;
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+
+      if (onHandle) {
+        // Mode réordonner : déclenche après 250ms
+        touchTimer = setTimeout(() => {
+          touchMode = 'reorder';
+          dragSrc = row;
+          row.classList.add('ry-dragging');
+          touchClone = row.cloneNode(true);
+          const rect = row.getBoundingClientRect();
+          touchOffsetY = t.clientY - rect.top;
+          Object.assign(touchClone.style, {
+            position:'fixed', left:rect.left+'px', top:rect.top+'px',
+            width:rect.width+'px', opacity:'.85', zIndex:'9999',
+            pointerEvents:'none', borderRadius:'10px',
+            background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+          });
+          document.body.appendChild(touchClone);
+        }, 250);
+      } else {
+        // Mode lien parent/enfant : déclenche après 300ms
+        touchTimer = setTimeout(() => {
+          touchMode = 'link';
+          row.classList.add('ry-dragging');
+        }, 300);
+      }
     }, { passive: true });
 
     row.addEventListener('touchmove', e => {
-      if (!touchDragging) { clearTimeout(touchTimer); return; }
+      const t = e.touches[0];
+      if (!touchMode) {
+        // Annuler si trop de mouvement avant déclenchement
+        if (Math.hypot(t.clientX - startX, t.clientY - startY) > 8) {
+          clearTimeout(touchTimer); touchTimer = null;
+        }
+        return;
+      }
       e.preventDefault();
-      const touch = e.touches[0];
-      if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
-      // Auto-scroll : détecter proximité bord haut/bas du viewport
-      const scrollEl = document.getElementById('content');
-      const zone = 80;
-      const vy = touch.clientY;
-      const vh = window.innerHeight;
-      if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
-      else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
-      const els = document.elementsFromPoint(touch.clientX, touch.clientY);
-      const target = els.find(el => el.classList.contains('ry-card') && el !== dragSrc && el.closest('#ry-list'));
-      if (target) {
+
+      if (touchMode === 'reorder') {
+        if (touchClone) touchClone.style.top = (t.clientY - touchOffsetY) + 'px';
+        // Auto-scroll
+        const scrollEl = document.getElementById('content');
+        const zone = 80, vy = t.clientY, vh = window.innerHeight;
+        if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
+        else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
+        const els = document.elementsFromPoint(t.clientX, t.clientY);
+        const target = els.find(el => el.classList.contains('ry-card') && el !== dragSrc && el.closest('#ry-list'));
+        if (target) {
+          list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+          target.classList.add('ry-drag-over');
+          const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+          list.insertBefore(dragSrc, t.clientY < mid ? target : target.nextSibling);
+        }
+      } else if (touchMode === 'link') {
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        const target = el && el.closest('.ry-card');
         list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-        target.classList.add('ry-drag-over');
-        const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-        list.insertBefore(dragSrc, touch.clientY < mid ? target : target.nextSibling);
+        if (target && target !== row) {
+          target.classList.add('ry-drag-over');
+          linkOverId = parseInt(target.dataset.ryId);
+        } else { linkOverId = null; }
       }
     }, { passive: false });
 
-    row.addEventListener('touchend', () => {
+    row.addEventListener('touchend', async () => {
       clearTimeout(touchTimer);
-      if (!touchDragging) return;
+      const mode = touchMode, srcRow = row, over = linkOverId;
+      touchMode = null; linkOverId = null;
+      srcRow.classList.remove('ry-dragging');
+      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      if (mode === 'reorder') {
+        _ryCommitOrder(list);
+      } else if (mode === 'link' && over) {
+        await _rySetParent(parseInt(srcRow.dataset.ryId), over);
+      }
+    });
+
+    row.addEventListener('touchcancel', () => {
+      clearTimeout(touchTimer); touchMode = null;
       row.classList.remove('ry-dragging');
       list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
       if (touchClone) { touchClone.remove(); touchClone = null; }
-      touchDragging = false;
-      _ryCommitOrder(list);
     });
   });
+}
+
+async function _rySetParent(childId, parentId) {
+  const child  = _ryData.find(r => r.id === childId);
+  const parent = _ryData.find(r => r.id === parentId);
+  if (!child || !parent) return;
+  let cur = parent;
+  for (let i = 0; i < 5; i++) {
+    if (!cur.parent_id) break;
+    if (cur.parent_id === childId) { showToast('Impossible : créerait une boucle', 'err'); return; }
+    cur = _ryData.find(r => r.id === cur.parent_id);
+    if (!cur) break;
+  }
+  try {
+    const r = await fetch(`/api/rayons/${childId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ parent_id: parentId })
+    });
+    if (!r.ok) { const d = await r.json(); showToast(d.error || 'Erreur', 'err'); return; }
+    showToast('Lien créé ✓', 'ok');
+    await _ryLoad();
+  } catch(_) { showToast('Erreur réseau', 'err'); }
 }
 
 async function _ryCommitOrder(list) {
