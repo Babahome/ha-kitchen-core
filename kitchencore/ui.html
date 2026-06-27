@@ -2950,8 +2950,16 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="mch-modal-box">
       <div class="mch-modal-title" id="mch-ray-modal-title">Nouveau rayon</div>
       <div class="mch-form-group">
-        <label class="mch-form-label">Emoji</label>
-        <div class="mch-emoji-picker-row" id="mch-ray-emoji-picker"></div>
+        <label class="mch-form-label">Image du rayon</label>
+        <div class="mch-img-upload-area">
+          <div class="mch-img-preview" id="mch-ray-img-preview">📦</div>
+          <div class="mch-img-upload-btns">
+            <label class="mch-img-btn" for="mch-ray-file-input">📁 Choisir une image</label>
+            <input type="file" id="mch-ray-file-input" accept="image/*" onchange="_mchRayHandleImageUpload(event)" style="display:none">
+            <button class="mch-img-btn remove" id="mch-ray-img-remove" onclick="_mchRayRemoveImage()" style="display:none">✕ Supprimer l'image</button>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
       </div>
       <div class="mch-form-group">
         <label class="mch-form-label">Nom du rayon</label>
@@ -4212,7 +4220,7 @@ function _stockRenderRayonChips() {
   if (!grid) return;
   grid.innerHTML =
     `<div class="rayon-chip${!_stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,null)">Aucun</div>` +
-    _RAYONS.map(r => `<div class="rayon-chip${r.id === _stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,${r.id})">${r.emoji || '📦'} ${r.nom}</div>`).join('');
+    _RAYONS.map(r => `<div class="rayon-chip${r.id === _stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,${r.id})">${_rayonIcon(r)} ${r.nom}</div>`).join('');
 }
 
 function stockEditPickRayon(btn, id) {
@@ -8769,7 +8777,7 @@ function _ingRenderCard(ing, i, depth) {
     <div class="ing-info">
       <div class="ing-name">${ing.name}</div>
       <div class="ing-meta">
-        ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${effRayon.rayon.emoji} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
+        ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${_rayonIcon(effRayon.rayon)} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
         ${recipeCount > 0 ? `<span class="ing-badge recipes">🍳 ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
       </div>
     </div>
@@ -8961,7 +8969,7 @@ function _ingRenderFilters() {
     + rayonsUsed.map(id => {
       const r = _ingRayons.find(x => x.id === id);
       if (!r) return '';
-      return `<button class="filter-chip${_ingFilter===id?' active':''}" onclick="ingSetFilter(${id}, this)">${r.emoji} ${r.nom}</button>`;
+      return `<button class="filter-chip${_ingFilter===id?' active':''}" onclick="ingSetFilter(${id}, this)">${_rayonIcon(r)} ${r.nom}</button>`;
     }).join('');
 }
 
@@ -9421,7 +9429,7 @@ function _ingRenderRayonGrid(containerId, selected) {
   document.getElementById(containerId).innerHTML = _ingRayons.map(r =>
     `<button class="rayon-chip${r.id===selected?' active':''}" data-rayon-id="${r.id}"
       onclick="ingSelectRayon('${containerId}', ${r.id}, this)">
-      ${r.emoji} ${r.nom}
+      ${_rayonIcon(r)} ${r.nom}
     </button>`
   ).join('');
 }
@@ -10062,7 +10070,7 @@ function _mchRenderMarchand(m) {
 function _mchRenderRayon(mId, r) {
   return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}">
     <div class="mch-rayon-handle">⠿</div>
-    <div class="mch-rayon-emoji">${r.emoji}</div>
+    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:28px;height:28px;object-fit:cover;border-radius:6px">` : r.emoji}</div>
     <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
     <div class="mch-rayon-actions">
       <button class="mch-rayon-action-btn" onclick="_mchOpenModalRayon(${mId},${r.id})">✏️</button>
@@ -10077,6 +10085,12 @@ function _mchLogoHTML(m) {
   return `<span style="font-size:.9rem;font-weight:900;color:var(--orange)">${initials}</span>`;
 }
 
+function _rayonIcon(r, size=22) {
+  if (!r) return '';
+  if (r.icone) return `<img src="${r.icone}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;vertical-align:middle">`;
+  return r.emoji || '📦';
+}
+
 function _mchEscH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -10085,6 +10099,8 @@ function _mchEscH(s) {
 
 let _mchCurrentImage = null;
 let _mchEditId = null;
+let _mchRayCurrentImage = null;
+let _mchRayCurrentImageUrl = null; // URL existante en BDD
 
 function _mchHandleImageUpload(event) {
   const file = event.target.files[0];
@@ -10131,6 +10147,42 @@ function _mchUpdateImagePreview() {
     removeBtn.style.display = 'block';
   } else {
     preview.innerHTML = '🏪';
+    removeBtn.style.display = 'none';
+  }
+}
+
+function _mchRayHandleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Format non supporté', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _mchResizeImage(e.target.result, 200, 200, (resized) => {
+      _mchRayCurrentImage = resized;
+      _mchRayCurrentImageUrl = null;
+      _mchRayUpdateImagePreview();
+    });
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function _mchRayRemoveImage() {
+  _mchRayCurrentImage = null;
+  _mchRayCurrentImageUrl = null;
+  document.getElementById('mch-ray-file-input').value = '';
+  _mchRayUpdateImagePreview();
+}
+
+function _mchRayUpdateImagePreview() {
+  const preview   = document.getElementById('mch-ray-img-preview');
+  const removeBtn = document.getElementById('mch-ray-img-remove');
+  const src = _mchRayCurrentImage || _mchRayCurrentImageUrl;
+  if (src) {
+    preview.innerHTML = `<img src="${src}" alt="aperçu" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+    removeBtn.style.display = 'block';
+  } else {
+    preview.innerHTML = '📦';
     removeBtn.style.display = 'none';
   }
 }
@@ -10201,17 +10253,18 @@ let _mchSelRayEmoji  = '📦';
 function _mchOpenModalRayon(mId, rId) {
   _mchEditRayonMId = mId;
   _mchEditRayonId  = rId || null;
+  _mchRayCurrentImage = null;
+  _mchRayCurrentImageUrl = null;
   const nomInp = document.getElementById('mch-ray-nom-input');
   document.getElementById('mch-ray-modal-title').textContent = rId ? 'Modifier le rayon' : 'Nouveau rayon';
   if (rId) {
     const r = _mchData.find(x => x.id === mId).rayons.find(x => x.id === rId);
-    nomInp.value    = r.nom;
-    _mchSelRayEmoji = r.emoji;
+    nomInp.value = r.nom;
+    if (r.icone) _mchRayCurrentImageUrl = r.icone;
   } else {
-    nomInp.value    = '';
-    _mchSelRayEmoji = '📦';
+    nomInp.value = '';
   }
-  _mchRenderEmojiPicker('mch-ray-emoji-picker', _RAY_EMOJIS, _mchSelRayEmoji, (e) => { _mchSelRayEmoji = e; });
+  _mchRayUpdateImagePreview();
   document.getElementById('mch-ray-modal').classList.add('open');
   setTimeout(() => nomInp.focus(), 120);
 }
@@ -10224,13 +10277,23 @@ async function _mchSaveRayon() {
   const nom = document.getElementById('mch-ray-nom-input').value.trim();
   if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
   try {
-    if (_mchEditRayonId) {
-      await fetch(`/api/rayons/${_mchEditRayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
-      showToast('Rayon modifié ✓', 'ok');
+    let rayonId = _mchEditRayonId;
+    if (rayonId) {
+      await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom}) });
     } else {
-      await fetch(`/api/marchands/${_mchEditRayonMId}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:_mchSelRayEmoji}) });
-      showToast('Rayon ajouté ✓', 'ok');
+      const res = await fetch(`/api/marchands/${_mchEditRayonMId}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:'📦'}) });
+      const data = await res.json();
+      rayonId = data.rayon_id || data.id;
     }
+    // Upload photo si nouvelle image sélectionnée
+    if (_mchRayCurrentImage && rayonId) {
+      const b64 = _mchRayCurrentImage.split(',')[1];
+      await fetch(`/api/rayons/${rayonId}/photo`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({base64:b64, mime:'image/jpeg'}) });
+    } else if (!_mchRayCurrentImage && !_mchRayCurrentImageUrl && rayonId) {
+      // Image supprimée → effacer icone en BDD
+      await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({icone:null}) });
+    }
+    showToast(_mchEditRayonId ? 'Rayon modifié ✓' : 'Rayon ajouté ✓', 'ok');
     _mchCloseModalRayon();
     await _mchLoad();
   } catch(e) { showToast('Erreur lors de l\'enregistrement', 'err'); }

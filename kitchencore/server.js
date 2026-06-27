@@ -199,6 +199,7 @@ db.exec(`
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
   ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
+  ['rayons',         'icone',         'TEXT'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -1191,9 +1192,23 @@ app.post('/api/rayons', (req, res) => {
   }
 });
 
+app.post('/api/rayons/:id/photo', (req, res) => {
+  const { base64, mime } = req.body;
+  if (!base64 || !mime) return res.status(400).json({ error: 'base64 et mime requis' });
+  const ext = (mime.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+  const filename = `rayon_${req.params.id}_${Date.now()}.${ext}`;
+  const filepath = path.join(PHOTOS_DIR, filename);
+  try {
+    fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
+    const url = `/photos/${filename}`;
+    db.prepare('UPDATE rayons SET icone=? WHERE id=?').run(url, req.params.id);
+    res.json({ url });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.patch('/api/rayons/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','emoji'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','emoji','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   try {
