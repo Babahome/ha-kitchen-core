@@ -200,6 +200,8 @@ db.exec(`
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
   ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['rayons',         'icone',         'TEXT'],
+  ['rayons',         'parent_id',     'INTEGER REFERENCES rayons(id)'],
+  ['rayons',         'position',      'INTEGER DEFAULT 0'],
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
@@ -1182,10 +1184,10 @@ app.get('/api/rayons', (_req, res) => {
 });
 
 app.post('/api/rayons', (req, res) => {
-  const { nom, emoji='📦' } = req.body;
+  const { nom, emoji='📦', parent_id=null } = req.body;
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
   try {
-    const r = db.prepare('INSERT INTO rayons(nom,emoji) VALUES(?,?)').run(nom.trim(), emoji);
+    const r = db.prepare('INSERT INTO rayons(nom,emoji,parent_id) VALUES(?,?,?)').run(nom.trim(), emoji, parent_id || null);
     res.status(201).json(db.prepare('SELECT * FROM rayons WHERE id=?').get(r.lastInsertRowid));
   } catch(e) {
     res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Rayon déjà existant' : e.message });
@@ -1208,7 +1210,20 @@ app.post('/api/rayons/:id/photo', (req, res) => {
 
 app.patch('/api/rayons/:id', (req, res) => {
   const f=[], v=[];
-  ['nom','emoji','icone'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','emoji','icone','parent_id','position'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  // anti-cycle : parent_id ne peut pas créer de boucle
+  if (req.body.parent_id && req.body.parent_id == req.params.id)
+    return res.status(400).json({ error: 'Un rayon ne peut pas être son propre parent' });
+  if (req.body.parent_id) {
+    let cur = req.body.parent_id;
+    for (let i = 0; i < 5; i++) {
+      const p = db.prepare('SELECT parent_id FROM rayons WHERE id=?').get(cur);
+      if (!p) break;
+      if (p.parent_id == req.params.id) return res.status(400).json({ error: 'Cycle détecté dans la hiérarchie' });
+      if (!p.parent_id) break;
+      cur = p.parent_id;
+    }
+  }
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   try {
@@ -1232,21 +1247,27 @@ app.delete('/api/rayons/:id', (req, res) => {
 // MARCHANDS
 // ══════════════════════════════════════════════════════════════════════════════
 
-const _sqlMarchandRayons = `
-  SELECT r.id, r.nom, r.emoji, mr.position
-  FROM marchand_rayons mr JOIN rayons r ON r.id=mr.rayon_id
-  WHERE mr.marchand_id=? ORDER BY mr.position, mr.id`;
+// Retourne tous les rayons globaux avec leur position dans ce marchand (9999 si non définie)
+function getMarchandRayons(marchandId) {
+  return db.prepare(`
+    SELECT r.id, r.nom, r.emoji, r.icone, r.parent_id,
+           COALESCE(mr.position, 9999) AS position
+    FROM rayons r
+    LEFT JOIN marchand_rayons mr ON mr.rayon_id=r.id AND mr.marchand_id=?
+    ORDER BY COALESCE(mr.position, 9999), r.parent_id IS NOT NULL, r.id
+  `).all(marchandId);
+}
 
 function getMarchand(id) {
   const m = db.prepare('SELECT * FROM marchands WHERE id=?').get(id);
   if (!m) return null;
-  m.rayons = db.prepare(_sqlMarchandRayons).all(id);
+  m.rayons = getMarchandRayons(id);
   return m;
 }
 
 app.get('/api/marchands', (_req, res) => {
   const marchands = db.prepare('SELECT * FROM marchands ORDER BY position, id').all();
-  marchands.forEach(m => { m.rayons = db.prepare(_sqlMarchandRayons).all(m.id); });
+  marchands.forEach(m => { m.rayons = getMarchandRayons(m.id); });
   res.json(marchands);
 });
 
@@ -1302,12 +1323,16 @@ app.delete('/api/marchands/:id/rayons/:rid', (req, res) => {
   res.status(204).end();
 });
 
-// PUT /api/marchands/:id/rayons/order — réordonne les rayons d'un marchand
+// PUT /api/marchands/:id/rayons/order — upsert positions de tous les rayons pour ce marchand
 app.put('/api/marchands/:id/rayons/order', (req, res) => {
   const { order } = req.body;
   if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
-  const upd = db.prepare('UPDATE marchand_rayons SET position=? WHERE marchand_id=? AND rayon_id=?');
-  db.transaction(() => { order.forEach(({ rayon_id, position }) => upd.run(position, req.params.id, rayon_id)); })();
+  const upsert = db.prepare(`
+    INSERT INTO marchand_rayons(marchand_id, rayon_id, position)
+    VALUES(?,?,?)
+    ON CONFLICT(marchand_id, rayon_id) DO UPDATE SET position=excluded.position
+  `);
+  db.transaction(() => { order.forEach(({ rayon_id, position }) => upsert.run(req.params.id, rayon_id, position)); })();
   res.json({ ok: true });
 });
 

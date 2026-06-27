@@ -2143,6 +2143,35 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .sgc-btn-cancel { background: var(--grey-l); color: #666; border: none; border-radius: 10px; padding: 13px 16px; font-size: .9rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
 .sgc-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
 .sgc-empty .e { font-size: 2.5rem; margin-bottom: 10px; }
+/* ── Page Rayons ── */
+#page-rayons { background: var(--grey-l); }
+.ry-card { background: white; border-radius: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, opacity .15s; }
+.ry-card.child { margin-left: 24px; border-left: 3px solid var(--grey); border-radius: 0 14px 14px 0; }
+.ry-card.grandchild { margin-left: 48px; }
+.ry-card.ry-dragging { opacity: .4; }
+.ry-card.ry-drag-over { box-shadow: 0 0 0 3px var(--orange); }
+.ry-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; font-size: 1.4rem; background: var(--grey-l); }
+.ry-img img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.ry-nom { flex: 1; font-size: .92rem; font-weight: 700; }
+.ry-sub { font-size: .72rem; color: var(--text2); font-weight: 600; }
+.ry-actions { display: flex; gap: 4px; }
+.ry-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--grey-l); cursor: pointer; font-size: .85rem; display: grid; place-items: center; }
+.ry-btn:active { background: var(--grey); }
+/* Modal rayons page */
+.ry-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 900; display: none; align-items: flex-end; justify-content: center; }
+.ry-overlay.open { display: flex; }
+.ry-modal-box { background: white; border-radius: 20px 20px 0 0; padding: 20px 16px 32px; width: 100%; max-width: 480px; }
+.ry-modal-title { font-size: 1rem; font-weight: 900; margin-bottom: 14px; }
+.ry-form-group { margin-bottom: 12px; }
+.ry-form-label { font-size: .72rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 6px; }
+.ry-form-input { width: 100%; box-sizing: border-box; border: 2px solid var(--grey); border-radius: 10px; padding: 10px 12px; font-size: .92rem; font-family: inherit; font-weight: 700; outline: none; }
+.ry-form-input:focus { border-color: var(--orange); }
+.ry-form-select { width: 100%; box-sizing: border-box; border: 2px solid var(--grey); border-radius: 10px; padding: 10px 12px; font-size: .88rem; font-family: inherit; font-weight: 600; outline: none; background: white; }
+.ry-modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+.ry-btn-cancel { flex: 1; padding: 12px; border: 2px solid var(--grey); border-radius: 10px; background: white; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.ry-btn-confirm { flex: 2; padding: 12px; border: none; border-radius: 10px; background: var(--orange); color: white; font-family: inherit; font-size: .9rem; font-weight: 800; cursor: pointer; }
+.ry-dissocier { display: inline-block; margin-top: 4px; font-size: .8rem; font-weight: 700; color: var(--orange); cursor: pointer; text-decoration: underline; }
+
 #page-marchands { background: var(--grey-l); }
 .mch-content { padding: 12px 12px 100px; }
 .mch-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
@@ -2508,6 +2537,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <!-- Grid -->
         <div class="ingredients-grid" id="ing-ingredientsGrid"></div>
       </div>
+    </div>
+
+    <!-- ══ PAGE RAYONS ══════════════════════════════════════════════════════ -->
+    <div id="page-rayons" class="page">
+      <div id="ry-list" style="padding:12px 12px 100px;display:flex;flex-direction:column;gap:6px"></div>
     </div>
 
     <!-- ══ PAGE MARCHANDS ═══════════════════════════════════════════════════ -->
@@ -2972,6 +3006,39 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
   </div>
 
+  <!-- ── MODAL RAYON (page Rayons) ── -->
+  <div class="ry-overlay" id="ry-modal">
+    <div class="ry-modal-box">
+      <div class="ry-modal-title" id="ry-modal-title">Nouveau rayon</div>
+      <div class="ry-form-group">
+        <label class="ry-form-label">Image du rayon</label>
+        <div class="mch-img-upload-area">
+          <div class="mch-img-preview" id="ry-img-preview">📦</div>
+          <div class="mch-img-upload-btns">
+            <label class="mch-img-btn" for="ry-file-input">📁 Choisir une image</label>
+            <input type="file" id="ry-file-input" accept="image/*" onchange="_ryHandleImg(event)" style="display:none">
+            <button class="mch-img-btn remove" id="ry-img-remove" onclick="_ryRemoveImg()" style="display:none">✕ Supprimer</button>
+          </div>
+        </div>
+      </div>
+      <div class="ry-form-group">
+        <label class="ry-form-label">Nom du rayon</label>
+        <input class="ry-form-input" id="ry-nom-input" type="text" placeholder="Ex: Fruits et Légumes" maxlength="60">
+      </div>
+      <div class="ry-form-group">
+        <label class="ry-form-label">Catégorie parente (optionnel)</label>
+        <select class="ry-form-select" id="ry-parent-select">
+          <option value="">— Rayon principal —</option>
+        </select>
+        <span class="ry-dissocier" id="ry-dissocier-btn" style="display:none" onclick="_ryDissocier()">✕ Dissocier du parent</span>
+      </div>
+      <div class="ry-modal-btns">
+        <button class="ry-btn-cancel" onclick="_ryCloseModal()">Annuler</button>
+        <button class="ry-btn-confirm" onclick="_rySave()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── MODAL CONFIRMATION MARCHANDS ── -->
   <div class="mch-overlay" id="mch-confirm-modal">
     <div class="mch-modal-box">
@@ -2996,6 +3063,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
     <div class="drawer-items">
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Ingrédients</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'rayons','Rayons')"><div class="d-icon">🏷</div> Rayons</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Marchands</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
@@ -5087,6 +5155,7 @@ const PAGE_CONFIG = {
   menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
+  rayons:               { title: '🏷 Rayons',               fab: true,  search: false, fabIcon: '+', dark: false },
   marchands:            { title: '🏪 Marchands',           fab: true,  search: false, fabIcon: '+', dark: false },
   'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
   'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
@@ -5175,6 +5244,7 @@ function switchPage(tab, page, title) {
   // Page ingrédients : visibilité fab-search/merge-bar + rendu
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
   if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
+  if (page === 'rayons'             && typeof _ryLoad     === 'function') _ryLoad();
   if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
   if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
   if (page === 'zones-stock'        && typeof _zsLoad     === 'function') _zsLoad();
@@ -5201,6 +5271,7 @@ function fabAction() {
   const page = active.id.replace('page-', '');
   if (page === 'stock')     { if (_stockSelectedIds.size > 0) { stockAddSelectedToCourses(); } else if(typeof openScanner==='function') openScanner(); return; }
   if (page === 'courses')   { clFabAction(); return; }
+  if (page === 'rayons')              { _ryOpenModal(); return; }
   if (page === 'marchands')           { _mchOpenModalMarchand(); return; }
   if (page === 'suggestion-config')   { _sgcAddRule(); return; }
   showToast('Bientôt disponible', 'warn');
@@ -10011,6 +10082,251 @@ const _MCH_TEMPLATES = {
   ]
 };
 
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE RAYONS
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _ryData = [];          // tous les rayons (plat)
+let _ryEditId = null;      // id en cours d'édition (null = création)
+let _ryImg = null;         // dataURL nouvelle image sélectionnée
+let _ryImgUrl = null;      // URL existante en BDD
+
+// ── Chargement ────────────────────────────────────────────────────────────────
+async function _ryLoad() {
+  try {
+    const r = await fetch('/api/rayons');
+    _ryData = await r.json();
+    _ryRender();
+  } catch(e) { showToast('Erreur chargement rayons', 'err'); }
+}
+
+// ── Rendu liste hiérarchique ──────────────────────────────────────────────────
+function _ryRender() {
+  const container = document.getElementById('ry-list');
+  if (!container) return;
+  // Construire l'ordre : parents d'abord, enfants dessous (triés par position)
+  const parents = _ryData.filter(r => !r.parent_id).sort((a,b) => (a.position||0)-(b.position||0));
+  const rows = [];
+  parents.forEach(p => {
+    rows.push({ r: p, level: 0 });
+    const children = _ryData.filter(c => c.parent_id === p.id).sort((a,b) => (a.position||0)-(b.position||0));
+    children.forEach(c => {
+      rows.push({ r: c, level: 1 });
+      // niveau 2 (petit-enfants)
+      _ryData.filter(g => g.parent_id === c.id).sort((a,b)=>(a.position||0)-(b.position||0))
+        .forEach(g => rows.push({ r: g, level: 2 }));
+    });
+  });
+  if (!rows.length) {
+    container.innerHTML = `<div style="text-align:center;padding:48px 16px;color:var(--text2);font-weight:700">Aucun rayon — appuie sur + pour commencer</div>`;
+    return;
+  }
+  container.innerHTML = rows.map(({r, level}) => {
+    const cls = level === 1 ? 'ry-card child' : level === 2 ? 'ry-card grandchild' : 'ry-card';
+    const img = r.icone
+      ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
+      : `<div class="ry-img">${r.emoji || '📦'}</div>`;
+    const parent = r.parent_id ? _ryData.find(x => x.id === r.parent_id) : null;
+    const sub = parent ? `<div class="ry-sub">sous ${parent.nom}</div>` : '';
+    return `<div class="${cls}" data-ry-id="${r.id}">
+      ${img}
+      <div style="flex:1;min-width:0">
+        <div class="ry-nom">${r.nom}</div>${sub}
+      </div>
+      <div class="ry-actions">
+        <button class="ry-btn" onclick="_ryOpenModal(${r.id})">✏️</button>
+        <button class="ry-btn" onclick="_ryConfirmDelete(${r.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  _ryDragSetup();
+}
+
+// ── Drag & drop (hold 300ms → déposer sur une card = parent/enfant) ───────────
+function _ryDragSetup() {
+  const container = document.getElementById('ry-list');
+  if (!container || container._ryDragBound) return;
+  container._ryDragBound = true;
+
+  let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
+
+  const reset = () => {
+    clearTimeout(timer); timer = null;
+    container.querySelectorAll('.ry-dragging,.ry-drag-over').forEach(c => c.classList.remove('ry-dragging','ry-drag-over'));
+    srcId = null; overId = null; srcCard = null; active = false;
+  };
+
+  container.addEventListener('touchstart', e => {
+    const card = e.target.closest('.ry-card');
+    if (!card || e.target.closest('.ry-btn')) return;
+    const t = e.touches[0];
+    srcId = parseInt(card.dataset.ryId); srcCard = card;
+    startX = t.clientX; startY = t.clientY;
+    timer = setTimeout(() => {
+      active = true;
+      card.classList.add('ry-dragging');
+    }, 300);
+  }, { passive: true });
+
+  container.addEventListener('touchmove', e => {
+    if (!srcId) return;
+    const t = e.touches[0];
+    if (!active) {
+      if (Math.hypot(t.clientX - startX, t.clientY - startY) > 8) reset();
+      return;
+    }
+    e.preventDefault();
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const target = el && el.closest('.ry-card');
+    container.querySelectorAll('.ry-drag-over').forEach(c => c.classList.remove('ry-drag-over'));
+    if (target && parseInt(target.dataset.ryId) !== srcId) {
+      target.classList.add('ry-drag-over');
+      overId = parseInt(target.dataset.ryId);
+    } else { overId = null; }
+  }, { passive: false });
+
+  container.addEventListener('touchend', async () => {
+    const wasActive = active, s = srcId, o = overId;
+    reset();
+    if (wasActive && s && o) {
+      await _rySetParent(s, o);
+    }
+  });
+
+  container.addEventListener('touchcancel', reset);
+}
+
+async function _rySetParent(childId, parentId) {
+  const child  = _ryData.find(r => r.id === childId);
+  const parent = _ryData.find(r => r.id === parentId);
+  if (!child || !parent) return;
+  // Anti-cycle côté client
+  let cur = parent;
+  for (let i = 0; i < 5; i++) {
+    if (!cur.parent_id) break;
+    if (cur.parent_id === childId) { showToast('Impossible : créerait une boucle', 'err'); return; }
+    cur = _ryData.find(r => r.id === cur.parent_id);
+    if (!cur) break;
+  }
+  try {
+    const r = await fetch(`/api/rayons/${childId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent_id: parentId })
+    });
+    if (!r.ok) { const d = await r.json(); showToast(d.error || 'Erreur', 'err'); return; }
+    showToast('Lien créé ✓', 'ok');
+    await _ryLoad();
+  } catch(_) { showToast('Erreur réseau', 'err'); }
+}
+
+// ── Modal créer/éditer ────────────────────────────────────────────────────────
+function _ryOpenModal(id) {
+  _ryEditId = id || null;
+  _ryImg = null; _ryImgUrl = null;
+  const r = id ? _ryData.find(x => x.id === id) : null;
+  document.getElementById('ry-modal-title').textContent = r ? 'Modifier le rayon' : 'Nouveau rayon';
+  document.getElementById('ry-nom-input').value = r ? r.nom : '';
+  if (r?.icone) _ryImgUrl = r.icone;
+  _ryUpdateImgPreview();
+  // Remplir le select parent (exclure soi-même et ses enfants)
+  const sel = document.getElementById('ry-parent-select');
+  const roots = _ryData.filter(x => !x.parent_id && x.id !== id);
+  sel.innerHTML = '<option value="">— Rayon principal —</option>' +
+    roots.map(x => `<option value="${x.id}"${r?.parent_id === x.id ? ' selected' : ''}>${x.nom}</option>`).join('');
+  // Bouton dissocier si enfant
+  document.getElementById('ry-dissocier-btn').style.display = (r?.parent_id) ? 'inline-block' : 'none';
+  document.getElementById('ry-modal').classList.add('open');
+  setTimeout(() => document.getElementById('ry-nom-input').focus(), 120);
+}
+
+function _ryCloseModal() { document.getElementById('ry-modal').classList.remove('open'); }
+
+function _ryHandleImg(event) {
+  const file = event.target.files[0];
+  if (!file || !file.type.startsWith('image/')) { showToast('Format non supporté', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => _mchResizeImage(e.target.result, 200, 200, resized => {
+    _ryImg = resized; _ryImgUrl = null; _ryUpdateImgPreview();
+  });
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function _ryRemoveImg() {
+  _ryImg = null; _ryImgUrl = null;
+  document.getElementById('ry-file-input').value = '';
+  _ryUpdateImgPreview();
+}
+
+function _ryUpdateImgPreview() {
+  const preview = document.getElementById('ry-img-preview');
+  const btn     = document.getElementById('ry-img-remove');
+  const src = _ryImg || _ryImgUrl;
+  if (src) {
+    preview.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+    btn.style.display = 'block';
+  } else {
+    preview.innerHTML = '📦';
+    btn.style.display = 'none';
+  }
+}
+
+async function _rySave() {
+  const nom = document.getElementById('ry-nom-input').value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'err'); return; }
+  const parent_id = document.getElementById('ry-parent-select').value || null;
+  try {
+    let rayonId = _ryEditId;
+    if (rayonId) {
+      await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, parent_id: parent_id ? parseInt(parent_id) : null}) });
+    } else {
+      const res = await fetch('/api/rayons', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, emoji:'📦', parent_id: parent_id ? parseInt(parent_id) : null}) });
+      const d = await res.json();
+      rayonId = d.id;
+    }
+    if (_ryImg && rayonId) {
+      const b64 = _ryImg.split(',')[1];
+      await fetch(`/api/rayons/${rayonId}/photo`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({base64:b64, mime:'image/jpeg'}) });
+    } else if (!_ryImg && !_ryImgUrl && rayonId && _ryEditId) {
+      await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({icone: null}) });
+    }
+    showToast(_ryEditId ? 'Rayon modifié ✓' : 'Rayon créé ✓', 'ok');
+    _ryCloseModal();
+    await _ryLoad();
+  } catch(e) { showToast('Erreur enregistrement', 'err'); }
+}
+
+async function _ryDissocier() {
+  if (!_ryEditId) return;
+  try {
+    await fetch(`/api/rayons/${_ryEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({parent_id: null}) });
+    showToast('Dissocié ✓', 'ok');
+    _ryCloseModal();
+    await _ryLoad();
+  } catch(e) { showToast('Erreur', 'err'); }
+}
+
+function _ryConfirmDelete(id) {
+  const r = _ryData.find(x => x.id === id);
+  if (!r) return;
+  const children = _ryData.filter(x => x.parent_id === id);
+  const msg = children.length
+    ? `"${r.nom}" a ${children.length} sous-rayon(s). Supprimer quand même ?`
+    : `Supprimer le rayon "${r.nom}" ?`;
+  if (!confirm(msg)) return;
+  fetch(`/api/rayons/${id}`, { method:'DELETE' })
+    .then(async res => {
+      if (!res.ok) { const d = await res.json(); showToast(d.error || 'Erreur', 'err'); return; }
+      showToast('Rayon supprimé', 'warn');
+      await _ryLoad();
+    })
+    .catch(() => showToast('Erreur réseau', 'err'));
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE MARCHANDS
+// ══════════════════════════════════════════════════════════════════════════════
+
 let _mchData = [];
 let _mchLoading = false;
 
@@ -10045,7 +10361,7 @@ function _mchRenderMarchand(m) {
   const nb = m.rayons.length;
   const rayonsHTML = nb
     ? m.rayons.map(r => _mchRenderRayon(m.id, r)).join('')
-    : '<div style="font-size:.82rem;color:var(--text2);font-weight:600;padding:4px 2px">Aucun rayon — ajoutes-en un !</div>';
+    : '<div style="font-size:.82rem;color:var(--text2);font-weight:600;padding:4px 2px">Aucun rayon défini dans le catalogue.</div>';
   return `
   <div class="mch-card" id="mch-card-${m.id}">
     <div class="mch-head">
@@ -10060,22 +10376,19 @@ function _mchRenderMarchand(m) {
       </div>
     </div>
     <div class="mch-rayons-section">
-      <div class="mch-rayons-label"><span>Rayons — ordre de parcours</span><span>↕ glisser pour réordonner</span></div>
+      <div class="mch-rayons-label"><span>Ordre de parcours</span><span>↕ glisser pour réordonner</span></div>
       <div class="mch-rayon-list" id="mch-rayon-list-${m.id}">${rayonsHTML}</div>
-      <div class="mch-rayon-add-row" onclick="_mchOpenModalRayon(${m.id})"><span style="font-size:1.1rem">＋</span> Ajouter un rayon</div>
     </div>
   </div>`;
 }
 
 function _mchRenderRayon(mId, r) {
-  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}">
+  const indent = r.parent_id ? 'padding-left:22px;border-left:3px solid var(--grey);' : '';
+  const style = indent ? `style="${indent}"` : '';
+  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}" ${style}>
     <div class="mch-rayon-handle">⠿</div>
-    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:28px;height:28px;object-fit:cover;border-radius:6px">` : r.emoji}</div>
+    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:28px;height:28px;object-fit:cover;border-radius:6px">` : (r.emoji || '📦')}</div>
     <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
-    <div class="mch-rayon-actions">
-      <button class="mch-rayon-action-btn" onclick="_mchOpenModalRayon(${mId},${r.id})">✏️</button>
-      <button class="mch-rayon-action-btn" onclick="_mchConfirmDeleteRayon(${mId},${r.id})">🗑</button>
-    </div>
   </div>`;
 }
 
