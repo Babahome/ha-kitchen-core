@@ -1234,6 +1234,14 @@ app.patch('/api/rayons/:id', (req, res) => {
   }
 });
 
+app.put('/api/rayons/order', (req, res) => {
+  const { order } = req.body;
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order requis' });
+  const upd = db.prepare('UPDATE rayons SET position=? WHERE id=?');
+  db.transaction(() => { order.forEach(({ id, position }) => upd.run(position, id)); })();
+  res.json({ ok: true });
+});
+
 app.delete('/api/rayons/:id', (req, res) => {
   const n_ing = db.prepare('SELECT COUNT(*) as n FROM ingredients WHERE rayon_id=?').get(req.params.id).n;
   const n_mr  = db.prepare('SELECT COUNT(*) as n FROM marchand_rayons WHERE rayon_id=?').get(req.params.id).n;

@@ -10101,122 +10101,150 @@ async function _ryLoad() {
 }
 
 // ── Rendu liste hiérarchique ──────────────────────────────────────────────────
+const _ryCollapsed = new Set(); // IDs des rayons niveau 1 réduits
+
 function _ryRender() {
   const container = document.getElementById('ry-list');
   if (!container) return;
-  // Construire l'ordre : parents d'abord, enfants dessous (triés par position)
   const parents = _ryData.filter(r => !r.parent_id).sort((a,b) => (a.position||0)-(b.position||0));
   const rows = [];
   parents.forEach(p => {
-    rows.push({ r: p, level: 0 });
     const children = _ryData.filter(c => c.parent_id === p.id).sort((a,b) => (a.position||0)-(b.position||0));
-    children.forEach(c => {
-      rows.push({ r: c, level: 1 });
-      // niveau 2 (petit-enfants)
-      _ryData.filter(g => g.parent_id === c.id).sort((a,b)=>(a.position||0)-(b.position||0))
-        .forEach(g => rows.push({ r: g, level: 2 }));
-    });
+    const hasChildren = children.length > 0;
+    const collapsed = _ryCollapsed.has(p.id);
+    rows.push({ r: p, level: 0, hasChildren, collapsed });
+    if (!collapsed) {
+      children.forEach(c => {
+        rows.push({ r: c, level: 1 });
+        _ryData.filter(g => g.parent_id === c.id).sort((a,b)=>(a.position||0)-(b.position||0))
+          .forEach(g => rows.push({ r: g, level: 2 }));
+      });
+    }
   });
   if (!rows.length) {
     container.innerHTML = `<div style="text-align:center;padding:48px 16px;color:var(--text2);font-weight:700">Aucun rayon — appuie sur + pour commencer</div>`;
     return;
   }
-  container.innerHTML = rows.map(({r, level}) => {
+  container.innerHTML = rows.map(({r, level, hasChildren, collapsed}) => {
     const cls = level === 1 ? 'ry-card child' : level === 2 ? 'ry-card grandchild' : 'ry-card';
     const img = r.icone
       ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
       : `<div class="ry-img">${r.emoji || '📦'}</div>`;
-    const parent = r.parent_id ? _ryData.find(x => x.id === r.parent_id) : null;
-    const sub = parent ? `<div class="ry-sub">sous ${parent.nom}</div>` : '';
+    const collapseBtn = (level === 0 && hasChildren)
+      ? `<button class="ry-btn" onclick="_ryToggleCollapse(${r.id})" title="${collapsed?'Développer':'Réduire'}">${collapsed ? '▸' : '▾'}</button>`
+      : '';
     return `<div class="${cls}" data-ry-id="${r.id}">
+      <div class="mch-rayon-handle" style="color:var(--grey-d);font-size:1.1rem;cursor:grab;padding:4px 6px;touch-action:none">⠿</div>
       ${img}
-      <div style="flex:1;min-width:0">
-        <div class="ry-nom">${r.nom}</div>${sub}
-      </div>
+      <div style="flex:1;min-width:0"><div class="ry-nom">${r.nom}</div></div>
       <div class="ry-actions">
+        ${collapseBtn}
         <button class="ry-btn" onclick="_ryOpenModal(${r.id})">✏️</button>
         <button class="ry-btn" onclick="_ryConfirmDelete(${r.id})">🗑</button>
       </div>
     </div>`;
   }).join('');
-  _ryDragSetup();
+  _ryInitDragDrop();
 }
 
-// ── Drag & drop (hold 300ms → déposer sur une card = parent/enfant) ───────────
-function _ryDragSetup() {
-  const container = document.getElementById('ry-list');
-  if (!container || container._ryDragBound) return;
-  container._ryDragBound = true;
-
-  let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
-
-  const reset = () => {
-    clearTimeout(timer); timer = null;
-    container.querySelectorAll('.ry-dragging,.ry-drag-over').forEach(c => c.classList.remove('ry-dragging','ry-drag-over'));
-    srcId = null; overId = null; srcCard = null; active = false;
-  };
-
-  container.addEventListener('touchstart', e => {
-    const card = e.target.closest('.ry-card');
-    if (!card || e.target.closest('.ry-btn')) return;
-    const t = e.touches[0];
-    srcId = parseInt(card.dataset.ryId); srcCard = card;
-    startX = t.clientX; startY = t.clientY;
-    timer = setTimeout(() => {
-      active = true;
-      card.classList.add('ry-dragging');
-    }, 300);
-  }, { passive: true });
-
-  container.addEventListener('touchmove', e => {
-    if (!srcId) return;
-    const t = e.touches[0];
-    if (!active) {
-      if (Math.hypot(t.clientX - startX, t.clientY - startY) > 8) reset();
-      return;
-    }
-    e.preventDefault();
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    const target = el && el.closest('.ry-card');
-    container.querySelectorAll('.ry-drag-over').forEach(c => c.classList.remove('ry-drag-over'));
-    if (target && parseInt(target.dataset.ryId) !== srcId) {
-      target.classList.add('ry-drag-over');
-      overId = parseInt(target.dataset.ryId);
-    } else { overId = null; }
-  }, { passive: false });
-
-  container.addEventListener('touchend', async () => {
-    const wasActive = active, s = srcId, o = overId;
-    reset();
-    if (wasActive && s && o) {
-      await _rySetParent(s, o);
-    }
-  });
-
-  container.addEventListener('touchcancel', reset);
+function _ryToggleCollapse(id) {
+  if (_ryCollapsed.has(id)) _ryCollapsed.delete(id);
+  else _ryCollapsed.add(id);
+  _ryRender();
 }
 
-async function _rySetParent(childId, parentId) {
-  const child  = _ryData.find(r => r.id === childId);
-  const parent = _ryData.find(r => r.id === parentId);
-  if (!child || !parent) return;
-  // Anti-cycle côté client
-  let cur = parent;
-  for (let i = 0; i < 5; i++) {
-    if (!cur.parent_id) break;
-    if (cur.parent_id === childId) { showToast('Impossible : créerait une boucle', 'err'); return; }
-    cur = _ryData.find(r => r.id === cur.parent_id);
-    if (!cur) break;
-  }
-  try {
-    const r = await fetch(`/api/rayons/${childId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parent_id: parentId })
+// ── Drag & drop (handle ⠿ → réordonner, avec clone touch comme marchands) ─────
+function _ryInitDragDrop() {
+  const list = document.getElementById('ry-list');
+  if (!list) return;
+  let dragSrc = null;
+
+  list.querySelectorAll('.ry-card').forEach(row => {
+    // Mouse drag
+    row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
+    row.addEventListener('dragstart', e => {
+      if (!row.draggable) { e.preventDefault(); return; }
+      dragSrc = row; row.classList.add('ry-dragging');
+      e.dataTransfer.effectAllowed = 'move';
     });
-    if (!r.ok) { const d = await r.json(); showToast(d.error || 'Erreur', 'err'); return; }
-    showToast('Lien créé ✓', 'ok');
-    await _ryLoad();
-  } catch(_) { showToast('Erreur réseau', 'err'); }
+    row.addEventListener('dragend', () => {
+      row.classList.remove('ry-dragging');
+      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      _ryCommitOrder(list);
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (row === dragSrc) return;
+      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      row.classList.add('ry-drag-over');
+      const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+      list.insertBefore(dragSrc, e.clientY < mid ? row : row.nextSibling);
+    });
+    row.addEventListener('drop', e => e.preventDefault());
+
+    // Touch drag
+    let touchClone = null, touchTimer = null, touchDragging = false, touchOffsetY = 0;
+    row.addEventListener('touchstart', e => {
+      if (!e.target.closest('.mch-rayon-handle')) return;
+      touchDragging = false;
+      touchTimer = setTimeout(() => {
+        touchDragging = true;
+        dragSrc = row;
+        row.classList.add('ry-dragging');
+        touchClone = row.cloneNode(true);
+        const rect = row.getBoundingClientRect();
+        const touch = e.touches[0];
+        touchOffsetY = touch.clientY - rect.top;
+        Object.assign(touchClone.style, {
+          position:'fixed', left:rect.left+'px', top:rect.top+'px',
+          width:rect.width+'px', opacity:'.85', zIndex:'9999',
+          pointerEvents:'none', borderRadius:'10px',
+          background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+        });
+        document.body.appendChild(touchClone);
+      }, 250);
+    }, { passive: true });
+
+    row.addEventListener('touchmove', e => {
+      if (!touchDragging) { clearTimeout(touchTimer); return; }
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
+      const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+      const target = els.find(el => el.classList.contains('ry-card') && el !== dragSrc && el.closest('#ry-list'));
+      if (target) {
+        list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+        target.classList.add('ry-drag-over');
+        const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+        list.insertBefore(dragSrc, touch.clientY < mid ? target : target.nextSibling);
+      }
+    }, { passive: false });
+
+    row.addEventListener('touchend', () => {
+      clearTimeout(touchTimer);
+      if (!touchDragging) return;
+      row.classList.remove('ry-dragging');
+      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      touchDragging = false;
+      _ryCommitOrder(list);
+    });
+  });
+}
+
+async function _ryCommitOrder(list) {
+  const order = [];
+  list.querySelectorAll('.ry-card').forEach((row, i) => {
+    order.push({ id: parseInt(row.dataset.ryId), position: i });
+  });
+  // Mettre à jour _ryData en local pour que le prochain _ryRender() soit stable
+  order.forEach(({id, position}) => {
+    const r = _ryData.find(x => x.id === id);
+    if (r) r.position = position;
+  });
+  try {
+    await fetch('/api/rayons/order', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });
+  } catch(e) { showToast('Erreur sauvegarde ordre', 'err'); }
 }
 
 // ── Modal créer/éditer ────────────────────────────────────────────────────────
