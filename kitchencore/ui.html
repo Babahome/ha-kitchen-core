@@ -10158,14 +10158,14 @@ function _ryToggleCollapse(id) {
 function _ryInitDragDrop() {
   const list = document.getElementById('ry-list');
   if (!list) return;
-  let dragSrc = null;
 
+  // ── Mouse drag (handle → réordonner) — rajouté à chaque render ───────────
+  let mouseDragSrc = null;
   list.querySelectorAll('.ry-card').forEach(row => {
-    // ── Mouse : réordonner via handle ──
     row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
     row.addEventListener('dragstart', e => {
       if (!row.draggable) { e.preventDefault(); return; }
-      dragSrc = row; row.classList.add('ry-dragging');
+      mouseDragSrc = row; row.classList.add('ry-dragging');
       e.dataTransfer.effectAllowed = 'move';
     });
     row.addEventListener('dragend', () => {
@@ -10175,112 +10175,119 @@ function _ryInitDragDrop() {
     });
     row.addEventListener('dragover', e => {
       e.preventDefault();
-      if (row === dragSrc) return;
+      if (row === mouseDragSrc) return;
       list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
       row.classList.add('ry-drag-over');
       const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
-      list.insertBefore(dragSrc, e.clientY < mid ? row : row.nextSibling);
+      list.insertBefore(mouseDragSrc, e.clientY < mid ? row : row.nextSibling);
     });
     row.addEventListener('drop', e => e.preventDefault());
-
-    // ── Touch ──
-    let touchClone = null, touchTimer = null, touchOffsetY = 0;
-    let touchMode = null; // 'reorder' | 'link' | null
-    let linkOverId = null;
-    let startX = 0, startY = 0;
-
-    row.addEventListener('touchstart', e => {
-      touchMode = null; linkOverId = null;
-      const onHandle = !!e.target.closest('.mch-rayon-handle');
-      const onBtn    = !!e.target.closest('.ry-btn');
-      if (onBtn) return;
-      const t = e.touches[0];
-      startX = t.clientX; startY = t.clientY;
-
-      if (onHandle) {
-        // Mode réordonner : déclenche après 250ms
-        touchTimer = setTimeout(() => {
-          touchMode = 'reorder';
-          dragSrc = row;
-          row.classList.add('ry-dragging');
-          touchClone = row.cloneNode(true);
-          const rect = row.getBoundingClientRect();
-          touchOffsetY = t.clientY - rect.top;
-          Object.assign(touchClone.style, {
-            position:'fixed', left:rect.left+'px', top:rect.top+'px',
-            width:rect.width+'px', opacity:'.85', zIndex:'9999',
-            pointerEvents:'none', borderRadius:'10px',
-            background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
-          });
-          document.body.appendChild(touchClone);
-        }, 250);
-      } else {
-        // Mode lien parent/enfant : déclenche après 300ms
-        touchTimer = setTimeout(() => {
-          touchMode = 'link';
-          row.classList.add('ry-dragging');
-        }, 300);
-      }
-    }, { passive: true });
-
-    row.addEventListener('touchmove', e => {
-      const t = e.touches[0];
-      if (!touchMode) {
-        // Annuler si trop de mouvement avant déclenchement
-        if (Math.hypot(t.clientX - startX, t.clientY - startY) > 8) {
-          clearTimeout(touchTimer); touchTimer = null;
-        }
-        return;
-      }
-      e.preventDefault();
-
-      if (touchMode === 'reorder') {
-        if (touchClone) touchClone.style.top = (t.clientY - touchOffsetY) + 'px';
-        // Auto-scroll
-        const scrollEl = document.getElementById('content');
-        const zone = 80, vy = t.clientY, vh = window.innerHeight;
-        if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
-        else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
-        const els = document.elementsFromPoint(t.clientX, t.clientY);
-        const target = els.find(el => el.classList.contains('ry-card') && el !== dragSrc && el.closest('#ry-list'));
-        if (target) {
-          list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-          target.classList.add('ry-drag-over');
-          const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-          list.insertBefore(dragSrc, t.clientY < mid ? target : target.nextSibling);
-        }
-      } else if (touchMode === 'link') {
-        const el = document.elementFromPoint(t.clientX, t.clientY);
-        const target = el && el.closest('.ry-card');
-        list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-        if (target && target !== row) {
-          target.classList.add('ry-drag-over');
-          linkOverId = parseInt(target.dataset.ryId);
-        } else { linkOverId = null; }
-      }
-    }, { passive: false });
-
-    row.addEventListener('touchend', async () => {
-      clearTimeout(touchTimer);
-      const mode = touchMode, srcRow = row, over = linkOverId;
-      touchMode = null; linkOverId = null;
-      srcRow.classList.remove('ry-dragging');
-      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-      if (touchClone) { touchClone.remove(); touchClone = null; }
-      if (mode === 'reorder') {
-        _ryCommitOrder(list);
-      } else if (mode === 'link' && over) {
-        await _rySetParent(parseInt(srcRow.dataset.ryId), over);
-      }
-    });
-
-    row.addEventListener('touchcancel', () => {
-      clearTimeout(touchTimer); touchMode = null;
-      row.classList.remove('ry-dragging');
-      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-      if (touchClone) { touchClone.remove(); touchClone = null; }
-    });
   });
+
+  // ── Touch — event delegation sur le container (ajouté une seule fois) ────
+  if (list._ryTouchBound) return;
+  list._ryTouchBound = true;
+
+  // ── Touch — event delegation sur le container ─────────────────────────────
+  // Handle ⠿ → réordonner (clone flottant)
+  // Card body → lier parent/enfant (like ingredients)
+  let touchMode = null, touchTimer = null;
+  let srcCard = null, srcId = null;
+  let touchClone = null, touchOffsetY = 0;
+  let linkOverId = null;
+  let startX = 0, startY = 0;
+
+  const resetTouch = () => {
+    clearTimeout(touchTimer); touchTimer = null; touchMode = null;
+    if (srcCard) { srcCard.classList.remove('ry-dragging'); srcCard = null; }
+    list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    srcId = null; linkOverId = null;
+  };
+
+  list.addEventListener('touchstart', e => {
+    resetTouch();
+    const card = e.target.closest('.ry-card');
+    if (!card || e.target.closest('.ry-btn')) return;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    srcCard = card;
+    srcId = parseInt(card.dataset.ryId);
+    const onHandle = !!e.target.closest('.mch-rayon-handle');
+
+    if (onHandle) {
+      touchTimer = setTimeout(() => {
+        touchMode = 'reorder';
+        card.classList.add('ry-dragging');
+        touchClone = card.cloneNode(true);
+        const rect = card.getBoundingClientRect();
+        touchOffsetY = t.clientY - rect.top;
+        Object.assign(touchClone.style, {
+          position:'fixed', left:rect.left+'px', top:rect.top+'px',
+          width:rect.width+'px', opacity:'.85', zIndex:'9999',
+          pointerEvents:'none', borderRadius:'10px',
+          background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+        });
+        document.body.appendChild(touchClone);
+      }, 250);
+    } else {
+      touchTimer = setTimeout(() => {
+        touchMode = 'link';
+        card.classList.add('ry-dragging');
+      }, 300);
+    }
+  }, { passive: true });
+
+  list.addEventListener('touchmove', e => {
+    if (!srcCard) return;
+    const t = e.touches[0];
+    if (!touchMode) {
+      // Seuil 12px — annule si l'utilisateur scrolle avant le timer
+      if (Math.hypot(t.clientX - startX, t.clientY - startY) > 12) {
+        clearTimeout(touchTimer); touchTimer = null; srcCard = null;
+      }
+      return;
+    }
+    e.preventDefault();
+
+    if (touchMode === 'reorder') {
+      if (touchClone) touchClone.style.top = (t.clientY - touchOffsetY) + 'px';
+      const scrollEl = document.getElementById('content');
+      const zone = 80, vy = t.clientY, vh = window.innerHeight;
+      if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
+      else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
+      const els = document.elementsFromPoint(t.clientX, t.clientY);
+      const target = els.find(el => el.classList.contains('ry-card') && el !== srcCard && el.closest('#ry-list'));
+      if (target) {
+        list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+        target.classList.add('ry-drag-over');
+        const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+        list.insertBefore(srcCard, t.clientY < mid ? target : target.nextSibling);
+      }
+    } else {
+      // mode 'link'
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const target = el && el.closest('.ry-card');
+      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      if (target && target !== srcCard) {
+        target.classList.add('ry-drag-over');
+        linkOverId = parseInt(target.dataset.ryId);
+      } else { linkOverId = null; }
+    }
+  }, { passive: false });
+
+  list.addEventListener('touchend', async () => {
+    clearTimeout(touchTimer);
+    const mode = touchMode, child = srcId, over = linkOverId, card = srcCard;
+    resetTouch();
+    if (mode === 'reorder') {
+      _ryCommitOrder(list);
+    } else if (mode === 'link' && child && over) {
+      await _rySetParent(child, over);
+    }
+  });
+
+  list.addEventListener('touchcancel', resetTouch);
 }
 
 async function _rySetParent(childId, parentId) {
