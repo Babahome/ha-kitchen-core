@@ -10210,6 +10210,13 @@ function _ryInitDragDrop() {
       e.preventDefault();
       const touch = e.touches[0];
       if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
+      // Auto-scroll : détecter proximité bord haut/bas du viewport
+      const scrollEl = document.getElementById('content');
+      const zone = 80;
+      const vy = touch.clientY;
+      const vh = window.innerHeight;
+      if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
+      else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
       const els = document.elementsFromPoint(touch.clientX, touch.clientY);
       const target = els.find(el => el.classList.contains('ry-card') && el !== dragSrc && el.closest('#ry-list'));
       if (target) {
