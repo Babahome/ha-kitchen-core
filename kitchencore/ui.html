@@ -8805,6 +8805,18 @@ function _ingDragSetup() {
     timer = setTimeout(() => {
       active = true;
       card.classList.add('ing-dragging');
+      // Si une recherche est active, la vider pour afficher tous les ingrédients
+      // et permettre de déposer sur n'importe quel parent
+      if (_ingSearchQuery) {
+        _ingSearchQuery = '';
+        const input = document.getElementById('ing-searchInput');
+        if (input) input.value = '';
+        document.getElementById('ing-fabSearch')?.classList.remove('open');
+        _ingRender();
+        // Remettre la classe dragging sur la card re-rendue
+        const newCard = document.querySelector(`#ing-ingredientsGrid [data-ing-id="${srcId}"]`);
+        if (newCard) newCard.classList.add('ing-dragging');
+      }
     }, 300);
   }, { passive: true });
 
