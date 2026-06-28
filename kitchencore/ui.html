@@ -2152,7 +2152,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .ry-group.ry-dragging, .ry-group-l1.ry-dragging { opacity: .4; }
 .ry-group.ry-drag-over > .ry-card, .ry-group-l1.ry-drag-over > .ry-card { box-shadow: 0 0 0 3px var(--orange); }
 .ry-group.ry-adopt-over > .ry-card, .ry-group-l1.ry-adopt-over > .ry-card { background: var(--orange-l) !important; box-shadow: 0 0 0 3px var(--orange); }
-.ry-card { background: white; border-radius: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, opacity .15s; }
+.ry-card { background: white; border-radius: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, opacity .15s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .ry-card.child { margin-left: 24px; border-left: 3px solid var(--grey); border-radius: 0 14px 14px 0; }
 .ry-card.grandchild { margin-left: 48px; }
 .ry-card.ry-dragging { opacity: .4; }
@@ -10286,6 +10286,8 @@ function _ryInitDragDrop() {
     if (touchClone) { touchClone.remove(); touchClone = null; }
     touchSrcId = null; linkOverId = null; touchCont = null; touchAdoptTargetId = null;
   };
+
+  list0.addEventListener('contextmenu', e => { if (e.target.closest('.ry-card')) e.preventDefault(); });
 
   list0.addEventListener('touchstart', e => {
     resetTouch();
