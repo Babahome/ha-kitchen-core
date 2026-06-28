@@ -1194,6 +1194,34 @@ app.post('/api/rayons', (req, res) => {
   }
 });
 
+app.post('/api/rayons/bulk-import', (req, res) => {
+  const { rayons } = req.body;
+  if (!Array.isArray(rayons)) return res.status(400).json({ error: 'rayons[] requis' });
+  try {
+    const ins = db.prepare('INSERT OR IGNORE INTO rayons(nom,emoji,parent_id,position) VALUES(?,?,?,?)');
+    let imported = 0;
+    db.transaction(() => {
+      rayons.forEach((r, pi) => {
+        ins.run(r.nom.trim(), r.emoji || '📦', null, pi);
+        const parent = db.prepare('SELECT id FROM rayons WHERE nom=?').get(r.nom.trim());
+        if (!parent) return;
+        (r.children || []).forEach((c, ci) => {
+          ins.run(c.nom.trim(), c.emoji || '📦', parent.id, ci);
+          imported++;
+          const child = db.prepare('SELECT id FROM rayons WHERE nom=?').get(c.nom.trim());
+          if (!child) return;
+          (c.children || []).forEach((g, gi) => {
+            ins.run(g.nom.trim(), g.emoji || '📦', child.id, gi);
+            imported++;
+          });
+        });
+        imported++;
+      });
+    })();
+    res.json({ ok: true, imported });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/rayons/:id/photo', (req, res) => {
   const { base64, mime } = req.body;
   if (!base64 || !mime) return res.status(400).json({ error: 'base64 et mime requis' });

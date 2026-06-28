@@ -2145,11 +2145,19 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .sgc-empty .e { font-size: 2.5rem; margin-bottom: 10px; }
 /* ── Page Rayons ── */
 #page-rayons { background: var(--grey-l); }
+.ry-group { display: flex; flex-direction: column; gap: 6px; }
+.ry-group-l1 { display: flex; flex-direction: column; gap: 3px; }
+.ry-children { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.ry-children-l2 { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.ry-group.ry-dragging, .ry-group-l1.ry-dragging { opacity: .4; }
+.ry-group.ry-drag-over > .ry-card, .ry-group-l1.ry-drag-over > .ry-card { box-shadow: 0 0 0 3px var(--orange); }
 .ry-card { background: white; border-radius: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, opacity .15s; }
 .ry-card.child { margin-left: 24px; border-left: 3px solid var(--grey); border-radius: 0 14px 14px 0; }
 .ry-card.grandchild { margin-left: 48px; }
 .ry-card.ry-dragging { opacity: .4; }
 .ry-card.ry-drag-over { box-shadow: 0 0 0 3px var(--orange); }
+.ry-import-btn { width:100%; padding:10px 14px; border:2px dashed var(--grey); border-radius:12px; background:white; font-family:var(--font); font-size:.88rem; font-weight:700; color:var(--text2); cursor:pointer; text-align:left; }
+.ry-import-btn:active { border-color:var(--orange); color:var(--orange); background:var(--orange-l); }
 .ry-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; font-size: 1.4rem; background: var(--grey-l); }
 .ry-img img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
 .ry-nom { flex: 1; font-size: .92rem; font-weight: 700; }
@@ -2541,7 +2549,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
     <!-- ══ PAGE RAYONS ══════════════════════════════════════════════════════ -->
     <div id="page-rayons" class="page">
-      <div id="ry-list" style="padding:12px 12px 100px;display:flex;flex-direction:column;gap:6px"></div>
+      <div style="padding:12px 12px 6px">
+        <button class="ry-import-btn" onclick="_ryShowImportModal()">📥 Importer une liste de rayons Carrefour Drive</button>
+      </div>
+      <div id="ry-list" style="padding:0 12px 100px;display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
     <!-- ══ PAGE MARCHANDS ═══════════════════════════════════════════════════ -->
@@ -3035,6 +3046,18 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ry-modal-btns">
         <button class="ry-btn-cancel" onclick="_ryCloseModal()">Annuler</button>
         <button class="ry-btn-confirm" onclick="_rySave()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL IMPORT RAYONS ── -->
+  <div class="ry-overlay" id="ry-import-modal">
+    <div class="ry-modal-box">
+      <div class="ry-modal-title">Importer des rayons</div>
+      <p style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5;margin:0 0 4px">Importer la liste <strong>Carrefour Drive</strong> (13 rayons + sous-rayons) ?<br>Les rayons déjà existants seront conservés.</p>
+      <div class="ry-modal-btns">
+        <button class="ry-btn-cancel" onclick="_ryCloseImportModal()">Annuler</button>
+        <button class="ry-btn-confirm" onclick="_ryImportCarrefour()">Importer</button>
       </div>
     </div>
   </div>
@@ -10101,127 +10124,172 @@ async function _ryLoad() {
 }
 
 // ── Rendu liste hiérarchique ──────────────────────────────────────────────────
-const _ryCollapsed = new Set(); // IDs des rayons niveau 1 réduits
+const _ryCollapsed = new Set();
+
+function _ryCardHTML(r, level, hasChildren, collapsed) {
+  const cls = level===0 ? 'ry-card' : level===1 ? 'ry-card child' : 'ry-card grandchild';
+  const img = r.icone
+    ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
+    : `<div class="ry-img">${r.emoji || '📦'}</div>`;
+  const collapseBtn = (level===0 && hasChildren)
+    ? `<button class="ry-btn" onclick="event.stopPropagation();_ryToggleCollapse(${r.id})">${collapsed?'▸':'▾'}</button>`
+    : '';
+  return `<div class="${cls}" data-ry-id="${r.id}" data-level="${level}">
+    <div class="mch-rayon-handle" style="color:var(--grey-d);font-size:1.1rem;cursor:grab;padding:4px 6px;touch-action:none">⠿</div>
+    ${img}
+    <div style="flex:1;min-width:0"><div class="ry-nom">${r.nom}</div></div>
+    <div class="ry-actions">
+      ${collapseBtn}
+      <button class="ry-btn" onclick="event.stopPropagation();_ryOpenModal(${r.id})">✏️</button>
+      <button class="ry-btn" onclick="event.stopPropagation();_ryConfirmDelete(${r.id})">🗑</button>
+    </div>
+  </div>`;
+}
 
 function _ryRender() {
   const container = document.getElementById('ry-list');
   if (!container) return;
   const parents = _ryData.filter(r => !r.parent_id).sort((a,b) => (a.position||0)-(b.position||0));
-  const rows = [];
-  parents.forEach(p => {
-    const children = _ryData.filter(c => c.parent_id === p.id).sort((a,b) => (a.position||0)-(b.position||0));
-    const hasChildren = children.length > 0;
-    const collapsed = _ryCollapsed.has(p.id);
-    rows.push({ r: p, level: 0, hasChildren, collapsed });
-    if (!collapsed) {
-      children.forEach(c => {
-        rows.push({ r: c, level: 1 });
-        _ryData.filter(g => g.parent_id === c.id).sort((a,b)=>(a.position||0)-(b.position||0))
-          .forEach(g => rows.push({ r: g, level: 2 }));
-      });
-    }
-  });
-  if (!rows.length) {
+  if (!parents.length) {
     container.innerHTML = `<div style="text-align:center;padding:48px 16px;color:var(--text2);font-weight:700">Aucun rayon — appuie sur + pour commencer</div>`;
     return;
   }
-  container.innerHTML = rows.map(({r, level, hasChildren, collapsed}) => {
-    const cls = level === 1 ? 'ry-card child' : level === 2 ? 'ry-card grandchild' : 'ry-card';
-    const img = r.icone
-      ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
-      : `<div class="ry-img">${r.emoji || '📦'}</div>`;
-    const collapseBtn = (level === 0 && hasChildren)
-      ? `<button class="ry-btn" onclick="_ryToggleCollapse(${r.id})" title="${collapsed?'Développer':'Réduire'}">${collapsed ? '▸' : '▾'}</button>`
-      : '';
-    return `<div class="${cls}" data-ry-id="${r.id}">
-      <div class="mch-rayon-handle" style="color:var(--grey-d);font-size:1.1rem;cursor:grab;padding:4px 6px;touch-action:none">⠿</div>
-      ${img}
-      <div style="flex:1;min-width:0"><div class="ry-nom">${r.nom}</div></div>
-      <div class="ry-actions">
-        ${collapseBtn}
-        <button class="ry-btn" onclick="_ryOpenModal(${r.id})">✏️</button>
-        <button class="ry-btn" onclick="_ryConfirmDelete(${r.id})">🗑</button>
-      </div>
-    </div>`;
+  container.innerHTML = parents.map(p => {
+    const collapsed = _ryCollapsed.has(p.id);
+    const children = _ryData.filter(c => c.parent_id===p.id).sort((a,b)=>(a.position||0)-(b.position||0));
+    let childrenHTML = '';
+    if (!collapsed && children.length) {
+      childrenHTML = `<div class="ry-children" data-parent-id="${p.id}">` +
+        children.map(c => {
+          const gc = _ryData.filter(g => g.parent_id===c.id).sort((a,b)=>(a.position||0)-(b.position||0));
+          const gcHTML = gc.length
+            ? `<div class="ry-children-l2" data-parent-id="${c.id}">${gc.map(g => _ryCardHTML(g, 2)).join('')}</div>`
+            : '';
+          return `<div class="ry-group-l1" data-group-id="${c.id}">${_ryCardHTML(c, 1)}${gcHTML}</div>`;
+        }).join('') + '</div>';
+    }
+    return `<div class="ry-group" data-group-id="${p.id}">${_ryCardHTML(p, 0, children.length>0, collapsed)}${childrenHTML}</div>`;
   }).join('');
   _ryInitDragDrop();
 }
 
 function _ryToggleCollapse(id) {
-  if (_ryCollapsed.has(id)) _ryCollapsed.delete(id);
-  else _ryCollapsed.add(id);
+  if (_ryCollapsed.has(id)) _ryCollapsed.delete(id); else _ryCollapsed.add(id);
   _ryRender();
 }
 
 // ── Drag & drop dual-mode ─────────────────────────────────────────────────────
-// Handle ⠿ → réordonner  |  Tenir sur card body (300ms) → lier parent/enfant
+// Handle ⠿ → réordonner (parent emporte ses enfants)
+// Tenir sur card body (300ms) → lier parent/enfant
+let _ryMouseDragSrc = null, _ryMouseDragCont = null, _ryDragDocBound = false;
+
 function _ryInitDragDrop() {
   const list = document.getElementById('ry-list');
   if (!list) return;
 
-  // ── Mouse drag (handle → réordonner) — rajouté à chaque render ───────────
-  let mouseDragSrc = null;
-  list.querySelectorAll('.ry-card').forEach(row => {
-    row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
-    row.addEventListener('dragstart', e => {
-      if (!row.draggable) { e.preventDefault(); return; }
-      mouseDragSrc = row; row.classList.add('ry-dragging');
-      e.dataTransfer.effectAllowed = 'move';
+  // ── Mouse drag (handle → réordonner) ─────────────────────────────────────
+  list.querySelectorAll('.mch-rayon-handle').forEach(handle => {
+    handle.addEventListener('mousedown', () => {
+      const card = handle.closest('.ry-card');
+      const level = parseInt(card.dataset.level || '0');
+      if (level === 0) {
+        _ryMouseDragSrc = handle.closest('.ry-group');
+        _ryMouseDragCont = list;
+      } else if (level === 1) {
+        _ryMouseDragSrc = handle.closest('.ry-group-l1');
+        _ryMouseDragCont = handle.closest('.ry-children');
+      } else {
+        _ryMouseDragSrc = card;
+        _ryMouseDragCont = handle.closest('.ry-children-l2');
+      }
+      if (_ryMouseDragSrc) _ryMouseDragSrc.draggable = true;
     });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('ry-dragging');
-      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-      _ryCommitOrder(list);
-    });
-    row.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (row === mouseDragSrc) return;
-      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-      row.classList.add('ry-drag-over');
-      const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
-      list.insertBefore(mouseDragSrc, e.clientY < mid ? row : row.nextSibling);
-    });
-    row.addEventListener('drop', e => e.preventDefault());
   });
 
-  // ── Touch — event delegation sur le container (ajouté une seule fois) ────
-  if (list._ryTouchBound) return;
-  list._ryTouchBound = true;
+  // Document-level listeners ajoutés une seule fois
+  if (_ryDragDocBound) return;
+  _ryDragDocBound = true;
 
-  // ── Touch — event delegation sur le container ─────────────────────────────
-  // Handle ⠿ → réordonner (clone flottant)
-  // Card body → lier parent/enfant (like ingredients)
+  document.addEventListener('dragstart', e => {
+    if (!_ryMouseDragSrc || e.target !== _ryMouseDragSrc) return;
+    _ryMouseDragSrc.classList.add('ry-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  document.addEventListener('dragend', () => {
+    const list2 = document.getElementById('ry-list');
+    if (!_ryMouseDragSrc) return;
+    _ryMouseDragSrc.classList.remove('ry-dragging');
+    _ryMouseDragSrc.draggable = false;
+    if (list2) list2.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+    _ryCommitOrder();
+    _ryMouseDragSrc = null; _ryMouseDragCont = null;
+  });
+
+  document.addEventListener('dragover', e => {
+    const list2 = document.getElementById('ry-list');
+    if (!list2 || !_ryMouseDragSrc || !_ryMouseDragCont) return;
+    if (!list2.contains(e.target)) return;
+    e.preventDefault();
+    const cont = _ryMouseDragCont;
+    const isGroup = _ryMouseDragSrc.classList.contains('ry-group');
+    const isGroupL1 = _ryMouseDragSrc.classList.contains('ry-group-l1');
+    const sel = isGroup ? '.ry-group' : isGroupL1 ? '.ry-group-l1' : '.ry-card[data-level="2"]';
+    const target = [...cont.children].find(ch => {
+      if (ch === _ryMouseDragSrc) return false;
+      if (!ch.matches(sel)) return false;
+      const r = ch.getBoundingClientRect();
+      return e.clientY >= r.top && e.clientY <= r.bottom;
+    });
+    if (!target) return;
+    list2.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+    target.classList.add('ry-drag-over');
+    const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+    cont.insertBefore(_ryMouseDragSrc, e.clientY < mid ? target : target.nextSibling);
+  });
+
+  document.addEventListener('drop', e => e.preventDefault());
+
+  // ── Touch — event delegation sur le container (ajouté une seule fois) ────
+  const list0 = document.getElementById('ry-list');
+  if (list0._ryTouchBound) return;
+  list0._ryTouchBound = true;
+
   let touchMode = null, touchTimer = null;
-  let srcCard = null, srcId = null;
+  let touchSrc = null, touchSrcId = null, touchCont = null;
   let touchClone = null, touchOffsetY = 0;
-  let linkOverId = null;
-  let startX = 0, startY = 0;
+  let linkOverId = null, startX = 0, startY = 0;
 
   const resetTouch = () => {
     clearTimeout(touchTimer); touchTimer = null; touchMode = null;
-    if (srcCard) { srcCard.classList.remove('ry-dragging'); srcCard = null; }
-    list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+    if (touchSrc) { touchSrc.classList.remove('ry-dragging'); touchSrc = null; }
+    const l = document.getElementById('ry-list');
+    if (l) l.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
     if (touchClone) { touchClone.remove(); touchClone = null; }
-    srcId = null; linkOverId = null;
+    touchSrcId = null; linkOverId = null; touchCont = null;
   };
 
-  list.addEventListener('touchstart', e => {
+  list0.addEventListener('touchstart', e => {
     resetTouch();
     const card = e.target.closest('.ry-card');
     if (!card || e.target.closest('.ry-btn')) return;
     const t = e.touches[0];
     startX = t.clientX; startY = t.clientY;
-    srcCard = card;
-    srcId = parseInt(card.dataset.ryId);
+    touchSrcId = parseInt(card.dataset.ryId);
+    const level = parseInt(card.dataset.level || '0');
     const onHandle = !!e.target.closest('.mch-rayon-handle');
 
     if (onHandle) {
+      if (level === 0) { touchSrc = card.closest('.ry-group'); touchCont = list0; }
+      else if (level === 1) { touchSrc = card.closest('.ry-group-l1'); touchCont = card.closest('.ry-children'); }
+      else { touchSrc = card; touchCont = card.closest('.ry-children-l2'); }
       touchTimer = setTimeout(() => {
+        if (!touchSrc) return;
         touchMode = 'reorder';
-        card.classList.add('ry-dragging');
-        touchClone = card.cloneNode(true);
-        const rect = card.getBoundingClientRect();
+        touchSrc.classList.add('ry-dragging');
+        const rect = touchSrc.getBoundingClientRect();
         touchOffsetY = t.clientY - rect.top;
+        touchClone = touchSrc.cloneNode(true);
         Object.assign(touchClone.style, {
           position:'fixed', left:rect.left+'px', top:rect.top+'px',
           width:rect.width+'px', opacity:'.85', zIndex:'9999',
@@ -10231,6 +10299,7 @@ function _ryInitDragDrop() {
         document.body.appendChild(touchClone);
       }, 250);
     } else {
+      touchSrc = card;
       touchTimer = setTimeout(() => {
         touchMode = 'link';
         card.classList.add('ry-dragging');
@@ -10238,13 +10307,12 @@ function _ryInitDragDrop() {
     }
   }, { passive: true });
 
-  list.addEventListener('touchmove', e => {
-    if (!srcCard) return;
+  list0.addEventListener('touchmove', e => {
+    if (!touchSrc) return;
     const t = e.touches[0];
     if (!touchMode) {
-      // Seuil 12px — annule si l'utilisateur scrolle avant le timer
       if (Math.hypot(t.clientX - startX, t.clientY - startY) > 12) {
-        clearTimeout(touchTimer); touchTimer = null; srcCard = null;
+        clearTimeout(touchTimer); touchTimer = null; touchSrc = null;
       }
       return;
     }
@@ -10256,38 +10324,45 @@ function _ryInitDragDrop() {
       const zone = 80, vy = t.clientY, vh = window.innerHeight;
       if (vy < zone) scrollEl.scrollTop -= Math.round((zone - vy) / 4);
       else if (vy > vh - zone) scrollEl.scrollTop += Math.round((vy - (vh - zone)) / 4);
+      const cont = touchCont;
+      if (!cont) return;
+      const isGroup = touchSrc.classList.contains('ry-group');
+      const isGroupL1 = touchSrc.classList.contains('ry-group-l1');
+      const sel = isGroup ? '.ry-group' : isGroupL1 ? '.ry-group-l1' : '.ry-card';
       const els = document.elementsFromPoint(t.clientX, t.clientY);
-      const target = els.find(el => el.classList.contains('ry-card') && el !== srcCard && el.closest('#ry-list'));
+      let target = null;
+      for (const el of els) {
+        if (el === touchSrc || el === touchClone) continue;
+        if (el.matches && el.matches(sel) && el.parentElement === cont) { target = el; break; }
+      }
+      const l = document.getElementById('ry-list');
+      if (l) l.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
       if (target) {
-        list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
         target.classList.add('ry-drag-over');
         const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-        list.insertBefore(srcCard, t.clientY < mid ? target : target.nextSibling);
+        cont.insertBefore(touchSrc, t.clientY < mid ? target : target.nextSibling);
       }
     } else {
-      // mode 'link'
       const el = document.elementFromPoint(t.clientX, t.clientY);
       const target = el && el.closest('.ry-card');
-      list.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
-      if (target && target !== srcCard) {
+      const l = document.getElementById('ry-list');
+      if (l) l.querySelectorAll('.ry-drag-over').forEach(r => r.classList.remove('ry-drag-over'));
+      if (target && target !== touchSrc) {
         target.classList.add('ry-drag-over');
         linkOverId = parseInt(target.dataset.ryId);
       } else { linkOverId = null; }
     }
   }, { passive: false });
 
-  list.addEventListener('touchend', async () => {
+  list0.addEventListener('touchend', async () => {
     clearTimeout(touchTimer);
-    const mode = touchMode, child = srcId, over = linkOverId, card = srcCard;
+    const mode = touchMode, child = touchSrcId, over = linkOverId;
     resetTouch();
-    if (mode === 'reorder') {
-      _ryCommitOrder(list);
-    } else if (mode === 'link' && child && over) {
-      await _rySetParent(child, over);
-    }
+    if (mode === 'reorder') _ryCommitOrder();
+    else if (mode === 'link' && child && over) await _rySetParent(child, over);
   });
 
-  list.addEventListener('touchcancel', resetTouch);
+  list0.addEventListener('touchcancel', resetTouch);
 }
 
 async function _rySetParent(childId, parentId) {
@@ -10312,19 +10387,26 @@ async function _rySetParent(childId, parentId) {
   } catch(_) { showToast('Erreur réseau', 'err'); }
 }
 
-async function _ryCommitOrder(list) {
+function _ryCommitOrder() {
+  const list = document.getElementById('ry-list');
+  if (!list) return;
   const order = [];
-  list.querySelectorAll('.ry-card').forEach((row, i) => {
-    order.push({ id: parseInt(row.dataset.ryId), position: i });
+  list.querySelectorAll(':scope > .ry-group').forEach((group, i) => {
+    order.push({ id: parseInt(group.dataset.groupId), position: i });
+    const children = group.querySelector('.ry-children');
+    if (children) {
+      children.querySelectorAll(':scope > .ry-group-l1').forEach((cg, ci) => {
+        order.push({ id: parseInt(cg.dataset.groupId), position: ci });
+        const gc = cg.querySelector('.ry-children-l2');
+        if (gc) gc.querySelectorAll(':scope > .ry-card').forEach((card, gi) => {
+          order.push({ id: parseInt(card.dataset.ryId), position: gi });
+        });
+      });
+    }
   });
-  // Mettre à jour _ryData en local pour que le prochain _ryRender() soit stable
-  order.forEach(({id, position}) => {
-    const r = _ryData.find(x => x.id === id);
-    if (r) r.position = position;
-  });
-  try {
-    await fetch('/api/rayons/order', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });
-  } catch(e) { showToast('Erreur sauvegarde ordre', 'err'); }
+  order.forEach(({id, position}) => { const r = _ryData.find(x => x.id === id); if (r) r.position = position; });
+  fetch('/api/rayons/order', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) })
+    .catch(() => showToast('Erreur sauvegarde ordre', 'err'));
 }
 
 // ── Modal créer/éditer ────────────────────────────────────────────────────────
@@ -10429,6 +10511,86 @@ function _ryConfirmDelete(id) {
       await _ryLoad();
     })
     .catch(() => showToast('Erreur réseau', 'err'));
+}
+
+// ── Import bulk ───────────────────────────────────────────────────────────────
+function _ryShowImportModal() { document.getElementById('ry-import-modal').classList.add('open'); }
+function _ryCloseImportModal() { document.getElementById('ry-import-modal').classList.remove('open'); }
+
+const _RY_CARREFOUR = [
+  { nom:'Fruits et Légumes', emoji:'🥦', children:[
+    {nom:'Fruits et Légumes Bio'},{nom:'Fruits'},{nom:'Légumes'},{nom:'Prêt à consommer'},
+    {nom:'Jus de fruits frais et Gaspachos'},{nom:'Fruits et Légumes secs'},{nom:'Corbeilles et Paniers'}
+  ]},
+  { nom:'Viandes et Poissons', emoji:'🥩', children:[
+    {nom:'Boucherie'},{nom:'Volaille et Rôtisserie'},{nom:'Poissonnerie'},{nom:'Traiteur de la mer'}
+  ]},
+  { nom:'Crèmerie et Produits laitiers', emoji:'🧀', children:[
+    {nom:'Yaourts et Fromages blancs'},{nom:'Desserts et Compotes'},{nom:'Beurres et Crèmes'},
+    {nom:'Laits et Boissons végétales'},{nom:'Œufs'},{nom:'Fromage à Déguster'},
+    {nom:'Fromages à cuisiner, râpé et à tartiner'}
+  ]},
+  { nom:'Charcuterie et Traiteur', emoji:'🥓', children:[
+    {nom:'Charcuterie'},{nom:'Charcuterie à la coupe'},{nom:'Charcuterie végétale'},
+    {nom:'Apéritifs'},{nom:'Entrées et Salades'},{nom:'Pizzas, Tartes, Pâtes fraîches'},
+    {nom:'Traiteur traditionnel'},{nom:'Sandwichs et Repas express'},
+    {nom:'Plats cuisinés et Cuisine du monde'},{nom:'Pâtes à pizza, Pâtes à tartes et Crêpes'}
+  ]},
+  { nom:'Surgelés', emoji:'❄️', children:[
+    {nom:'Glaces et Sorbets'},{nom:'Fruits et Légumes surgelés'},{nom:'Frites et Pommes de terre'},
+    {nom:'Viandes surgelées'},{nom:'Poissons et Fruits de mer'},{nom:'Pizzas, Quiches et Tartes'},
+    {nom:'Apéritifs, Entrées et Snacking'},{nom:'Plats cuisinés surgelés'},
+    {nom:'Pains, Pâtisseries et Viennoiseries surgelés'}
+  ]},
+  { nom:'Bébé', emoji:'🍼', children:[] },
+  { nom:'Epicerie sucrée', emoji:'🍫', children:[
+    {nom:'Cafés'},{nom:'Petit déjeuner'},{nom:'Thés, Infusions et Boissons chaudes'},
+    {nom:'Confiseries et Chocolats'},{nom:'Biscuits'},{nom:'Gâteaux moelleux'},
+    {nom:'Compotes, Fruits au sirop et Crèmes desserts'},{nom:'Sucres, Farines et Aide à la pâtisserie'}
+  ]},
+  { nom:'Epicerie salée', emoji:'🧂', children:[
+    {nom:'Apéritifs et Chips'},{nom:'Huiles, Vinaigres et Vinaigrettes'},{nom:'Pâtes'},
+    {nom:'Sauces chaudes'},{nom:'Sauces froides'},{nom:'Conserves et Bocaux'},
+    {nom:'Plats cuisinés'},{nom:'Riz, Purées et Féculents'},{nom:'Cornichons et condiments'},
+    {nom:'Aide culinaire végétale'},{nom:'Sel, Epices et Bouillons'},{nom:'Tofu'},{nom:'Soupes et Croutons'}
+  ]},
+  { nom:'Boissons', emoji:'🥤', children:[
+    {nom:'Colas, Thés glacés, Sirops et Sodas'},{nom:'Eaux'},{nom:'Jus de fruits et légumes'},
+    {nom:'Boissons sans alcool'},{nom:'Bières et Cidres'},{nom:'Cave à Vins'},
+    {nom:'Champagnes et Pétillants'},{nom:'Apéritifs et Spiritueux'},
+    {nom:'Thés, Infusions et Boissons chaudes (boissons)'},{nom:'Cafés (boissons)'},{nom:'Boissons végétales'}
+  ]},
+  { nom:'Pains et Pâtisseries', emoji:'🥖', children:[
+    {nom:'Pains frais'},{nom:'Toasts et Pains de mie'},{nom:'Viennoiseries et Brioches fraîches'},
+    {nom:'Viennoiseries et Brioches'},{nom:'Tartes et Pâtisseries'},{nom:'Pains Burger, Sandwich et Wraps'}
+  ]},
+  { nom:'Bio et Ecologie', emoji:'🌿', children:[] },
+  { nom:'Entretien et Nettoyage', emoji:'🧹', children:[
+    {nom:'Lessives'},{nom:'Adoucissants et Soin du linge'},{nom:'Nettoyants vaisselle'},
+    {nom:'Produits nettoyants'},{nom:'Essuie-tout, Papier toilette et Mouchoirs'},
+    {nom:'Désodorisants et Bougies'},{nom:'Accessoires de ménage'},{nom:'Anti-moustiques et Insecticides'}
+  ]},
+  { nom:'Hygiène et Beauté', emoji:'🧴', children:[
+    {nom:'Soins du visage'},{nom:'Soins du corps'},{nom:'Soins des cheveux'},
+    {nom:'Hygiène dentaire'},{nom:'Hygiène intime'},{nom:'Hommes'},{nom:'Maquillage'},
+    {nom:'Enfants'},{nom:'Premiers soins et Préservatifs'},
+    {nom:'Papier toilette, Mouchoirs, Cotons, Incontinence'},
+    {nom:'Produits solaires et Auto-bronzant'},{nom:'Formats voyage'},{nom:'Nouveautés et Tendances'}
+  ]}
+];
+
+async function _ryImportCarrefour() {
+  _ryCloseImportModal();
+  try {
+    const r = await fetch('/api/rayons/bulk-import', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ rayons: _RY_CARREFOUR })
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Erreur import', 'err'); return; }
+    showToast(`${d.imported} rayons importés ✓`, 'ok');
+    await _ryLoad();
+  } catch(e) { showToast('Erreur réseau', 'err'); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
