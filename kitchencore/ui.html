@@ -1869,7 +1869,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .rayon-chip:hover { border-color: var(--orange); color: var(--orange); }
   .rayon-chip.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+  .rayon-chip.has-children.open { border-color: var(--orange); color: var(--orange); }
   .ing-panel-rayon-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rayon-children-row { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; padding: 4px 0 4px 12px; border-left: 3px solid var(--orange-l); }
+  .rayon-chip.child { font-size: 12px; padding: 6px 11px; }
 
   /* Recettes liées */
   .ing-panel-recipes { display: flex; flex-direction: column; gap: 6px; }
@@ -4310,9 +4313,35 @@ function stockEditPickZone(btn, zone) {
 function _stockRenderRayonChips() {
   const grid = document.getElementById('stock-editRayonGrid');
   if (!grid) return;
-  grid.innerHTML =
-    `<div class="rayon-chip${!_stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,null)">Aucun</div>` +
-    _RAYONS.map(r => `<div class="rayon-chip${r.id === _stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,${r.id})">${_rayonIcon(r)} ${r.nom}</div>`).join('');
+  const parents  = _RAYONS.filter(r => !r.parent_id);
+  const children = _RAYONS.filter(r =>  r.parent_id);
+  const selParent = children.find(c => c.id === _stockEditRayonId)?.parent_id ?? null;
+
+  const parentChips = parents.map(p => {
+    const kids = children.filter(c => c.parent_id === p.id);
+    const isOpen = p.id === selParent || kids.some(c => c.id === _stockEditRayonId);
+    const hasKids = kids.length > 0;
+    const kidsHtml = hasKids
+      ? `<div class="rayon-children-row" style="${isOpen?'':'display:none'}">` +
+        kids.map(c => `<div class="rayon-chip child${c.id===_stockEditRayonId?' active':''}" onclick="stockEditPickRayon(this,${c.id})">${_rayonIcon(c)} ${c.nom}</div>`).join('') +
+        `</div>`
+      : '';
+    return `<div class="rayon-chip${p.id===_stockEditRayonId?' active':''}${hasKids?' has-children':''}${isOpen?' open':''}"
+      onclick="stockToggleRayonParent(this,${p.id},${hasKids})">
+      ${_rayonIcon(p)} ${p.nom}${hasKids?' ▾':''}
+    </div>${kidsHtml}`;
+  }).join('');
+
+  grid.innerHTML = `<div class="rayon-chip${!_stockEditRayonId ? ' active' : ''}" onclick="stockEditPickRayon(this,null)">Aucun</div>` + parentChips;
+}
+
+function stockToggleRayonParent(btn, id, hasKids) {
+  if (!hasKids) { stockEditPickRayon(btn, id); return; }
+  const grid = document.getElementById('stock-editRayonGrid');
+  const isOpen = btn.classList.contains('open');
+  grid.querySelectorAll('.rayon-children-row').forEach(r => r.style.display = 'none');
+  grid.querySelectorAll('.rayon-chip.has-children').forEach(b => b.classList.remove('open'));
+  if (!isOpen) { btn.classList.add('open'); btn.nextElementSibling.style.display = 'flex'; }
 }
 
 function stockEditPickRayon(btn, id) {
@@ -9521,13 +9550,37 @@ function _ingOpenEditPanel(id, e) {
 }
 
 function _ingRenderRayonGrid(containerId, selected) {
-  document.getElementById(containerId).innerHTML = _ingRayons.map(r =>
-    `<button class="rayon-chip${r.id===selected?' active':''}" data-rayon-id="${r.id}"
-      onclick="ingSelectRayon('${containerId}', ${r.id}, this)">
-      ${_rayonIcon(r)} ${r.nom}
-    </button>`
-  ).join('');
+  const parents  = _ingRayons.filter(r => !r.parent_id);
+  const children = _ingRayons.filter(r =>  r.parent_id);
+  const selParent = children.find(c => c.id === selected)?.parent_id ?? null;
+
+  document.getElementById(containerId).innerHTML = parents.map(p => {
+    const kids = children.filter(c => c.parent_id === p.id);
+    const isOpen = p.id === selParent || kids.some(c => c.id === selected);
+    const parentActive = p.id === selected;
+    const hasKids = kids.length > 0;
+    const kidsHtml = hasKids
+      ? `<div class="rayon-children-row" style="${isOpen?'':'display:none'}">` +
+        kids.map(c => `<button class="rayon-chip child${c.id===selected?' active':''}" data-rayon-id="${c.id}"
+          onclick="ingSelectRayon('${containerId}',${c.id},this)">${_rayonIcon(c)} ${c.nom}</button>`).join('') +
+        `</div>`
+      : '';
+    return `<button class="rayon-chip${parentActive?' active':''}${hasKids?' has-children':''}${isOpen?' open':''}" data-rayon-id="${p.id}"
+      onclick="ingToggleRayonParent('${containerId}',${p.id},this,${hasKids})">
+      ${_rayonIcon(p)} ${p.nom}${hasKids?' ▾':''}
+    </button>${kidsHtml}`;
+  }).join('');
 }
+
+function ingToggleRayonParent(containerId, id, btn, hasKids) {
+  if (!hasKids) { ingSelectRayon(containerId, id, btn); return; }
+  const isOpen = btn.classList.contains('open');
+  // ferme tous les enfants ouverts
+  document.querySelectorAll(`#${containerId} .rayon-children-row`).forEach(r => r.style.display = 'none');
+  document.querySelectorAll(`#${containerId} .rayon-chip.has-children`).forEach(b => b.classList.remove('open'));
+  if (!isOpen) { btn.classList.add('open'); btn.nextElementSibling.style.display = 'flex'; }
+}
+window.ingToggleRayonParent = ingToggleRayonParent;
 
 function _ingSelectRayon(containerId, id, btn) {
   document.querySelectorAll(`#${containerId} .rayon-chip`).forEach(b => b.classList.remove('active'));
