@@ -1272,9 +1272,11 @@ app.put('/api/rayons/order', (req, res) => {
 
 app.delete('/api/rayons/:id', (req, res) => {
   const n_ing = db.prepare('SELECT COUNT(*) as n FROM ingredients WHERE rayon_id=?').get(req.params.id).n;
-  const n_mr  = db.prepare('SELECT COUNT(*) as n FROM marchand_rayons WHERE rayon_id=?').get(req.params.id).n;
-  if (n_ing > 0 || n_mr > 0)
-    return res.status(409).json({ error: `Rayon utilisé par ${n_ing} ingrédient(s) et ${n_mr} marchand(s)` });
+  if (n_ing > 0)
+    return res.status(409).json({ error: `Rayon utilisé par ${n_ing} ingrédient(s)` });
+  // Les liens marchand_rayons ne sont qu'une association (le marchand n'est pas supprimé) :
+  // on les retire au lieu de bloquer la suppression du rayon.
+  db.prepare('DELETE FROM marchand_rayons WHERE rayon_id=?').run(req.params.id);
   db.prepare('DELETE FROM rayons WHERE id=?').run(req.params.id);
   res.status(204).end();
 });
