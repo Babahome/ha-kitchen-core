@@ -2201,12 +2201,21 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .mch-rayons-label { font-size: .73rem; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
 .mch-rayons-label span:last-child { font-weight: 600; text-transform: none; letter-spacing: 0; }
 .mch-rayon-list { display: flex; flex-direction: column; gap: 4px; }
+.mch-rayon-group { display: flex; flex-direction: column; gap: 4px; }
+.mch-rayon-group.dragging { opacity: .45; }
+.mch-rayon-group.drag-over > .mch-rayon-row { background: var(--orange-l); border-color: var(--orange); }
 .mch-rayon-row { display: flex; align-items: center; gap: 10px; background: var(--grey-l); border-radius: 10px; padding: 9px 10px; user-select: none; transition: background .15s, box-shadow .15s; border: 2px solid transparent; }
 .mch-rayon-row.dragging { opacity: .45; cursor: grabbing; }
 .mch-rayon-row.drag-over { background: var(--orange-l); border-color: var(--orange); }
 .mch-rayon-handle { color: var(--grey-d); font-size: 1.1rem; flex-shrink: 0; line-height: 1; cursor: grab; touch-action: none; padding: 4px 6px; margin: -4px -6px; }
 .mch-rayon-emoji { font-size: 1.2rem; flex-shrink: 0; }
 .mch-rayon-nom { flex: 1; font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mch-rayon-toggle { border: none; background: none; color: var(--text2); font-size: .75rem; cursor: pointer; padding: 4px 2px; flex-shrink: 0; line-height: 1; }
+.mch-rayon-count { font-size: .7rem; color: var(--text2); font-weight: 800; background: white; border-radius: 8px; padding: 2px 7px; flex-shrink: 0; }
+.mch-rayon-children { display: flex; flex-direction: column; gap: 3px; margin: 0 0 0 24px; padding-left: 10px; border-left: 2px solid var(--grey); }
+.mch-rayon-row-child { padding: 6px 8px; }
+.mch-rayon-row-child .mch-rayon-nom { font-size: .8rem; font-weight: 600; }
+.mch-rayon-row-child .mch-rayon-emoji { font-size: 1rem; }
 .mch-rayon-actions { display: flex; gap: 4px; }
 .mch-rayon-action-btn { width: 28px; height: 28px; border-radius: 7px; border: none; background: white; cursor: pointer; font-size: .85rem; display: grid; place-items: center; transition: background .15s; }
 .mch-rayon-action-btn:active { background: var(--grey); }
@@ -10679,6 +10688,7 @@ async function _ryImportCarrefour() {
 
 let _mchData = [];
 let _mchLoading = false;
+const _mchRayExpanded = new Set(); // clés "marchandId:rayonId" des groupes de sous-rayons dépliés
 
 async function _mchLoad() {
   if (_mchLoading) return;
@@ -10709,8 +10719,11 @@ function _mchRender() {
 
 function _mchRenderMarchand(m) {
   const nb = m.rayons.length;
-  const rayonsHTML = nb
-    ? m.rayons.map(r => _mchRenderRayon(m.id, r)).join('')
+  const parents = m.rayons.filter(r => !r.parent_id);
+  const childrenByParent = {};
+  m.rayons.filter(r => r.parent_id).forEach(r => (childrenByParent[r.parent_id] ||= []).push(r));
+  const rayonsHTML = parents.length
+    ? parents.map(p => _mchRenderRayonGroup(m.id, p, childrenByParent[p.id] || [])).join('')
     : '<div style="font-size:.82rem;color:var(--text2);font-weight:600;padding:4px 2px">Aucun rayon défini dans le catalogue.</div>';
   return `
   <div class="mch-card" id="mch-card-${m.id}">
@@ -10732,13 +10745,31 @@ function _mchRenderMarchand(m) {
   </div>`;
 }
 
-function _mchRenderRayon(mId, r) {
-  const indent = r.parent_id ? 'padding-left:22px;border-left:3px solid var(--grey);' : '';
-  const style = indent ? `style="${indent}"` : '';
-  return `<div class="mch-rayon-row" data-rayon-id="${r.id}" data-marchand-id="${mId}" ${style}>
+function _mchRenderRayonGroup(mId, p, children) {
+  const hasKids = children.length > 0;
+  const expanded = hasKids && _mchRayExpanded.has(`${mId}:${p.id}`);
+  const extra = hasKids
+    ? `<button class="mch-rayon-toggle" onclick="event.stopPropagation();_mchToggleRayonGroup(${mId},${p.id})">${expanded ? '▾' : '▸'}</button>
+       <span class="mch-rayon-count">${children.length}</span>`
+    : '';
+  const childrenHTML = hasKids
+    ? `<div class="mch-rayon-children" style="${expanded ? '' : 'display:none'}">${children.map(c => _mchRenderRayon(mId, c, true)).join('')}</div>`
+    : '';
+  return `<div class="mch-rayon-group" data-group-id="${p.id}">${_mchRenderRayon(mId, p, false, extra)}${childrenHTML}</div>`;
+}
+
+function _mchToggleRayonGroup(mId, rId) {
+  const key = `${mId}:${rId}`;
+  if (_mchRayExpanded.has(key)) _mchRayExpanded.delete(key); else _mchRayExpanded.add(key);
+  _mchRender();
+}
+
+function _mchRenderRayon(mId, r, isChild, extra='') {
+  return `<div class="mch-rayon-row${isChild ? ' mch-rayon-row-child' : ''}" data-rayon-id="${r.id}" data-marchand-id="${mId}">
     <div class="mch-rayon-handle">⠿</div>
-    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:28px;height:28px;object-fit:cover;border-radius:6px">` : (r.emoji || '📦')}</div>
+    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:${isChild?22:28}px;height:${isChild?22:28}px;object-fit:cover;border-radius:6px">` : (r.emoji || '📦')}</div>
     <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
+    ${extra}
   </div>`;
 }
 
@@ -11021,88 +11052,108 @@ function _mchSelectEmoji(el, containerId, emoji) {
 }
 
 // ── Drag & Drop rayons ────────────────────────────────────────────────────────
+// Deux niveaux indépendants : les groupes (rayon parent + ses sous-rayons, qui
+// voyagent ensemble) se réordonnent dans la liste principale ; les sous-rayons
+// se réordonnent uniquement entre eux, à l'intérieur de leur propre groupe.
 
 function _mchInitDragDrop(mId) {
   const list = document.getElementById(`mch-rayon-list-${mId}`);
   if (!list) return;
+  const onCommit = () => _mchCommitOrder(mId, list);
+  list.querySelectorAll(':scope > .mch-rayon-group').forEach(group => {
+    const handle = group.querySelector(':scope > .mch-rayon-row > .mch-rayon-handle');
+    if (handle) _mchInitDragItem(group, list, '.mch-rayon-group', handle, onCommit);
+  });
+  list.querySelectorAll('.mch-rayon-children').forEach(childList => {
+    childList.querySelectorAll(':scope > .mch-rayon-row').forEach(row => {
+      const handle = row.querySelector(':scope > .mch-rayon-handle');
+      if (handle) _mchInitDragItem(row, childList, '.mch-rayon-row', handle, onCommit);
+    });
+  });
+}
+
+function _mchInitDragItem(item, container, itemSelector, handle, onCommit) {
   let dragSrc = null;
 
-  list.querySelectorAll('.mch-rayon-row').forEach(row => {
-    row.addEventListener('mousedown', e => { row.draggable = !!e.target.closest('.mch-rayon-handle'); });
-    row.addEventListener('dragstart', e => {
-      if (!row.draggable) { e.preventDefault(); return; }
-      dragSrc = row; row.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
-      _mchCommitOrder(mId, list);
-    });
-    row.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (row === dragSrc) return;
-      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
-      row.classList.add('drag-over');
-      const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
-      list.insertBefore(dragSrc, e.clientY < mid ? row : row.nextSibling);
-    });
-    row.addEventListener('drop', e => e.preventDefault());
+  item.addEventListener('mousedown', e => { item.draggable = e.target.closest('.mch-rayon-handle') === handle; });
+  item.addEventListener('dragstart', e => {
+    if (!item.draggable) { e.preventDefault(); return; }
+    dragSrc = item; item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  item.addEventListener('dragend', () => {
+    if (item !== dragSrc) return;
+    item.classList.remove('dragging');
+    container.querySelectorAll(':scope > ' + itemSelector).forEach(r => r.classList.remove('drag-over'));
+    dragSrc = null;
+    onCommit();
+  });
+  item.addEventListener('dragover', e => {
+    if (!dragSrc || item === dragSrc || item.parentElement !== container) return;
+    e.preventDefault();
+    container.querySelectorAll(':scope > ' + itemSelector).forEach(r => r.classList.remove('drag-over'));
+    item.classList.add('drag-over');
+    const mid = item.getBoundingClientRect().top + item.getBoundingClientRect().height / 2;
+    container.insertBefore(dragSrc, e.clientY < mid ? item : item.nextSibling);
+  });
+  item.addEventListener('drop', e => e.preventDefault());
 
-    let touchOffsetY = 0, touchClone = null, touchTimer = null, touchDragging = false;
-    row.addEventListener('touchstart', e => {
-      if (!e.target.closest('.mch-rayon-handle')) return;
-      touchDragging = false;
-      touchTimer = setTimeout(() => {
-        touchDragging = true;
-        dragSrc = row;
-        row.classList.add('dragging');
-        touchClone = row.cloneNode(true);
-        const rect = row.getBoundingClientRect();
-        const touch = e.touches[0];
-        touchOffsetY = touch.clientY - rect.top;
-        Object.assign(touchClone.style, {
-          position:'fixed', left:rect.left+'px', top:rect.top+'px',
-          width:rect.width+'px', opacity:'.85', zIndex:'9999',
-          pointerEvents:'none', borderRadius:'10px',
-          background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
-        });
-        document.body.appendChild(touchClone);
-      }, 250);
-    }, { passive: true });
-
-    row.addEventListener('touchmove', e => {
-      if (!touchDragging) { clearTimeout(touchTimer); return; }
-      e.preventDefault();
+  let touchOffsetY = 0, touchClone = null, touchTimer = null, touchDragging = false;
+  handle.addEventListener('touchstart', e => {
+    touchDragging = false;
+    touchTimer = setTimeout(() => {
+      touchDragging = true;
+      dragSrc = item;
+      item.classList.add('dragging');
+      touchClone = item.cloneNode(true);
+      const rect = item.getBoundingClientRect();
       const touch = e.touches[0];
-      if (touchClone) {
-        touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
-      }
-      const els = document.elementsFromPoint(touch.clientX, touch.clientY);
-      const target = els.find(el => el.classList.contains('mch-rayon-row') && el !== dragSrc && el.closest(`#mch-rayon-list-${mId}`));
-      if (target) {
-        list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
-        target.classList.add('drag-over');
-        const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-        list.insertBefore(dragSrc, touch.clientY < mid ? target : target.nextSibling);
-      }
-    }, { passive: false });
+      touchOffsetY = touch.clientY - rect.top;
+      Object.assign(touchClone.style, {
+        position:'fixed', left:rect.left+'px', top:rect.top+'px',
+        width:rect.width+'px', opacity:'.85', zIndex:'9999',
+        pointerEvents:'none', borderRadius:'10px',
+        background:'var(--orange-l)', boxShadow:'0 8px 24px rgba(232,103,26,.3)'
+      });
+      document.body.appendChild(touchClone);
+    }, 250);
+  }, { passive: true });
 
-    row.addEventListener('touchend', () => {
-      clearTimeout(touchTimer);
-      if (!touchDragging) return;
-      row.classList.remove('dragging');
-      list.querySelectorAll('.mch-rayon-row').forEach(r => r.classList.remove('drag-over'));
-      if (touchClone) { touchClone.remove(); touchClone = null; }
-      _mchCommitOrder(mId, list);
-    });
+  handle.addEventListener('touchmove', e => {
+    if (!touchDragging) { clearTimeout(touchTimer); return; }
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
+    const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+    const target = els.find(el => el !== dragSrc && el.matches && el.matches(itemSelector) && el.parentElement === container);
+    if (target) {
+      container.querySelectorAll(':scope > ' + itemSelector).forEach(r => r.classList.remove('drag-over'));
+      target.classList.add('drag-over');
+      const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+      container.insertBefore(dragSrc, touch.clientY < mid ? target : target.nextSibling);
+    }
+  }, { passive: false });
+
+  handle.addEventListener('touchend', () => {
+    clearTimeout(touchTimer);
+    if (!touchDragging) return;
+    item.classList.remove('dragging');
+    container.querySelectorAll(':scope > ' + itemSelector).forEach(r => r.classList.remove('drag-over'));
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    dragSrc = null;
+    onCommit();
   });
 }
 
 async function _mchCommitOrder(mId, list) {
   const order = [];
-  list.querySelectorAll('.mch-rayon-row').forEach((row, i) => {
-    order.push({ rayon_id: parseInt(row.dataset.rayonId), position: i });
+  let i = 0;
+  list.querySelectorAll(':scope > .mch-rayon-group').forEach(group => {
+    const header = group.querySelector(':scope > .mch-rayon-row');
+    if (header) order.push({ rayon_id: parseInt(header.dataset.rayonId), position: i++ });
+    group.querySelectorAll('.mch-rayon-children > .mch-rayon-row').forEach(row => {
+      order.push({ rayon_id: parseInt(row.dataset.rayonId), position: i++ });
+    });
   });
   try {
     await fetch(`/api/marchands/${mId}/rayons/order`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order}) });
