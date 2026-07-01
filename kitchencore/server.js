@@ -1281,6 +1281,8 @@ app.delete('/api/rayons/:id', (req, res) => {
       db.prepare('DELETE FROM marchand_rayons WHERE rayon_id=?').run(req.params.id);
       // Les sous-rayons remontent au niveau racine plutôt que de bloquer la suppression.
       db.prepare('UPDATE rayons SET parent_id=NULL WHERE parent_id=?').run(req.params.id);
+      // Un produit rangé dans ce rayon perd juste cette info de classement, pas le produit lui-même.
+      db.prepare('UPDATE produits SET rayon_id=NULL WHERE rayon_id=?').run(req.params.id);
       db.prepare('DELETE FROM rayons WHERE id=?').run(req.params.id);
     })();
     res.status(204).end();
