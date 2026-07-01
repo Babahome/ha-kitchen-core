@@ -1274,11 +1274,20 @@ app.delete('/api/rayons/:id', (req, res) => {
   const n_ing = db.prepare('SELECT COUNT(*) as n FROM ingredients WHERE rayon_id=?').get(req.params.id).n;
   if (n_ing > 0)
     return res.status(409).json({ error: `Rayon utilisé par ${n_ing} ingrédient(s)` });
-  // Les liens marchand_rayons ne sont qu'une association (le marchand n'est pas supprimé) :
-  // on les retire au lieu de bloquer la suppression du rayon.
-  db.prepare('DELETE FROM marchand_rayons WHERE rayon_id=?').run(req.params.id);
-  db.prepare('DELETE FROM rayons WHERE id=?').run(req.params.id);
-  res.status(204).end();
+  try {
+    db.transaction(() => {
+      // Les liens marchand_rayons ne sont qu'une association (le marchand n'est pas supprimé) :
+      // on les retire au lieu de bloquer la suppression du rayon.
+      db.prepare('DELETE FROM marchand_rayons WHERE rayon_id=?').run(req.params.id);
+      // Les sous-rayons remontent au niveau racine plutôt que de bloquer la suppression.
+      db.prepare('UPDATE rayons SET parent_id=NULL WHERE parent_id=?').run(req.params.id);
+      db.prepare('DELETE FROM rayons WHERE id=?').run(req.params.id);
+    })();
+    res.status(204).end();
+  } catch (e) {
+    console.error('[DELETE /api/rayons/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
