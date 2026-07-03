@@ -1482,29 +1482,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   /* ── PAGE CONTENT ── */
   #page-ingredients .page-content { padding: 16px 16px 120px; }
 
-  /* ── TABS (interne page ingrédients) ── */
-  #page-ingredients .tabs-bar {
-    background: white;
-    padding: 0 16px;
-    display: flex; gap: 0;
-    border-bottom: 2px solid var(--grey);
-    overflow-x: auto; scrollbar-width: none;
-    margin: 0 -16px 16px;
-  }
-  #page-ingredients .tabs-bar::-webkit-scrollbar { display: none; }
-  #page-ingredients .tab-btn {
-    padding: 12px 16px;
-    border: none; background: none;
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px; font-weight: 600;
-    color: var(--grey-d); cursor: pointer;
-    white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  #page-ingredients .tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
-
   /* ── STATS BANNER ── */
   #page-ingredients .stats-row {
     display: flex; gap: 10px; margin-bottom: 16px;
@@ -1542,10 +1519,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .ing-checkbox {
     width: 22px; height: 22px; flex-shrink: 0;
     border: 2px solid var(--grey);
-    border-radius: 6px;
+    border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.15s;
     background: white;
+    font-size: 13px; color: white;
   }
   .ing-card.selected .ing-checkbox {
     background: var(--orange); border-color: var(--orange); color: white;
@@ -1973,23 +1951,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .frame > .ing-bottom-sheet .btn-primary:active { opacity: .85; }
 
-  /* ── FILTER SECTION ── */
-  #page-ingredients .filter-row {
-    display: flex; gap: 8px; overflow-x: auto;
-    scrollbar-width: none; margin-bottom: 16px;
-    padding-bottom: 2px;
-  }
-  #page-ingredients .filter-row::-webkit-scrollbar { display: none; }
-  #page-ingredients .filter-chip {
-    padding: 7px 14px; border-radius: 20px;
-    background: white; border: 2px solid var(--grey);
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700; color: var(--text2);
-    cursor: pointer; white-space: nowrap;
-    transition: all 0.15s;
-  }
-  #page-ingredients .filter-chip.active { background: var(--orange-l); border-color: var(--orange); color: var(--orange); }
-
   /* ── DUPLICATES TAB ── */
   #page-ingredients .dup-group {
     background: white; border-radius: var(--radius);
@@ -2038,21 +1999,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   .ing-card { animation: ingSlideUp 0.2s ease both; }
 
-
-  /* ── HEADER ACTIONS page ingrédients (boutons "Sélectionner" / reset) ── */
-  .ing-header-actions {
-    display: none; gap: 8px; align-items: center;
-    margin-left: auto;
-  }
-  .ing-header-actions.visible { display: flex; }
-  .ing-header-btn {
-    background: rgba(255,255,255,0.2); border: none;
-    border-radius: 20px; color: white;
-    padding: 6px 12px; font-family: 'Nunito', sans-serif;
-    font-size: 13px; font-weight: 700;
-    cursor: pointer; transition: background 0.15s;
-  }
-  .ing-header-btn:hover { background: rgba(255,255,255,0.35); }
 /* ══ /PAGE INGRÉDIENTS ═════════════════════════════════════════════════════ */
 
 /* ══ MODAL IMPORT RECETTE ══════════════════════════════════════════════════ */
@@ -2303,13 +2249,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     </div>
     <div class="header-title" id="header-title">Stock Cuisine</div>
     <div class="btn-tod" id="btn-tod" onclick="mToday()">📍 Aujourd'hui</div>
-    <div class="ing-header-actions" id="ing-headerActions">
-      <button class="ing-header-btn" id="ing-selectBtn" onclick="ingToggleSelectMode()">Sélectionner</button>
-    </div>
     <div class="tag-header-actions" id="tag-headerActions">
       <button class="tag-header-btn" id="tag-selectBtn" onclick="tagToggleSelectMode()">Sélectionner</button>
     </div>
     <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
+    <div class="header-icon" id="ing-sf-header-btn" style="display:none" onclick="ingSfOpen()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
     <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
   </div>
 
@@ -2508,18 +2452,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <!-- ══ PAGE INGRÉDIENTS (v1.0) ═════════════════════════════════════════════ -->
     <div id="page-ingredients" class="page">
 
-      <!-- TABS internes -->
-      <div class="tabs-bar">
-        <button class="tab-btn active" data-ing-tab="tous" onclick="ingSwitchTab('tous', this)">
-          Tous <span id="ing-tabCountTous" style="font-size:12px;opacity:0.7"></span>
-        </button>
-        <button class="tab-btn" data-ing-tab="sans-rayon" onclick="ingSwitchTab('sans-rayon', this)">⚠️ Sans rayon</button>
-        <button class="tab-btn" data-ing-tab="sans-image" onclick="ingSwitchTab('sans-image', this)">🖼 Sans image</button>
-        <button class="tab-btn" data-ing-tab="sans-recette" onclick="ingSwitchTab('sans-recette', this)">📋 Sans recette</button>
-        <button class="tab-btn" data-ing-tab="sans-saison" onclick="ingSwitchTab('sans-saison', this)">🌿 Sans saison</button>
-        <button class="tab-btn" data-ing-tab="doublons" onclick="ingSwitchTab('doublons', this)">🔀 Doublons potentiels</button>
-      </div>
-
       <!-- PAGE CONTENT -->
       <div class="page-content" id="ing-pageContent">
         <!-- Stats -->
@@ -2536,17 +2468,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
             <div class="stat-num" id="ing-statSansImage">0</div>
             <div class="stat-label">sans image</div>
           </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="filter-row" id="ing-filterRow">
-          <button class="filter-chip active" onclick="ingSetFilter('tous', this)">Tout</button>
-        </div>
-
-        <!-- Sort -->
-        <div class="filter-row" id="ing-sortRow" style="padding-top:0;gap:6px">
-          <button class="filter-chip active" id="ing-sort-alpha" onclick="ingSortBy('alpha', this)">A → Z</button>
-          <button class="filter-chip" id="ing-sort-recettes" onclick="ingSortBy('recettes', this)">⭐ Recettes</button>
         </div>
 
         <!-- Grid -->
@@ -2839,6 +2760,69 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
     <button class="stock-sf-fab-apply" onclick="stockSfApply()" title="Appliquer">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+  </div>
+
+  <!-- INGRÉDIENTS TRI/FILTRE BOTTOM SHEET (même pattern que Stock/Produits) -->
+  <div class="stock-sf-overlay" id="ing-sf-overlay" onclick="ingSfClose()"></div>
+  <div class="stock-sf-sheet" id="ing-sf-sheet">
+    <div class="stock-sf-scrollable">
+      <div class="stock-sf-handle"></div>
+      <div class="stock-sf-header">
+        <div class="stock-sf-title">Trier &amp; Filtrer</div>
+        <button class="stock-sf-close" onclick="ingSfClose()">✕</button>
+      </div>
+      <div class="stock-sf-tabs">
+        <div class="stock-sf-tab active" id="ing-sf-tab-sort" onclick="ingSfSwitchTab('sort')">Trier</div>
+        <div class="stock-sf-tab" id="ing-sf-tab-filter" onclick="ingSfSwitchTab('filter')">Filtrer <span id="ing-sf-filter-badge" style="display:none" class="stock-sf-badge">0</span></div>
+      </div>
+      <!-- ONGLET TRI -->
+      <div class="stock-sf-pane active" id="ing-sf-pane-sort">
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Trier par</div>
+          <div class="stock-sf-options" id="ing-sf-sort-opts">
+            <div class="stock-sf-opt active" data-sort="nom" onclick="ingSfPickSort(this,'nom')"><span class="sf-check">✓</span> Nom</div>
+            <div class="stock-sf-opt" data-sort="rayon" onclick="ingSfPickSort(this,'rayon')"><span class="sf-check">✓</span> Rayon</div>
+            <div class="stock-sf-opt" data-sort="recettes" onclick="ingSfPickSort(this,'recettes')"><span class="sf-check">✓</span> Recettes liées</div>
+          </div>
+        </div>
+        <div class="stock-sf-section" id="ing-sf-order-section">
+          <div class="stock-sf-label">Ordre</div>
+          <div class="stock-sf-options" id="ing-sf-order-opts">
+            <div class="stock-sf-opt active" data-order="asc" onclick="ingSfPickOrder(this,'asc')"><span class="sf-check">✓</span> Croissant</div>
+            <div class="stock-sf-opt" data-order="desc" onclick="ingSfPickOrder(this,'desc')"><span class="sf-check">✓</span> Décroissant</div>
+          </div>
+        </div>
+      </div>
+      <!-- ONGLET FILTRE -->
+      <div class="stock-sf-pane" id="ing-sf-pane-filter">
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Rayon</div>
+          <div class="stock-sf-options" id="ing-sf-f-rayons"></div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">État</div>
+          <div class="stock-sf-options">
+            <div class="stock-sf-opt" data-fetat="sans-rayon" onclick="ingSfToggleFetat(this,'sans-rayon')"><span class="sf-check">✓</span> ⚠️ Sans rayon</div>
+            <div class="stock-sf-opt" data-fetat="sans-image" onclick="ingSfToggleFetat(this,'sans-image')"><span class="sf-check">✓</span> 🖼 Sans image</div>
+            <div class="stock-sf-opt" data-fetat="sans-recette" onclick="ingSfToggleFetat(this,'sans-recette')"><span class="sf-check">✓</span> 📋 Sans recette</div>
+            <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><span class="sf-check">✓</span> 🌿 Sans saison</div>
+          </div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Doublons</div>
+          <div class="stock-sf-options">
+            <div class="stock-sf-opt" id="ing-sf-f-doublons" onclick="ingSfToggleDoublons(this)"><span class="sf-check">✓</span> 🔀 Doublons potentiels</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- FABs toujours visibles (hors zone scroll) -->
+    <button class="stock-sf-fab-reset" onclick="ingSfReset()" title="Réinitialiser">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
+    <button class="stock-sf-fab-apply" onclick="ingSfApply()" title="Appliquer">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
     </button>
   </div>
@@ -5092,8 +5076,8 @@ function stockSfClose() {
 
 function stockSfSwitchTab(tab) {
   _stockSfActiveTab = tab;
-  document.querySelectorAll('.stock-sf-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.stock-sf-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#stock-sf-sheet .stock-sf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#stock-sf-sheet .stock-sf-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('stock-sf-tab-' + tab).classList.add('active');
   document.getElementById('stock-sf-pane-' + tab).classList.add('active');
 }
@@ -8708,10 +8692,12 @@ const _ING_DEMO_RECIPES = [
 // ─── State (toutes les vars sont locales à l'IIFE) ───
 let _ingAll             = [];
 let _ingSelectedIds     = new Set();
-let _ingTab             = 'tous';
-let _ingFilter          = 'tous';
-let _ingSort            = 'alpha';
-let _ingSelectMode      = false;
+let _ingSort            = 'nom';
+let _ingOrder           = 'asc';
+let _ingFRayons         = new Set();
+let _ingFEtat           = new Set();
+let _ingFDoublons       = false;
+let _ingSfActiveTab     = 'sort';
 let _ingSearchQuery     = '';
 let _ingEditingId       = null;
 let _ingAliasesLoaded   = [];   // [{id, alias}] chargés depuis API
@@ -8827,30 +8813,27 @@ function _ingSeedFromRecipes() {
 function _ingRender() {
   if (!document.getElementById('ing-ingredientsGrid')) return;
   _ingUpdateStats();
-  _ingRenderFilters();
   const grid = document.getElementById('ing-ingredientsGrid');
-  const items = _ingGetFilteredItems();
 
-  if (_ingTab === 'doublons') {
+  if (_ingFDoublons) {
+    document.getElementById('ing-statsRow').style.display = 'none';
     _ingRenderDoublons();
     return;
   }
+  document.getElementById('ing-statsRow').style.display = 'flex';
 
-  document.getElementById('ing-statsRow').style.display = _ingTab === 'tous' ? 'flex' : 'none';
-  document.getElementById('ing-filterRow').style.display = (_ingTab === 'tous' || _ingTab === 'sans-saison') ? 'flex' : 'none';
-  document.getElementById('ing-sortRow').style.display = _ingTab === 'doublons' ? 'none' : 'flex';
-
+  const items = _ingGetFilteredItems();
   if (items.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Tout est nickel !</p><span>Aucun ingrédient dans cette catégorie.</span></div>`;
-    return;
-  }
-  if (items.length === 0 && _ingSearchQuery) {
-    const q = _ingSearchQuery.trim();
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="emoji">🔍</div>
-      <p>Aucun ingrédient trouvé</p>
-      <span>Appuie sur <strong>+</strong> pour créer « ${q} »</span>
-    </div>`;
+    if (_ingSearchQuery) {
+      const q = _ingSearchQuery.trim();
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="emoji">🔍</div>
+        <p>Aucun ingrédient trouvé</p>
+        <span>Appuie sur <strong>+</strong> pour créer « ${q} »</span>
+      </div>`;
+    } else {
+      grid.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Tout est nickel !</p><span>Aucun ingrédient dans cette catégorie.</span></div>`;
+    }
     return;
   }
   const tree = _ingBuildTree(items);
@@ -8882,16 +8865,15 @@ function _ingGetEffectiveRayon(ing, visited) {
 }
 
 function _ingBuildTree(items) {
+  // Conserve l'ordre de tri déjà appliqué par _ingGetFilteredItems à chaque niveau
   const idSet = new Set(items.map(i => i.id));
   const result = [];
   const addNode = (ing, depth) => {
     result.push({ ing, depth });
     items.filter(i => i.parent_id === ing.id)
-      .sort((a, b) => a.name.localeCompare(b.name))
       .forEach(c => addNode(c, depth + 1));
   };
   items.filter(i => !i.parent_id || !idSet.has(i.parent_id))
-    .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(i => addNode(i, 0));
   return result;
 }
@@ -8912,7 +8894,7 @@ function _ingRenderCard(ing, i, depth) {
 
   return `<div class="ing-card${selected?' selected':''}${depthClass}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
     onclick="ingOnCardClick('${ing.id}', event)">
-    ${_ingSelectMode ? `<div class="ing-checkbox">${selected?'✓':''}</div>` : ''}
+    <div class="ing-checkbox" onclick="ingToggleCard('${ing.id}', event)">${selected?'✓':''}</div>
     <div class="ing-avatar ${hasImage?'has-img':'no-img'}">${avatarContent}</div>
     <div class="ing-info">
       <div class="ing-name">${ing.name}</div>
@@ -8944,7 +8926,6 @@ function _ingDragSetup() {
   };
 
   grid.addEventListener('touchstart', e => {
-    if (_ingSelectMode) return;
     const card = e.target.closest('.ing-card');
     if (!card || e.target.closest('.ing-btn, .ing-checkbox')) return;
     const t = e.touches[0];
@@ -9024,8 +9005,6 @@ async function _ingSetParent(childId, parentId) {
 }
 
 function _ingRenderDoublons() {
-  document.getElementById('ing-statsRow').style.display = 'none';
-  document.getElementById('ing-filterRow').style.display = 'none';
   const grid = document.getElementById('ing-ingredientsGrid');
   const groups = _ingFindDuplicateGroups();
   if (groups.length === 0) {
@@ -9094,125 +9073,70 @@ function _ingUpdateStats() {
   const elT = document.getElementById('ing-statTotal');
   const elSR = document.getElementById('ing-statSansRayon');
   const elSI = document.getElementById('ing-statSansImage');
-  const elTC = document.getElementById('ing-tabCountTous');
   if (elT) elT.textContent = _ingAll.length;
   if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayon_id).length;
   if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
-  if (elTC) elTC.textContent = `(${_ingAll.length})`;
-}
-
-function _ingRenderFilters() {
-  const rayonsUsed = [...new Set(_ingAll.map(i => i.rayon_id).filter(Boolean))];
-  const row = document.getElementById('ing-filterRow');
-  if (!row) return;
-  row.innerHTML = `<button class="filter-chip${_ingFilter==='tous'?' active':''}" onclick="ingSetFilter('tous', this)">Tout</button>`
-    + rayonsUsed.map(id => {
-      const r = _ingRayons.find(x => x.id === id);
-      if (!r) return '';
-      return `<button class="filter-chip${_ingFilter===id?' active':''}" onclick="ingSetFilter(${id}, this)">${_rayonIcon(r)} ${r.nom}</button>`;
-    }).join('');
 }
 
 function _ingGetFilteredItems() {
   let items = [..._ingAll];
-  if (_ingTab === 'sans-rayon') items = items.filter(i => !i.rayon_id);
-  if (_ingTab === 'sans-image') items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
-  if (_ingTab === 'sans-recette') items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
-  if (_ingTab === 'sans-saison') items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
-  if ((_ingTab === 'tous' || _ingTab === 'sans-saison') && _ingFilter !== 'tous') items = items.filter(i => i.rayon_id === _ingFilter);
   if (_ingSearchQuery) {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
   }
-  if (_ingSort === 'recettes') {
-    items.sort((a, b) => (b.usedIn?.length || 0) - (a.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr'));
-  } else {
-    items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr'));
-  }
+  if (_ingFRayons.size > 0) items = items.filter(i => i.rayon_id && _ingFRayons.has(String(i.rayon_id)));
+  if (_ingFEtat.has('sans-rayon'))   items = items.filter(i => !i.rayon_id);
+  if (_ingFEtat.has('sans-image'))   items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
+  if (_ingFEtat.has('sans-recette')) items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
+  if (_ingFEtat.has('sans-saison'))  items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
+  items.sort((a, b) => {
+    let cmp;
+    if (_ingSort === 'recettes') {
+      cmp = (a.usedIn?.length || 0) - (b.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr');
+    } else if (_ingSort === 'rayon') {
+      const ra = (_ingRayons.find(r => r.id === a.rayon_id) || {}).nom || 'zzz';
+      const rb = (_ingRayons.find(r => r.id === b.rayon_id) || {}).nom || 'zzz';
+      cmp = ra.localeCompare(rb, 'fr') || (a.name || '').localeCompare(b.name || '', 'fr');
+    } else {
+      cmp = (a.name || '').localeCompare(b.name || '', 'fr');
+    }
+    return _ingOrder === 'desc' ? -cmp : cmp;
+  });
   return items;
 }
 
-function _ingSortBy(sort, btn) {
-  _ingSort = sort;
-  document.querySelectorAll('#ing-sortRow .filter-chip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  _ingRender();
-}
-
-// ─── Tabs & Filters ───
-function _ingSwitchTab(tab, btn) {
-  _ingTab = tab;
-  _ingSelectedIds.clear();
-  _ingSelectMode = false;
-  _ingUpdateSelectModeUI();
-  document.querySelectorAll('#page-ingredients .tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.ingTab === tab);
-  });
-  _ingRender();
-}
-
-function _ingSetFilter(f, btn) {
-  _ingFilter = f;
-  if (btn) {
-    document.querySelectorAll('#page-ingredients .filter-chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  _ingRender();
-}
-
-// ─── Select mode ───
-function _ingToggleSelectMode() {
-  _ingSelectMode = !_ingSelectMode;
-  if (!_ingSelectMode) {
-    _ingSelectedIds.clear();
-    _ingLastSelectedId = null;
-  }
-  _ingUpdateSelectModeUI();
-  _ingRender();
-}
-
+// ─── Select mode (checkbox toujours visible sur chaque tuile) ───
 function _ingUpdateSelectModeUI() {
-  const btn = document.getElementById('ing-selectBtn');
   const n = _ingSelectedIds.size;
-  // Bouton Sélectionner dans le header
-  if (btn) {
-    if (_ingSelectMode) {
-      btn.textContent = n > 0 ? `✕ Annuler (${n})` : '✕ Annuler';
-      btn.style.background = 'rgba(255,255,255,0.35)';
-    } else {
-      btn.textContent = 'Sélectionner';
-      btn.style.background = '';
-    }
-  }
-  // Mettre à jour le menu ⋮
   const label = document.getElementById('ing-hd-sel-label');
   if (label) label.textContent = `${n} sélectionné(s)`;
   const mergeItem = document.getElementById('ing-hd-merge');
   if (mergeItem) mergeItem.style.display = n >= 2 ? '' : 'none';
 }
 
+function _ingToggleCard(id, e) {
+  if (e) e.stopPropagation();
+  if (e && e.shiftKey && _ingLastSelectedId && _ingLastSelectedId !== id) {
+    // Sélection par plage : tous les items entre le dernier coché et celui-ci
+    const visibleIds = _ingGetFilteredItems().map(i => i.id);
+    const a = visibleIds.indexOf(_ingLastSelectedId);
+    const b = visibleIds.indexOf(id);
+    if (a !== -1 && b !== -1) {
+      const [from, to] = a < b ? [a, b] : [b, a];
+      for (let k = from; k <= to; k++) _ingSelectedIds.add(visibleIds[k]);
+    }
+  } else {
+    if (_ingSelectedIds.has(id)) _ingSelectedIds.delete(id);
+    else _ingSelectedIds.add(id);
+  }
+  _ingLastSelectedId = id;
+  _ingUpdateSelectModeUI();
+  _ingUpdateCardsSelection();
+}
+
 function _ingOnCardClick(id, e) {
   if (_ingJustDragged) return;
-  if (_ingSelectMode) {
-    if (e && e.shiftKey && _ingLastSelectedId && _ingLastSelectedId !== id) {
-      // Sélection par plage : tous les items entre le dernier cliqué et celui-ci
-      const visibleIds = _ingGetFilteredItems().map(i => i.id);
-      const a = visibleIds.indexOf(_ingLastSelectedId);
-      const b = visibleIds.indexOf(id);
-      if (a !== -1 && b !== -1) {
-        const [from, to] = a < b ? [a, b] : [b, a];
-        for (let k = from; k <= to; k++) _ingSelectedIds.add(visibleIds[k]);
-      }
-    } else {
-      if (_ingSelectedIds.has(id)) _ingSelectedIds.delete(id);
-      else _ingSelectedIds.add(id);
-    }
-    _ingLastSelectedId = id;
-    _ingUpdateSelectModeUI();
-    _ingUpdateCardsSelection();
-  } else {
-    _ingOpenDetailPanel(id);
-  }
+  _ingOpenDetailPanel(id);
 }
 
 // Met à jour l'état visuel des cartes sans re-rendre toute la grille
@@ -9756,7 +9680,6 @@ function _ingOpenMergeSheet() {
 
 function _ingQuickMergeGroup(ids) {
   _ingSelectedIds = new Set(ids);
-  _ingSelectMode = true;
   _ingOpenMergeSheet();
 }
 
@@ -9793,7 +9716,6 @@ async function _ingConfirmMerge() {
     if (!res.ok) { const d = await res.json(); _ingToast(d.error || 'Erreur fusion'); return; }
     await _ingLoadData();
     _ingSelectedIds.clear();
-    _ingSelectMode = false;
     _ingUpdateSelectModeUI();
     _ingCloseMergeSheet();
     _ingToast(`Fusionné en "${canonicalName}"`);
@@ -9825,7 +9747,6 @@ async function _ingDeleteSelected() {
   }
   await _ingLoadData();
   _ingSelectedIds.clear();
-  _ingSelectMode = false;
   _ingUpdateSelectModeUI();
   if (blocked > 0) _ingToast(`${ok} supprimé(s), ${blocked} lié(s) à des produits — ignoré(s)`);
   else _ingToast(`${ok} ingrédient(s) supprimé(s)`);
@@ -10031,15 +9952,86 @@ function _ingCloseAllSheets() {
     if (el) el.classList.remove('open');
   });
   document.getElementById('ing-sheetBackdrop').classList.remove('open');
+  document.getElementById('ing-sf-overlay')?.classList.remove('open');
+  document.getElementById('ing-sf-sheet')?.classList.remove('open');
+}
+
+// ─── Tri/Filtre bottom sheet (même pattern que Stock/Gestion des produits) ──
+function _ingSfRenderRayonOptions() {
+  const fr = document.getElementById('ing-sf-f-rayons');
+  if (!fr) return;
+  const rayonsUsed = [...new Set(_ingAll.map(i => i.rayon_id).filter(Boolean))];
+  fr.innerHTML = rayonsUsed.map(id => {
+    const r = _ingRayons.find(x => x.id === id);
+    if (!r) return '';
+    return `<div class="stock-sf-opt${_ingFRayons.has(String(id)) ? ' active' : ''}" onclick="ingSfToggleFrayon(this,'${id}')"><span class="sf-check">✓</span> ${_rayonIcon(r)} ${r.nom}</div>`;
+  }).join('') || '<div style="color:#aaa;font-size:.82rem">Aucun rayon utilisé</div>';
+}
+
+function ingSfOpen() {
+  _ingSfRenderRayonOptions();
+  document.querySelectorAll('#ing-sf-sort-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.sort === _ingSort));
+  document.querySelectorAll('#ing-sf-order-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.order === _ingOrder));
+  document.querySelectorAll('#ing-sf-pane-filter [data-fetat]').forEach(o => o.classList.toggle('active', _ingFEtat.has(o.dataset.fetat)));
+  document.getElementById('ing-sf-f-doublons')?.classList.toggle('active', _ingFDoublons);
+  ingSfSwitchTab(_ingSfActiveTab);
+  document.getElementById('ing-sf-overlay').classList.add('open');
+  document.getElementById('ing-sf-sheet').classList.add('open');
+}
+
+function ingSfClose() {
+  document.getElementById('ing-sf-overlay').classList.remove('open');
+  document.getElementById('ing-sf-sheet').classList.remove('open');
+}
+
+function ingSfSwitchTab(tab) {
+  _ingSfActiveTab = tab;
+  document.querySelectorAll('#ing-sf-sheet .stock-sf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#ing-sf-sheet .stock-sf-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('ing-sf-tab-' + tab).classList.add('active');
+  document.getElementById('ing-sf-pane-' + tab).classList.add('active');
+}
+
+function ingSfPickSort(el, val) {
+  document.querySelectorAll('#ing-sf-sort-opts .stock-sf-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  _ingSort = val;
+}
+
+function ingSfPickOrder(el, val) {
+  document.querySelectorAll('#ing-sf-order-opts .stock-sf-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  _ingOrder = val;
+}
+
+function ingSfToggleFrayon(el, id) { el.classList.toggle('active'); _ingFRayons.has(id) ? _ingFRayons.delete(id) : _ingFRayons.add(id); }
+function ingSfToggleFetat(el, val) { el.classList.toggle('active'); _ingFEtat.has(val) ? _ingFEtat.delete(val) : _ingFEtat.add(val); }
+function ingSfToggleDoublons(el) { el.classList.toggle('active'); _ingFDoublons = el.classList.contains('active'); }
+
+function ingSfReset() {
+  _ingSort = 'nom'; _ingOrder = 'asc';
+  _ingFRayons.clear(); _ingFEtat.clear(); _ingFDoublons = false;
+  ingSfClose();
+  _ingRender();
+  const badge = document.getElementById('ing-sf-filter-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+function ingSfApply() {
+  ingSfClose();
+  _ingRender();
+  const count = _ingFRayons.size + _ingFEtat.size + (_ingFDoublons ? 1 : 0);
+  const badge = document.getElementById('ing-sf-filter-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
 }
 
 // ─── Affichage FAB search / merge bar selon la page active ─────────────────
 function _ingApplyPageVisibility(page) {
   const fabS = document.getElementById('ing-fabSearch');
-  const ha = document.getElementById('ing-headerActions');
+  const sfBtn = document.getElementById('ing-sf-header-btn');
   if (page === 'ingredients') {
     if (fabS) fabS.classList.add('visible');
-    if (ha) ha.classList.add('visible');
+    if (sfBtn) sfBtn.style.display = 'grid';
   } else {
     if (fabS) {
       fabS.classList.remove('visible', 'open');
@@ -10047,9 +10039,8 @@ function _ingApplyPageVisibility(page) {
       if (inp) inp.value = '';
       _ingSearchQuery = '';
     }
-    if (ha) ha.classList.remove('visible');
+    if (sfBtn) sfBtn.style.display = 'none';
     _ingHideHdmenu();
-    _ingSelectMode = false;
     _ingSelectedIds.clear();
     _ingUpdateSelectModeUI();
     _ingCloseAllSheets();
@@ -10066,10 +10057,18 @@ async function _ingBoot() {
 }
 
 // Exposer les handlers utilisés par les onclick HTML
-window.ingSwitchTab        = _ingSwitchTab;
-window.ingToggleSelectMode = _ingToggleSelectMode;
-window.ingSetFilter        = _ingSetFilter;
 window.ingOnCardClick      = _ingOnCardClick;
+window.ingToggleCard       = _ingToggleCard;
+window.ingSfOpen           = ingSfOpen;
+window.ingSfClose          = ingSfClose;
+window.ingSfSwitchTab      = ingSfSwitchTab;
+window.ingSfPickSort       = ingSfPickSort;
+window.ingSfPickOrder      = ingSfPickOrder;
+window.ingSfToggleFrayon   = ingSfToggleFrayon;
+window.ingSfToggleFetat    = ingSfToggleFetat;
+window.ingSfToggleDoublons = ingSfToggleDoublons;
+window.ingSfReset          = ingSfReset;
+window.ingSfApply          = ingSfApply;
 window.ingOpenDetailPanel  = _ingOpenDetailPanel;
 window.ingCloseDetailPanel = _ingCloseDetailPanel;
 window.ingOpenEditFromDetail = _ingOpenEditFromDetail;
@@ -10103,7 +10102,6 @@ window.ingAutoFillPluriel  = _ingAutoFillPluriel;
 window.ingAddAlias         = _ingAddAlias;
 window.ingRemoveAlias      = _ingRemoveAlias;
 window.ingEditAlias        = _ingEditAlias;
-window.ingSortBy           = _ingSortBy;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
 window.__ingPantryRefreshPanel = _ingPantryRefreshPanel;
