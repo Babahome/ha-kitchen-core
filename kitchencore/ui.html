@@ -2160,8 +2160,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .ry-card.grandchild { margin-left: 48px; }
 .ry-card.ry-dragging { opacity: .4; }
 .ry-card.ry-drag-over { box-shadow: 0 0 0 3px var(--orange); }
-.ry-import-btn { width:100%; padding:10px 14px; border:2px dashed var(--grey); border-radius:12px; background:white; font-family:var(--font); font-size:.88rem; font-weight:700; color:var(--text2); cursor:pointer; text-align:left; }
-.ry-import-btn:active { border-color:var(--orange); color:var(--orange); background:var(--orange-l); }
 .ry-img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; font-size: 1.4rem; background: var(--grey-l); }
 .ry-img img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
 .ry-nom { flex: 1; font-size: .92rem; font-weight: 700; }
@@ -2562,10 +2560,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
     <!-- ══ PAGE RAYONS ══════════════════════════════════════════════════════ -->
     <div id="page-rayons" class="page">
-      <div style="padding:12px 12px 6px">
-        <button class="ry-import-btn" onclick="_ryShowImportModal()">📥 Importer une liste de rayons Carrefour Drive</button>
-      </div>
-      <div id="ry-list" style="padding:0 12px 100px;display:flex;flex-direction:column;gap:8px"></div>
+      <div id="ry-list" style="padding:12px 12px 100px;display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
     <!-- ══ PAGE MARCHANDS ═══════════════════════════════════════════════════ -->
@@ -3173,6 +3168,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="m-hdmenu-item" id="ing-hd-rayon" onclick="ingOpenRayonSheet();ingHideHdmenu()"><span>🛒</span><span>Changer le rayon</span></div>
     <div class="m-hdmenu-item" id="ing-hd-saison" onclick="ingOpenSaisonSheet();ingHideHdmenu()"><span>🌿</span><span>Changer la saison</span></div>
     <div class="m-hdmenu-item" id="ing-hd-merge" onclick="ingOpenMergeSheet();ingHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
+  </div>
+
+  <!-- MENU ⋮ RAYONS -->
+  <div class="m-hdmenu" id="ry-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" onclick="_ryShowImportModal();ryHideHdmenu()"><span>📥</span><span>Importer une liste de rayons Carrefour Drive</span></div>
   </div>
 
   <!-- BACKDROP (absolute dans frame) -->
@@ -8187,6 +8187,11 @@ function mHeaderDotsClick(){
     if(m) m.classList.toggle('on');
     return;
   }
+  if(page === 'rayons'){
+    const m = document.getElementById('ry-hdmenu');
+    if(m) m.classList.toggle('on');
+    return;
+  }
   if(_mSelMode){
     const m = document.getElementById('m-hdmenu');
     if(m) m.classList.toggle('on');
@@ -8194,6 +8199,9 @@ function mHeaderDotsClick(){
 }
 function mHideHdmenu(){
   document.getElementById('m-hdmenu')?.classList.remove('on');
+}
+function ryHideHdmenu(){
+  document.getElementById('ry-hdmenu')?.classList.remove('on');
 }
 
 // Tap card → ouvrir détail recette si trouvée
@@ -8589,10 +8597,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
-    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#tag-hdmenu') || e.target.closest('#header-dots')) return;
+    if(e.target.closest('#m-hdmenu') || e.target.closest('#ing-hdmenu') || e.target.closest('#cl-hdmenu') || e.target.closest('#stock-main-hdmenu') || e.target.closest('#tag-hdmenu') || e.target.closest('#ry-hdmenu') || e.target.closest('#header-dots')) return;
     mHideHdmenu();
     document.getElementById('ing-hdmenu')?.classList.remove('on');
     document.getElementById('tag-hdmenu')?.classList.remove('on');
+    document.getElementById('ry-hdmenu')?.classList.remove('on');
     clHideHdmenu();
     stockHideHdmenu();
     stockHideMainHdmenu();
