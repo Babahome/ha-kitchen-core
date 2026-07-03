@@ -2497,11 +2497,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
     <!-- ══ PAGE GESTION PRODUITS ════════════════════════════════════════════ -->
     <div id="page-produits" class="page">
-      <div style="padding:10px 14px 6px">
-        <input id="gp-search" type="text" placeholder="Rechercher…" oninput="_gpRender()"
-          style="width:100%;box-sizing:border-box;padding:9px 14px;border-radius:10px;border:1.5px solid var(--grey-l);font-size:.9rem;font-family:inherit;outline:none">
-      </div>
-      <div id="gp-list" style="padding:0 14px 80px"></div>
+      <div id="gp-list" style="padding:12px 14px 80px"></div>
     </div>
 
     <!-- ══ PAGE TAGS ════════════════════════════════════════════════════════ -->
@@ -2749,7 +2745,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <span class="st-fab-search-icon">🔍</span>
     <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque…"
       onclick="event.stopPropagation()"
-      oninput="_stockSearch=this.value;_stockRender()">
+      oninput="_stockSearch=this.value;_stockOrGpRender()">
     <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer">✕</button>
   </div>
 
@@ -3648,7 +3644,7 @@ function stockToggleSearch() {
     inp.classList.remove('expanded');
     inp.value = '';
     _stockSearch = '';
-    _stockRender();
+    _stockOrGpRender();
     inp.blur();
   }
 }
@@ -3673,14 +3669,26 @@ async function _stockLoadZones() {
   }
 }
 
-async function _stockLoad() {
+async function _stockFetchData() {
   await _stockLoadZones();
   try { const rr = await fetch('/api/rayons'); _RAYONS = rr.ok ? await rr.json() : []; } catch(e) { _RAYONS = []; }
   try {
     const r = await fetch('/api/stocks');
     _stockItems = r.ok ? await r.json() : [];
   } catch(e) { _stockItems = []; }
+}
+
+async function _stockLoad() {
+  await _stockFetchData();
   _stockRender();
+}
+
+function _stockOrGpRender() {
+  if (document.getElementById('page-produits')?.classList.contains('active')) {
+    if (typeof _gpRender === 'function') _gpRender();
+  } else {
+    _stockRender();
+  }
 }
 
 function _stockSortItems(items) {
@@ -3709,10 +3717,11 @@ function _stockSortItems(items) {
   });
 }
 
-function _stockFilterItems(items) {
+function _stockFilterItems(items, opts) {
+  const keepZero = !!(opts && opts.keepZero);
   return items.filter(s => {
     const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
-    if (qty === 0) return false;
+    if (!keepZero && qty === 0) return false;
     if (_stockSearch) {
       const q = _stockSearch.toLowerCase();
       const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
@@ -4660,26 +4669,15 @@ window.stockDeleteFromEdit   = stockDeleteFromEdit;
 // GESTION DES ZONES DE STOCK
 // ════════════════════════════════════════════════════════════════════════════
 // ── Gestion des produits ─────────────────────────────────────────────────────
-let _gpItems = [];
-
 async function _gpLoad() {
-  try {
-    const r = await fetch('/api/stocks');
-    _gpItems = r.ok ? await r.json() : [];
-  } catch(e) { _gpItems = []; }
+  await _stockFetchData();
   _gpRender();
 }
 
 function _gpRender() {
   const el = document.getElementById('gp-list');
   if (!el) return;
-  const q = (document.getElementById('gp-search')?.value || '').toLowerCase();
-  const items = _gpItems.filter(s => {
-    if (!q) return true;
-    const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
-    const marque = (s.marque || '').toLowerCase();
-    return nom.includes(q) || marque.includes(q);
-  }).sort((a, b) => (a.produit_nom || a.ingredient_nom || '').localeCompare(b.produit_nom || b.ingredient_nom || '', 'fr'));
+  const items = _stockSortItems(_stockFilterItems(_stockItems, { keepZero: true }));
 
   if (!items.length) {
     el.innerHTML = '<div style="padding:40px 0;text-align:center;color:#aaa">Aucun produit trouvé</div>';
@@ -5159,13 +5157,13 @@ function stockSfReset() {
   _stockFZones.clear(); _stockFRayons.clear(); _stockFExp.clear(); _stockFQtyMin = 0; _stockFQtyMax = 5; _stockFIngLink = null;
   stockSfClose();
   _stockRebuildFilterPills();
-  _stockRender();
+  _stockOrGpRender();
 }
 
 function stockSfApply() {
   stockSfClose();
   _stockRebuildFilterPills();
-  _stockRender();
+  _stockOrGpRender();
   // Mettre à jour le badge filtre dans l'onglet
   const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0) + (_stockFIngLink ? 1 : 0);
   const badge = document.getElementById('stock-sf-filter-badge');
@@ -5277,13 +5275,13 @@ function switchPage(tab, page, title) {
   // Bouton aujourd'hui (menu)
   const btnTod = document.getElementById('btn-tod');
   if (btnTod) btnTod.style.display = page === 'menu' ? 'flex' : 'none';
-  // Bouton tri/filtre stock
+  // Bouton tri/filtre stock (partagé avec la page Gestion des produits)
   const sfHdrBtn = document.getElementById('stock-sf-header-btn');
-  if (sfHdrBtn) sfHdrBtn.style.display = page === 'stock' ? 'grid' : 'none';
-  // fab-search stock
+  if (sfHdrBtn) sfHdrBtn.style.display = (page === 'stock' || page === 'produits') ? 'grid' : 'none';
+  // fab-search stock (partagé avec la page Gestion des produits)
   const stFs = document.getElementById('st-fab-search');
   if (stFs) {
-    if (page === 'stock') {
+    if (page === 'stock' || page === 'produits') {
       stFs.classList.add('visible');
     } else {
       stFs.classList.remove('visible', 'open');
