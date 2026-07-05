@@ -5725,16 +5725,15 @@ async function onCodeDetected(code) {
     const found = (_stockItems || []).find(s => s.code_barres === code);
     closeScanner();
     if (found) {
-      const nom = found.produit_nom || found.ingredient_nom || '';
-      // Ouvrir la pill recherche et filtrer
+      // Ouvrir la pill recherche et filtrer par le code-barres scanné
       const pill = document.getElementById('st-fab-search');
       const inp  = document.getElementById('st-search-input');
       if (pill && inp) {
         pill.classList.add('open');
         inp.classList.add('expanded');
-        inp.value = nom;
+        inp.value = code;
         _stockSearchOpen = true;
-        _stockSearch = nom;
+        _stockSearch = code;
         _stockRender();
       }
       // Scroll vers la card après rendu
