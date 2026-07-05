@@ -8918,6 +8918,17 @@ function _ingDragSetup() {
   grid._dragBound = true;
 
   let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
+  let savedSearchQuery = null;
+
+  const restoreSearch = () => {
+    if (savedSearchQuery === null) return;
+    _ingSearchQuery = savedSearchQuery;
+    savedSearchQuery = null;
+    const input = document.getElementById('ing-searchInput');
+    if (input) input.value = _ingSearchQuery;
+    if (_ingSearchQuery) document.getElementById('ing-fabSearch')?.classList.add('open');
+    _ingRender();
+  };
 
   const reset = () => {
     clearTimeout(timer); timer = null;
@@ -8934,9 +8945,10 @@ function _ingDragSetup() {
     timer = setTimeout(() => {
       active = true;
       card.classList.add('ing-dragging');
-      // Si une recherche est active, la vider pour afficher tous les ingrédients
-      // et permettre de déposer sur n'importe quel parent
+      // Si une recherche est active, la vider temporairement pour afficher tous les ingrédients
+      // et permettre de déposer sur n'importe quel parent (restaurée après le drop)
       if (_ingSearchQuery) {
+        savedSearchQuery = _ingSearchQuery;
         _ingSearchQuery = '';
         const input = document.getElementById('ing-searchInput');
         if (input) input.value = '';
@@ -8975,9 +8987,10 @@ function _ingDragSetup() {
       _ingJustDragged = true;
       setTimeout(() => { _ingJustDragged = false; }, 300);
     }
+    restoreSearch();
   });
 
-  grid.addEventListener('touchcancel', reset);
+  grid.addEventListener('touchcancel', () => { reset(); restoreSearch(); });
 }
 
 async function _ingSetParent(childId, parentId) {
