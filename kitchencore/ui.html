@@ -2664,7 +2664,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- fab-search stock -->
   <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
     <span class="st-fab-search-icon">🔍</span>
-    <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque…"
+    <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockOrGpRender()">
     <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer">✕</button>
@@ -3710,7 +3710,8 @@ function _stockFilterItems(items, opts) {
       const q = _stockSearch.toLowerCase();
       const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
       const marque = (s.marque || '').toLowerCase();
-      if (!nom.includes(q) && !marque.includes(q)) return false;
+      const codeBarres = (s.code_barres || '').toLowerCase();
+      if (!nom.includes(q) && !marque.includes(q) && !codeBarres.includes(q)) return false;
     }
     if (_stockFZones.size > 0 && !_stockFZones.has(s.zone || '')) return false;
     if (_stockFRayons.size > 0) {
