@@ -3144,6 +3144,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- MENU ⋮ INGRÉDIENTS (sélection multiple) -->
   <div class="m-hdmenu" id="ing-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="ing-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
+    <div class="m-hdmenu-item" id="ing-hd-deselect" style="display:none" onclick="ingDeselectAll();ingHideHdmenu()"><span>✕</span><span>Tout désélectionner</span></div>
     <div class="m-hdmenu-item danger" id="ing-hd-delete" onclick="ingDeleteSelected();ingHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
     <div class="m-hdmenu-item" id="ing-hd-rayon" onclick="ingOpenRayonSheet();ingHideHdmenu()"><span>🛒</span><span>Changer le rayon</span></div>
     <div class="m-hdmenu-item" id="ing-hd-saison" onclick="ingOpenSaisonSheet();ingHideHdmenu()"><span>🌿</span><span>Changer la saison</span></div>
@@ -9108,6 +9109,14 @@ function _ingUpdateSelectModeUI() {
   if (label) label.textContent = `${n} sélectionné(s)`;
   const mergeItem = document.getElementById('ing-hd-merge');
   if (mergeItem) mergeItem.style.display = n >= 2 ? '' : 'none';
+  const deselectItem = document.getElementById('ing-hd-deselect');
+  if (deselectItem) deselectItem.style.display = n > 0 ? '' : 'none';
+}
+
+function _ingDeselectAll() {
+  _ingSelectedIds.clear();
+  _ingUpdateSelectModeUI();
+  _ingUpdateCardsSelection();
 }
 
 function _ingToggleCard(id, e) {
@@ -10099,6 +10108,7 @@ window.ingAddAlias         = _ingAddAlias;
 window.ingRemoveAlias      = _ingRemoveAlias;
 window.ingEditAlias        = _ingEditAlias;
 window.ingHideHdmenu          = _ingHideHdmenu;
+window.ingDeselectAll         = _ingDeselectAll;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
 window.__ingPantryRefreshPanel = _ingPantryRefreshPanel;
 
