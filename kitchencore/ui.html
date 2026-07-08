@@ -7844,8 +7844,8 @@ function mBuild(scrollY){
         </div>
       </div>`;
     }).join('');
-    // Produits qui périment ce jour
-    const kStr = k; // format YYYY-MM-DD
+    // Produits qui périment ce jour (date locale, pas mdk() qui bascule en UTC et décale d'un jour)
+    const kStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const expiringItems = (typeof _stockItems !== 'undefined' ? _stockItems : []).filter(it => it.dlc === kStr && (it.packs_pleins > 0 || it.unites_ouvert > 0));
     const dlcBtnsHtml = expiringItems.length > 0
       ? `<div class="m-dlc-btns">${expiringItems.map(it => {
