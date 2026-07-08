@@ -7844,19 +7844,25 @@ function mBuild(scrollY){
         </div>
       </div>`;
     }).join('');
-    // Produits qui périment ce jour (date locale, pas mdk() qui bascule en UTC et décale d'un jour)
+    // Produits à consommer ce jour (alerte 2j avant la vraie date de péremption, marge de sécurité)
     const kStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const expiringItems = (typeof _stockItems !== 'undefined' ? _stockItems : []).filter(it => it.dlc === kStr && (it.packs_pleins > 0 || it.unites_ouvert > 0));
+    const expiringItems = (typeof _stockItems !== 'undefined' ? _stockItems : []).filter(it => {
+      if (!it.dlc || !(it.packs_pleins > 0 || it.unites_ouvert > 0)) return false;
+      const dd = new Date(it.dlc); dd.setDate(dd.getDate() - 2);
+      const alertKey = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+      return alertKey === kStr;
+    });
     const dlcBtnsHtml = expiringItems.length > 0
       ? `<div class="m-dlc-btns">${expiringItems.map(it => {
           const icone = it.icone || it.ingredient_icone || '';
           const nom = it.produit_nom || it.ingredient_nom || '?';
           const ini = nom.substring(0,2).toUpperCase();
           const ingId = it.ingredient_id || '';
+          const dlcFmt = it.dlc.split('-').reverse().slice(0,2).join('/');
           const inner = (icone && (icone.startsWith('http') || icone.startsWith('/')))
             ? `<img src="${icone}" onerror="this.parentElement.innerHTML='<div class=\\'m-dlc-ini\\'>${ini}</div>'">`
             : `<div class="m-dlc-ini">${ini}</div>`;
-          return `<button class="m-dlc-btn" title="${nom} — périme ce jour" onclick="mOpenExpiringIng(${ingId||'null'},'${nom.replace(/'/g,"\\'")}')">` + inner + `</button>`;
+          return `<button class="m-dlc-btn" title="${nom} — périme le ${dlcFmt}" onclick="mOpenExpiringIng(${ingId||'null'},'${nom.replace(/'/g,"\\'")}')">` + inner + `</button>`;
         }).join('')}</div>`
       : '';
     h+=`<div class="m-day${i===0?' tod':''}" id="mday-${k}">
