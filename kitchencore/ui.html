@@ -1711,6 +1711,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .stock-sf-opt.active { border-color: var(--orange); background: var(--orange-l); color: var(--orange); font-weight: 700; }
   .stock-sf-opt .sf-check { opacity: 0; font-size: .8rem; }
   .stock-sf-opt.active .sf-check { opacity: 1; }
+  .stock-sf-opt.has-children.open { border-color: var(--orange); color: var(--orange); }
   /* Double slider quantité */
   #stock-sf-qty-range input[type=range] { -webkit-appearance: none; appearance: none; }
   #stock-sf-qty-range input[type=range]::-webkit-slider-thumb {
@@ -9965,12 +9966,32 @@ function _ingCloseAllSheets() {
 function _ingSfRenderRayonOptions() {
   const fr = document.getElementById('ing-sf-f-rayons');
   if (!fr) return;
-  const rayonsUsed = [...new Set(_ingAll.map(i => i.rayon_id).filter(Boolean))];
-  fr.innerHTML = rayonsUsed.map(id => {
-    const r = _ingRayons.find(x => x.id === id);
-    if (!r) return '';
-    return `<div class="stock-sf-opt${_ingFRayons.has(String(id)) ? ' active' : ''}" onclick="ingSfToggleFrayon(this,'${id}')"><span class="sf-check">✓</span> ${_rayonIcon(r)} ${r.nom}</div>`;
+  const rayonsUsed = new Set(_ingAll.map(i => i.rayon_id).filter(Boolean));
+  const parents = _ingRayons.filter(r => !r.parent_id &&
+    (rayonsUsed.has(r.id) || _ingRayons.some(c => c.parent_id === r.id && rayonsUsed.has(c.id))));
+
+  fr.innerHTML = parents.map(p => {
+    const kids = _ingRayons.filter(c => c.parent_id === p.id && rayonsUsed.has(c.id));
+    const hasKids = kids.length > 0;
+    const isOpen = kids.some(c => _ingFRayons.has(String(c.id)));
+    const parentActive = !hasKids && _ingFRayons.has(String(p.id));
+    const parentClick = hasKids ? `ingSfToggleRayonGroup(this)` : `ingSfToggleFrayon(this,'${p.id}')`;
+    const kidsHtml = hasKids
+      ? `<div class="rayon-children-row" style="${isOpen ? '' : 'display:none'}">` +
+        kids.map(c => `<div class="stock-sf-opt${_ingFRayons.has(String(c.id)) ? ' active' : ''}" onclick="ingSfToggleFrayon(this,'${c.id}')"><span class="sf-check">✓</span> ${_rayonIcon(c)} ${c.nom}</div>`).join('') +
+        `</div>`
+      : '';
+    return `<div style="width:100%">
+      <div class="stock-sf-opt${parentActive ? ' active' : ''}${hasKids ? ' has-children' + (isOpen ? ' open' : '') : ''}" onclick="${parentClick}"><span class="sf-check">✓</span> ${_rayonIcon(p)} ${p.nom}${hasKids ? ' ▾' : ''}</div>${kidsHtml}
+    </div>`;
   }).join('') || '<div style="color:#aaa;font-size:.82rem">Aucun rayon utilisé</div>';
+}
+
+function ingSfToggleRayonGroup(el) {
+  const row = el.nextElementSibling;
+  const isOpen = el.classList.contains('open');
+  el.classList.toggle('open', !isOpen);
+  if (row) row.style.display = isOpen ? 'none' : '';
 }
 
 function ingSfOpen() {
