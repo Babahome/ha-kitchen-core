@@ -1443,6 +1443,17 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .m-thumb-ini { width:100%;height:100%;background:#ebebeb;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#a0a0a0;letter-spacing:-.02em; }
 .m-thumb-emo { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem; }
 
+/* Modal "Ajouter au menu" depuis la page Recettes : choix du jour */
+.am-day-modal { position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:150;display:none;flex-direction:column;justify-content:flex-end; }
+.am-day-modal.on { display:flex; }
+.am-day-sheet { background:white;border-radius:22px 22px 0 0;padding:16px 18px 30px;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.am-day-title { font-size:1rem;font-weight:900;color:var(--text);margin-bottom:14px;padding-right:10px; }
+.am-day-grid  { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
+.am-day-btn   { display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:12px;border:2px solid var(--grey);background:white;font-family:var(--font);cursor:pointer;transition:all .15s; }
+.am-day-btn:active { background:var(--orange-l);border-color:var(--orange); }
+.am-day-dow   { font-size:.78rem;font-weight:800;color:var(--text2); }
+.am-day-num   { font-size:.72rem;font-weight:700;color:var(--grey-d); }
+
 /* Modal sélection ingrédients → courses (depuis Menu) */
 .m-ing-modal  { position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;flex-direction:column;justify-content:flex-end; }
 .m-ing-modal.on { display:flex; }
@@ -2695,6 +2706,15 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         </div>
       </div>
       <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
+    </div>
+  </div>
+
+  <!-- Modal "Ajouter au menu" (choix du jour, depuis la page Recettes) -->
+  <div class="am-day-modal" id="am-day-modal" onclick="if(event.target===this)amDayClose()">
+    <div class="am-day-sheet" onclick="event.stopPropagation()">
+      <div class="m-hn"></div>
+      <div class="am-day-title" id="am-day-title">Ajouter au menu</div>
+      <div class="am-day-grid" id="am-day-list"></div>
     </div>
   </div>
 
@@ -7156,7 +7176,36 @@ async function addToCourses(id) {
     mIngOpen();
   } catch(e) { showToast('Erreur lors de la récupération des ingrédients','error'); }
 }
-function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) showToast('📅 "'+r.nom+'" → menu','ok'); }
+function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) amDayPickerOpen(r); }
+
+// ── Ajouter au menu depuis Recettes : choix du jour parmi les 6 prochains ───
+let _amRecipe = null;
+function amDayPickerOpen(r){
+  _amRecipe = r;
+  const now=new Date(); now.setHours(0,0,0,0);
+  let h='';
+  for(let i=0;i<6;i++){
+    const d=new Date(now); d.setDate(now.getDate()+i);
+    const k=mdk(d);
+    const dow = i===0?'Aujourd\'hui':i===1?'Demain':MD[d.getDay()];
+    const full = MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
+    const label = i===0?'📍 Aujourd\'hui — '+full:i===1?'Demain — '+full:full;
+    h+=`<button class="am-day-btn" onclick="amPickDay('${k}','${label.replace(/'/g,"\\'")}')">
+      <span class="am-day-dow">${dow}</span>
+      <span class="am-day-num">${d.getDate()} ${MM[d.getMonth()]}</span>
+    </button>`;
+  }
+  document.getElementById('am-day-list').innerHTML=h;
+  document.getElementById('am-day-title').textContent='Ajouter "'+r.nom+'" au menu — quel jour ?';
+  document.getElementById('am-day-modal').classList.add('on');
+}
+function amDayClose(){ document.getElementById('am-day-modal').classList.remove('on'); }
+function amPickDay(k,label){
+  amDayClose();
+  const r=_amRecipe; if(!r) return;
+  mOpen(k,label);
+  mPk(r.nom, r.emoji||'🍽️');
+}
 
 // ── UNITÉS ABRÉGÉES ───────────────────────────────────────────────────────────
 const _UNIT_ABBR = {
