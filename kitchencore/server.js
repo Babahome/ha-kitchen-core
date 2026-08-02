@@ -1820,11 +1820,29 @@ function importMerge(tables) {
   return counts;
 }
 
+// L'ingress Home Assistant limite les requêtes entrantes à 16 Mo (non contournable depuis
+// l'add-on) : les photos sont donc envoyées à part, par petits lots, via cette route.
+app.post('/api/backup/import-photos', (req, res) => {
+  const { photos } = req.body || {};
+  if (!photos || typeof photos !== 'object') return res.status(400).json({ error: 'photos requis' });
+  let restored = 0;
+  Object.entries(photos).forEach(([filename, b64]) => {
+    try {
+      const filePath = path.join(PHOTOS_DIR, path.basename(filename));
+      if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+      restored++;
+    } catch(_) {}
+  });
+  res.json({ ok: true, restored });
+});
+
 app.post('/api/backup/import', (req, res) => {
   const { mode, tables, photos } = req.body || {};
   if (!tables || typeof tables !== 'object') return res.status(400).json({ error: 'Fichier de sauvegarde invalide' });
   if (mode !== 'replace' && mode !== 'merge') return res.status(400).json({ error: 'mode doit être "replace" ou "merge"' });
 
+  // Compat : si des photos sont malgré tout envoyées avec la requête principale
+  // (petit fichier de sauvegarde), on les restaure aussi ici.
   let photosRestored = 0;
   if (photos && typeof photos === 'object') {
     Object.entries(photos).forEach(([filename, b64]) => {

@@ -11435,6 +11435,24 @@ window.bkFileSelected = function(e) {
   reader.readAsText(file);
 };
 
+// Découpe les photos en lots restant sous ~6 Mo de base64 chacun (limite ingress HA = 16 Mo)
+function _bkChunkPhotos(photos) {
+  const MAX_CHARS = 6 * 1024 * 1024;
+  const entries = Object.entries(photos || {});
+  const chunks = [];
+  let current = {}, currentSize = 0;
+  entries.forEach(([name, b64]) => {
+    if (currentSize > 0 && currentSize + b64.length > MAX_CHARS) {
+      chunks.push(current);
+      current = {}; currentSize = 0;
+    }
+    current[name] = b64;
+    currentSize += b64.length;
+  });
+  if (Object.keys(current).length) chunks.push(current);
+  return chunks;
+}
+
 window.bkImport = async function() {
   if (!_bkPendingImport) return;
   const mode = document.querySelector('input[name="bk-mode"]:checked').value;
@@ -11442,19 +11460,38 @@ window.bkImport = async function() {
   if (mode === 'merge' && !confirm('Ajouter les données du fichier à celles déjà présentes, sans rien effacer ?')) return;
   const btn = document.getElementById('bk-import-btn');
   const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Import en cours…';
+  btn.disabled = true; btn.textContent = '⏳ Import des données…';
   try {
     const res = await fetch('/api/backup/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, tables: _bkPendingImport.tables, photos: _bkPendingImport.photos }),
+      body: JSON.stringify({ mode, tables: _bkPendingImport.tables }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erreur import');
     const total = Object.values(data.counts || {}).reduce((a, b) => a + b, 0);
+
+    // Photos envoyées à part, par petits lots, pour rester sous la limite de l'ingress HA (16 Mo/requête)
+    let photosRestored = 0, photosFailed = 0;
+    const chunks = _bkChunkPhotos(_bkPendingImport.photos);
+    for (let i = 0; i < chunks.length; i++) {
+      btn.textContent = `⏳ Photos ${i + 1}/${chunks.length}…`;
+      try {
+        const pr = await fetch('/api/backup/import-photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photos: chunks[i] }),
+        });
+        const pd = await pr.json();
+        if (pr.ok) photosRestored += pd.restored || 0; else photosFailed += Object.keys(chunks[i]).length;
+      } catch(_) { photosFailed += Object.keys(chunks[i]).length; }
+    }
+
     const r = document.getElementById('bk-result');
     r.style.display = 'block';
-    r.innerHTML = `✓ Import terminé — ${total} élément(s) importé(s), ${data.photosRestored || 0} photo(s) restaurée(s).<br>Rechargement de l'application…`;
+    r.innerHTML = `✓ Import terminé — ${total} élément(s) importé(s), ${photosRestored} photo(s) restaurée(s)` +
+      (photosFailed ? `, ${photosFailed} photo(s) en échec` : '') +
+      `.<br>Rechargement de l'application…`;
     showToast('Import réussi ✓', 'ok');
     setTimeout(() => location.reload(), 1500);
   } catch(e) {
