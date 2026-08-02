@@ -1864,7 +1864,11 @@ app.post('/api/backup/import', (req, res) => {
           const rows = tables[t] || [];
           counts[t] = 0;
           if (!rows.length) return;
-          const cols = Object.keys(rows[0]);
+          // Ne garde que les colonnes qui existent réellement dans la table cible :
+          // une base source plus ancienne (ou legacy, ex. produits.aliment_id) peut
+          // exporter des colonnes que le schéma actuel n'a plus.
+          const validCols = new Set(db.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name));
+          const cols = Object.keys(rows[0]).filter(c => validCols.has(c));
           const stmt = db.prepare(`INSERT INTO ${t} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
           rows.forEach(row => { stmt.run(cols.map(c => row[c])); counts[t]++; });
         });
