@@ -304,7 +304,7 @@ if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
     .forEach(u => ins.run(u));
 }
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use('/photos', express.static(PHOTOS_DIR));
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1586,6 +1586,281 @@ app.get('/api/suggestion', (req, res) => {
 
   if (!recipes.length) return res.json(null);
   res.json(recipes[Math.floor(Math.random() * recipes.length)]);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SAUVEGARDE (export / import)
+// ══════════════════════════════════════════════════════════════════════════════
+const BACKUP_TABLES = [
+  'rayons', 'zones_stock', 'unites', 'marchands', 'marchand_rayons', 'tags',
+  'ingredients', 'ingredient_aliases', 'produits', 'stocks', 'mouvements',
+  'recettes', 'recette_ingredients', 'recette_etapes', 'menu',
+  'courses_recipes', 'courses_items', 'suggestion_rules',
+];
+const BACKUP_PHOTO_COLS = [
+  ['recettes', 'photo'], ['ingredients', 'icone'], ['produits', 'icone'],
+  ['rayons', 'icone'], ['marchands', 'image'], ['menu', 'photo'],
+  ['courses_items', 'icone'], ['courses_recipes', 'photo'],
+];
+
+app.get('/api/backup/export', (_req, res) => {
+  const tables = {};
+  BACKUP_TABLES.forEach(t => { tables[t] = db.prepare(`SELECT * FROM ${t}`).all(); });
+
+  const photos = {};
+  BACKUP_PHOTO_COLS.forEach(([table, col]) => {
+    (tables[table] || []).forEach(row => {
+      const val = row[col];
+      if (val && typeof val === 'string' && val.startsWith('/photos/')) {
+        const filename = val.slice('/photos/'.length);
+        if (!photos[filename]) {
+          const filePath = path.join(PHOTOS_DIR, filename);
+          if (fs.existsSync(filePath)) {
+            try { photos[filename] = fs.readFileSync(filePath).toString('base64'); } catch(_) {}
+          }
+        }
+      }
+    });
+  });
+
+  let version = '';
+  try { version = fs.readFileSync(path.join(__dirname, 'config.yaml'), 'utf8').match(/version:\s*"([^"]+)"/)[1]; } catch(_) {}
+
+  const counts = {};
+  BACKUP_TABLES.forEach(t => { counts[t] = tables[t].length; });
+
+  res.set('Content-Disposition', `attachment; filename="kitchencore-backup-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.json({
+    meta: { app: 'kitchencore', version, exported_at: new Date().toISOString(), counts, photos_count: Object.keys(photos).length },
+    tables,
+    photos,
+  });
+});
+
+// Fusion sans effacer : dédoublonne par clé naturelle (nom/label/code-barres) et
+// remappe les FK internes vers les nouveaux id insérés (ou vers l'id existant réutilisé).
+function importMerge(tables) {
+  const counts = {};
+  const idMap = {};
+  BACKUP_TABLES.forEach(t => { idMap[t] = {}; counts[t] = 0; });
+  const rowsOf = t => tables[t] || [];
+
+  rowsOf('rayons').forEach(r => {
+    const existing = db.prepare('SELECT id FROM rayons WHERE LOWER(TRIM(nom))=LOWER(TRIM(?))').get(r.nom);
+    if (existing) { idMap.rayons[r.id] = existing.id; return; }
+    const info = db.prepare('INSERT INTO rayons(nom,emoji,icone,parent_id,position) VALUES(?,?,?,NULL,?)')
+      .run(r.nom, r.emoji, r.icone, r.position || 0);
+    idMap.rayons[r.id] = info.lastInsertRowid;
+    counts.rayons++;
+  });
+  rowsOf('rayons').forEach(r => {
+    if (r.parent_id != null && idMap.rayons[r.parent_id] != null) {
+      db.prepare('UPDATE rayons SET parent_id=? WHERE id=? AND parent_id IS NULL')
+        .run(idMap.rayons[r.parent_id], idMap.rayons[r.id]);
+    }
+  });
+
+  rowsOf('zones_stock').forEach(z => {
+    const existing = db.prepare('SELECT id FROM zones_stock WHERE LOWER(TRIM(nom))=LOWER(TRIM(?))').get(z.nom);
+    if (existing) { idMap.zones_stock[z.id] = existing.id; return; }
+    const info = db.prepare('INSERT INTO zones_stock(nom,emoji,ordre) VALUES(?,?,?)').run(z.nom, z.emoji, z.ordre || 0);
+    idMap.zones_stock[z.id] = info.lastInsertRowid;
+    counts.zones_stock++;
+  });
+
+  rowsOf('unites').forEach(u => {
+    const existing = db.prepare('SELECT id FROM unites WHERE LOWER(TRIM(label))=LOWER(TRIM(?))').get(u.label);
+    if (existing) { idMap.unites[u.id] = existing.id; return; }
+    const info = db.prepare('INSERT INTO unites(label) VALUES(?)').run(u.label);
+    idMap.unites[u.id] = info.lastInsertRowid;
+    counts.unites++;
+  });
+
+  rowsOf('marchands').forEach(m => {
+    const existing = db.prepare('SELECT id FROM marchands WHERE LOWER(TRIM(nom))=LOWER(TRIM(?))').get(m.nom);
+    if (existing) { idMap.marchands[m.id] = existing.id; return; }
+    const info = db.prepare('INSERT INTO marchands(nom,emoji,image,position,search_url) VALUES(?,?,?,?,?)')
+      .run(m.nom, m.emoji, m.image, m.position || 0, m.search_url || '');
+    idMap.marchands[m.id] = info.lastInsertRowid;
+    counts.marchands++;
+  });
+
+  rowsOf('marchand_rayons').forEach(mr => {
+    const marchandId = idMap.marchands[mr.marchand_id];
+    const rayonId = idMap.rayons[mr.rayon_id];
+    if (!marchandId || !rayonId) return;
+    const info = db.prepare('INSERT OR IGNORE INTO marchand_rayons(marchand_id,rayon_id,position) VALUES(?,?,?)')
+      .run(marchandId, rayonId, mr.position || 0);
+    if (info.changes) counts.marchand_rayons++;
+  });
+
+  rowsOf('tags').forEach(t => {
+    const existing = db.prepare('SELECT id FROM tags WHERE nom=?').get(t.nom);
+    if (existing) { idMap.tags[t.id] = existing.id; return; }
+    const info = db.prepare('INSERT INTO tags(nom) VALUES(?)').run(t.nom);
+    idMap.tags[t.id] = info.lastInsertRowid;
+    counts.tags++;
+  });
+
+  rowsOf('ingredients').forEach(i => {
+    const existing = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?))').get(i.nom);
+    if (existing) { idMap.ingredients[i.id] = existing.id; return; }
+    const rayonId = i.rayon_id != null ? (idMap.rayons[i.rayon_id] || null) : null;
+    const info = db.prepare(`INSERT INTO ingredients
+      (nom,categorie,seuil_alerte,icone,created_at,rayon_id,saison,nom_pluriel,parent_id,duree_conservation_jours)
+      VALUES(?,?,?,?,?,?,?,?,NULL,?)`)
+      .run(i.nom, i.categorie, i.seuil_alerte, i.icone, i.created_at, rayonId, i.saison, i.nom_pluriel, i.duree_conservation_jours);
+    idMap.ingredients[i.id] = info.lastInsertRowid;
+    counts.ingredients++;
+  });
+  rowsOf('ingredients').forEach(i => {
+    if (i.parent_id != null && idMap.ingredients[i.parent_id] != null) {
+      db.prepare('UPDATE ingredients SET parent_id=? WHERE id=? AND parent_id IS NULL')
+        .run(idMap.ingredients[i.parent_id], idMap.ingredients[i.id]);
+    }
+  });
+
+  rowsOf('ingredient_aliases').forEach(a => {
+    const ingredientId = idMap.ingredients[a.ingredient_id];
+    if (!ingredientId) return;
+    const info = db.prepare('INSERT OR IGNORE INTO ingredient_aliases(ingredient_id,alias,created_at) VALUES(?,?,?)')
+      .run(ingredientId, a.alias, a.created_at);
+    if (info.changes) counts.ingredient_aliases++;
+  });
+
+  rowsOf('produits').forEach(p => {
+    if (p.code_barres) {
+      const existing = db.prepare('SELECT id FROM produits WHERE code_barres=?').get(p.code_barres);
+      if (existing) { idMap.produits[p.id] = existing.id; return; }
+    }
+    const ingredientId = p.ingredient_id != null ? (idMap.ingredients[p.ingredient_id] || null) : null;
+    const rayonId = p.rayon_id != null ? (idMap.rayons[p.rayon_id] || null) : null;
+    const info = db.prepare(`INSERT INTO produits
+      (ingredient_id,nom,marque,code_barres,contenance,unite,created_at,icone,pourcentage,rayon_id)
+      VALUES(?,?,?,?,?,?,?,?,?,?)`)
+      .run(ingredientId, p.nom, p.marque, p.code_barres, p.contenance, p.unite, p.created_at, p.icone, p.pourcentage, rayonId);
+    idMap.produits[p.id] = info.lastInsertRowid;
+    counts.produits++;
+  });
+
+  rowsOf('stocks').forEach(s => {
+    const produitId = idMap.produits[s.produit_id];
+    if (!produitId) return;
+    const existing = db.prepare('SELECT id FROM stocks WHERE produit_id=?').get(produitId);
+    if (existing) return;
+    db.prepare('INSERT INTO stocks(produit_id,packs_pleins,unites_ouvert,zone,updated_at,dlc) VALUES(?,?,?,?,?,?)')
+      .run(produitId, s.packs_pleins, s.unites_ouvert, s.zone, s.updated_at, s.dlc);
+    counts.stocks++;
+  });
+
+  rowsOf('mouvements').forEach(m => {
+    const produitId = idMap.produits[m.produit_id];
+    if (!produitId) return;
+    db.prepare('INSERT INTO mouvements(produit_id,type,delta,source,created_at) VALUES(?,?,?,?,?)')
+      .run(produitId, m.type, m.delta, m.source, m.created_at);
+    counts.mouvements++;
+  });
+
+  rowsOf('recettes').forEach(r => {
+    const info = db.prepare(`INSERT INTO recettes
+      (nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source,created_at,updated_at,remarque)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(r.nom, r.emoji, r.photo, r.description, r.portions, r.temps_prep, r.temps_cuisson, r.tags, r.favori, r.note, r.source, r.created_at, r.updated_at, r.remarque);
+    idMap.recettes[r.id] = info.lastInsertRowid;
+    counts.recettes++;
+  });
+
+  rowsOf('recette_ingredients').forEach(ri => {
+    const recetteId = idMap.recettes[ri.recette_id];
+    if (!recetteId) return;
+    const sousRecetteId = ri.sous_recette_id != null ? (idMap.recettes[ri.sous_recette_id] || null) : null;
+    const ingredientId = ri.ingredient_id != null ? (idMap.ingredients[ri.ingredient_id] || null) : null;
+    db.prepare(`INSERT INTO recette_ingredients
+      (recette_id,position,type,nom,qty,unite,sous_recette_id,note,ingredient_id)
+      VALUES(?,?,?,?,?,?,?,?,?)`)
+      .run(recetteId, ri.position, ri.type, ri.nom, ri.qty, ri.unite, sousRecetteId, ri.note, ingredientId);
+    counts.recette_ingredients++;
+  });
+
+  rowsOf('recette_etapes').forEach(re => {
+    const recetteId = idMap.recettes[re.recette_id];
+    if (!recetteId) return;
+    db.prepare('INSERT INTO recette_etapes(recette_id,position,titre,texte,timer) VALUES(?,?,?,?,?)')
+      .run(recetteId, re.position, re.titre, re.texte, re.timer);
+    counts.recette_etapes++;
+  });
+
+  rowsOf('menu').forEach(m => {
+    db.prepare('INSERT INTO menu(date,nom,type,portions,emoji,note,photo,position) VALUES(?,?,?,?,?,?,?,?)')
+      .run(m.date, m.nom, m.type, m.portions, m.emoji, m.note, m.photo, m.position || 0);
+    counts.menu++;
+  });
+
+  rowsOf('courses_recipes').forEach(cr => {
+    const info = db.prepare('INSERT OR IGNORE INTO courses_recipes(recipe_id,nom,photo,portions) VALUES(?,?,?,?)')
+      .run(cr.recipe_id, cr.nom, cr.photo, cr.portions);
+    if (info.changes) counts.courses_recipes++;
+  });
+
+  rowsOf('courses_items').forEach(ci => {
+    const ingredientId = ci.ingredient_id != null ? (idMap.ingredients[ci.ingredient_id] || null) : null;
+    db.prepare(`INSERT INTO courses_items
+      (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id)
+      VALUES(?,?,?,?,?,?,?,?,?,?)`)
+      .run(ci.nom, ci.icone, ci.marchand, ci.rayon, ci.qty, ci.unite, ci.done, ci.origin, ci.recipe_id, ingredientId);
+    counts.courses_items++;
+  });
+
+  rowsOf('suggestion_rules').forEach(sr => {
+    db.prepare('INSERT INTO suggestion_rules(name,active,days,meals,conditions,position) VALUES(?,?,?,?,?,?)')
+      .run(sr.name, sr.active, sr.days, sr.meals, sr.conditions, sr.position || 0);
+    counts.suggestion_rules++;
+  });
+
+  return counts;
+}
+
+app.post('/api/backup/import', (req, res) => {
+  const { mode, tables, photos } = req.body || {};
+  if (!tables || typeof tables !== 'object') return res.status(400).json({ error: 'Fichier de sauvegarde invalide' });
+  if (mode !== 'replace' && mode !== 'merge') return res.status(400).json({ error: 'mode doit être "replace" ou "merge"' });
+
+  let photosRestored = 0;
+  if (photos && typeof photos === 'object') {
+    Object.entries(photos).forEach(([filename, b64]) => {
+      try {
+        const filePath = path.join(PHOTOS_DIR, path.basename(filename));
+        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+        photosRestored++;
+      } catch(_) {}
+    });
+  }
+
+  const counts = {};
+  try {
+    if (mode === 'replace') {
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        [...BACKUP_TABLES].reverse().forEach(t => db.prepare(`DELETE FROM ${t}`).run());
+        BACKUP_TABLES.forEach(t => {
+          const rows = tables[t] || [];
+          counts[t] = 0;
+          if (!rows.length) return;
+          const cols = Object.keys(rows[0]);
+          const stmt = db.prepare(`INSERT INTO ${t} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
+          rows.forEach(row => { stmt.run(cols.map(c => row[c])); counts[t]++; });
+        });
+      })();
+      db.pragma('foreign_keys = ON');
+    } else {
+      db.transaction(() => { Object.assign(counts, importMerge(tables)); })();
+    }
+  } catch(e) {
+    try { db.pragma('foreign_keys = ON'); } catch(_) {}
+    return res.status(500).json({ error: e.message });
+  }
+
+  res.json({ ok: true, mode, counts, photosRestored });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

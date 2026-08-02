@@ -2093,6 +2093,22 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .sgc-btn-cancel { background: var(--grey-l); color: #666; border: none; border-radius: 10px; padding: 13px 16px; font-size: .9rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
 .sgc-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
 .sgc-empty .e { font-size: 2.5rem; margin-bottom: 10px; }
+/* ── Page Sauvegarde (import/export) ── */
+#page-backup { background: var(--grey-l); }
+.bk-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+.bk-title { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+.bk-desc { font-size: .82rem; color: var(--text2); margin-bottom: 12px; line-height: 1.4; }
+.bk-btn { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: .95rem; font-weight: 800; cursor: pointer; font-family: var(--font); }
+.bk-btn:disabled { opacity: .5; cursor: default; }
+.bk-btn-outline { background: #fff; color: var(--orange); border: 2px solid var(--orange); padding: 11px; }
+.bk-file-summary { font-size: .82rem; color: var(--text2); margin-top: 10px; line-height: 1.4; }
+.bk-file-summary b { color: var(--text); }
+.bk-radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; cursor: pointer; }
+.bk-radio input { margin-top: 3px; flex-shrink: 0; }
+.bk-radio .t { font-size: .88rem; font-weight: 700; }
+.bk-radio .s { font-size: .78rem; color: var(--text2); display: block; margin-top: 2px; line-height: 1.35; }
+.bk-sep { height: 1px; background: var(--grey-l); margin: 12px 0; }
+.bk-result { font-size: .82rem; background: var(--orange-l); color: #a8500f; border-radius: 10px; padding: 10px 12px; margin-top: 12px; line-height: 1.4; }
 /* ── Page Rayons ── */
 #page-rayons { background: var(--grey-l); }
 .ry-group { display: flex; flex-direction: column; gap: 6px; }
@@ -2491,6 +2507,43 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <!-- ══ PAGE SUGGESTION CONFIG ═══════════════════════════════════════════ -->
     <div id="page-suggestion-config" class="page">
       <div id="sgc-list" style="padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:80px"></div>
+    </div>
+
+    <!-- ══ PAGE SAUVEGARDE (IMPORT / EXPORT) ═══════════════════════════════ -->
+    <div id="page-backup" class="page">
+      <div style="padding:16px 14px 100px;display:flex;flex-direction:column;gap:14px">
+
+        <div class="bk-card">
+          <div class="bk-title">⬇️ Exporter mes données</div>
+          <div class="bk-desc">Télécharge un fichier contenant toutes vos recettes, ingrédients, stocks, courses et photos. À envoyer ensuite à la personne qui veut importer vos données (mail, clé USB…).</div>
+          <button class="bk-btn" id="bk-export-btn" onclick="bkExport()">📤 Télécharger la sauvegarde</button>
+        </div>
+
+        <div class="bk-card">
+          <div class="bk-title">⬆️ Importer des données</div>
+          <div class="bk-desc">Choisissez un fichier de sauvegarde (.json) reçu d'une autre installation KitchenCore.</div>
+          <input type="file" id="bk-file-input" accept="application/json,.json" style="display:none" onchange="bkFileSelected(event)">
+          <button class="bk-btn bk-btn-outline" onclick="document.getElementById('bk-file-input').click()">📁 Choisir un fichier</button>
+          <div id="bk-file-summary" class="bk-file-summary"></div>
+
+          <div id="bk-import-options" style="display:none">
+            <div class="bk-sep"></div>
+            <div style="font-size:.85rem;font-weight:800;margin-bottom:4px">Comment importer ?</div>
+            <label class="bk-radio">
+              <input type="radio" name="bk-mode" value="replace" checked>
+              <div><span class="t">Remplacer tout</span><span class="s">Efface toutes les données actuelles de l'app et les remplace par celles du fichier. Recommandé si l'app est vide.</span></div>
+            </label>
+            <label class="bk-radio">
+              <input type="radio" name="bk-mode" value="merge">
+              <div><span class="t">Ajouter sans effacer</span><span class="s">Ajoute les données du fichier à celles déjà présentes (les doublons de noms sont réutilisés, rien n'est effacé).</span></div>
+            </label>
+            <button class="bk-btn" id="bk-import-btn" onclick="bkImport()" style="margin-top:8px">✓ Importer</button>
+          </div>
+
+          <div id="bk-result" style="display:none" class="bk-result"></div>
+        </div>
+
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -3082,6 +3135,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon">🗂</div> Zones de stock</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'produits','Gestion des produits')"><div class="d-icon">📦</div> Gestion des produits</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'tags','Tags recettes')"><div class="d-icon">🏷</div> Tags recettes</div>
+      <div class="drawer-sep"></div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'backup','Sauvegarde')"><div class="d-icon">💾</div> Import / Export</div>
     </div>
     <div class="drawer-version">KitchenCore v0.8 · Home Assistant Add-on</div>
   </div>
@@ -5207,6 +5262,7 @@ const PAGE_CONFIG = {
   'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
   'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
   'produits':           { title: '📦 Gestion des produits',    fab: false, search: false, fabIcon: '', dark: false },
+  'backup':             { title: '💾 Sauvegarde',              fab: false, search: false, fabIcon: '', dark: false },
 };
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
@@ -5309,6 +5365,7 @@ function switchPage(tab, page, title) {
     stockHideHdmenu();
   }
   if (page !== 'courses' && typeof clExitSelMode === 'function') clExitSelMode();
+  if (page !== 'backup' && typeof _bkReset === 'function') _bkReset();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -11325,6 +11382,94 @@ window._sgcSave         = async function() {
   } catch(_) { showToast('Erreur lors de l\'enregistrement','err'); }
 };
 })();
+
+// ── Page Sauvegarde (import / export) ──────────────────────────────────────
+let _bkPendingImport = null;
+
+window.bkExport = async function() {
+  const btn = document.getElementById('bk-export-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Préparation…';
+  try {
+    const res = await fetch('/api/backup/export');
+    if (!res.ok) throw new Error('export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kitchencore-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Sauvegarde téléchargée ✓', 'ok');
+  } catch(e) {
+    showToast('Erreur lors de l\'export', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+};
+
+window.bkFileSelected = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !data.tables) throw new Error('format invalide');
+      _bkPendingImport = data;
+      const c = (data.meta && data.meta.counts) || {};
+      const photos = (data.meta && data.meta.photos_count) || 0;
+      document.getElementById('bk-file-summary').innerHTML =
+        `Fichier : <b>${file.name}</b><br>${c.recettes || 0} recette(s) · ${c.ingredients || 0} ingrédient(s) · ${c.produits || 0} produit(s) · ${photos} photo(s)`;
+      document.getElementById('bk-import-options').style.display = 'block';
+      document.getElementById('bk-result').style.display = 'none';
+    } catch(err) {
+      _bkPendingImport = null;
+      document.getElementById('bk-file-summary').textContent = "Fichier invalide — ce n'est pas une sauvegarde KitchenCore.";
+      document.getElementById('bk-import-options').style.display = 'none';
+      showToast('Fichier invalide', 'err');
+    }
+  };
+  reader.readAsText(file);
+};
+
+window.bkImport = async function() {
+  if (!_bkPendingImport) return;
+  const mode = document.querySelector('input[name="bk-mode"]:checked').value;
+  if (mode === 'replace' && !confirm("Cela va effacer toutes les données actuelles de l'app (recettes, ingrédients, stock, courses…) et les remplacer par celles du fichier. Cette action est irréversible. Continuer ?")) return;
+  if (mode === 'merge' && !confirm('Ajouter les données du fichier à celles déjà présentes, sans rien effacer ?')) return;
+  const btn = document.getElementById('bk-import-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Import en cours…';
+  try {
+    const res = await fetch('/api/backup/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, tables: _bkPendingImport.tables, photos: _bkPendingImport.photos }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur import');
+    const total = Object.values(data.counts || {}).reduce((a, b) => a + b, 0);
+    const r = document.getElementById('bk-result');
+    r.style.display = 'block';
+    r.innerHTML = `✓ Import terminé — ${total} élément(s) importé(s), ${data.photosRestored || 0} photo(s) restaurée(s).<br>Rechargement de l'application…`;
+    showToast('Import réussi ✓', 'ok');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = original;
+  }
+};
+
+window._bkReset = function() {
+  _bkPendingImport = null;
+  const fi = document.getElementById('bk-file-input'); if (fi) fi.value = '';
+  const fs = document.getElementById('bk-file-summary'); if (fs) fs.innerHTML = '';
+  const io = document.getElementById('bk-import-options'); if (io) io.style.display = 'none';
+  const r = document.getElementById('bk-result'); if (r) r.style.display = 'none';
+};
 
 </script>
 </body>
