@@ -2571,6 +2571,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="detail-ctx" id="detail-ctx">
       <div class="ctx-item" onclick="addToCourses(_currentId);detailMenuClose()"><span>🛒</span> Ajouter aux courses</div>
       <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
+      <div class="ctx-item" onclick="copyDetailJson()"><span>📋</span> Copier le JSON</div>
     </div>
     <div class="p-scroll" id="detail-body"></div>
     <button class="ev3-save-fab" onclick="openEdit(_currentId)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -2581,6 +2582,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     <div class="panel-head">
       <button class="p-back" onclick="closeEdit()">←</button>
       <div class="p-title" id="edit-title">Nouvelle recette</div>
+      <button class="p-more-btn" onclick="copyEditJson()" title="Copier le JSON">📋</button>
     </div>
 
     <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
@@ -7660,6 +7662,52 @@ async function saveRecette() {
     if(_editId) openDetail(data.id);
     showToast(_editId?'Recette mise à jour ✓':'Recette créée ✓','ok');
   } catch(e) { showToast('Erreur sauvegarde','error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// COPIER LE JSON — même format que l'import (voir rvJsonImport)
+// ════════════════════════════════════════════════════════════════════════════
+function _recetteToImportObj(r) {
+  return {
+    nom:           r.nom || '',
+    description:   r.description || '',
+    portions:      parseInt(r.portions) || 2,
+    temps_prep:    parseInt(r.temps_prep) || 0,
+    temps_cuisson: parseInt(r.temps_cuisson) || 0,
+    tags:          r.tags || [],
+    source:        r.source || '',
+    ingredients: (r.ingredients||[]).map(i => ({ nom: i.nom||'', qty: i.qty||'', unite: i.unite||'' })),
+    etapes:      (r.etapes||[]).map(e => ({ titre: e.titre||'', texte: e.texte||'', timer: parseInt(e.timer)||0 })),
+  };
+}
+async function _copyToClipboard(text) {
+  try { await navigator.clipboard.writeText(text); showToast('JSON copié ✓'); }
+  catch(e) { showToast('Impossible de copier', 'error'); }
+}
+async function copyDetailJson() {
+  detailMenuClose();
+  if (!_currentId) return;
+  try {
+    const numId = String(_currentId).replace(/^d_/, '');
+    const r = await fetch('/api/recettes/'+numId).then(res=>res.json());
+    await _copyToClipboard(JSON.stringify(_recetteToImportObj(r), null, 2));
+  } catch(e) { showToast('Erreur lors de la copie', 'error'); }
+}
+async function copyEditJson() {
+  const nom = document.getElementById('e-nom')?.value.trim();
+  if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
+  const obj = _recetteToImportObj({
+    nom,
+    description:   document.getElementById('e-desc')?.value.trim()||'',
+    portions:      document.getElementById('e-portions')?.value,
+    temps_prep:    document.getElementById('e-prep')?.value,
+    temps_cuisson: document.getElementById('e-cuisson')?.value,
+    source:        document.getElementById('e-source')?.value.trim()||'',
+    tags:          _eSelTags,
+    ingredients:   _eIngr.filter(i=>i.nom.trim()),
+    etapes:        _eSteps.filter(s=>s.texte.trim()),
+  });
+  await _copyToClipboard(JSON.stringify(obj, null, 2));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
