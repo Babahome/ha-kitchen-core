@@ -124,6 +124,20 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   user-select: none;
 }
 .fab:active { transform: scale(.93); box-shadow: 0 2px 10px rgba(232,103,26,.4); }
+.fab.dial-open svg { transform: rotate(45deg); }
+.fab svg { transition: transform .15s; }
+
+.fab-dial { position: absolute; right: 16px; bottom: calc(var(--bottom-h) + 16px + 68px);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 14px; z-index: 19; }
+.fab-dial-item { display: flex; align-items: center; gap: 10px; cursor: pointer;
+  opacity: 0; transform: translateY(10px) scale(.85); pointer-events: none;
+  transition: opacity .15s, transform .15s; }
+.fab-dial.open .fab-dial-item { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.fab-dial-label { background: white; color: var(--text); font-size: .78rem; font-weight: 700;
+  padding: 7px 14px; border-radius: 99px; box-shadow: 0 3px 12px rgba(0,0,0,.15); white-space: nowrap; }
+.fab-dial-btn { width: 44px; height: 44px; border-radius: 50%; background: white;
+  display: grid; place-items: center; font-size: 1.2rem; box-shadow: 0 3px 12px rgba(0,0,0,.15);
+  cursor: pointer; border: none; flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    PAGE STOCK
@@ -2906,6 +2920,18 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- FAB -->
   <div class="fab" id="main-fab" onclick="fabAction()"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
 
+  <!-- FAB speed-dial recettes -->
+  <div class="fab-dial" id="rv-fab-dial">
+    <div class="fab-dial-item" onclick="rvFabPasteJson()">
+      <span class="fab-dial-label">Coller un JSON</span>
+      <button class="fab-dial-btn">📋</button>
+    </div>
+    <div class="fab-dial-item" onclick="rvFabNew()">
+      <span class="fab-dial-label">Nouvelle recette</span>
+      <button class="fab-dial-btn">📝</button>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
     <div class="nav-tab active" onclick="switchPage(this,'stock','Stock Cuisine')">
@@ -5388,6 +5414,7 @@ function switchPage(tab, page, title) {
   }
   if (page !== 'courses' && typeof clExitSelMode === 'function') clExitSelMode();
   if (page !== 'backup' && typeof _bkReset === 'function') _bkReset();
+  if (page !== 'recettes' && typeof rvFabDialClose === 'function') rvFabDialClose();
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -5396,6 +5423,7 @@ function fabAction() {
   if (!active) return;
   const page = active.id.replace('page-', '');
   if (page === 'stock')     { if (_stockSelectedIds.size > 0) { stockAddSelectedToCourses(); } else if(typeof openScanner==='function') openScanner(); return; }
+  if (page === 'recettes')  { if(typeof rvFabDialToggle==='function') rvFabDialToggle(); return; }
   if (page === 'courses')   { clFabAction(); return; }
   if (page === 'rayons')              { _ryOpenModal(); return; }
   if (page === 'marchands')           { _mchOpenModalMarchand(); return; }
@@ -7665,6 +7693,27 @@ async function saveRecette() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// FAB SPEED-DIAL — Nouvelle recette / Coller un JSON
+// ════════════════════════════════════════════════════════════════════════════
+function rvFabDialToggle() {
+  const dial = document.getElementById('rv-fab-dial');
+  if (!dial) return;
+  const isOpen = dial.classList.contains('open');
+  rvFabDialClose();
+  if (!isOpen) {
+    dial.classList.add('open');
+    document.getElementById('main-fab')?.classList.add('dial-open');
+    setTimeout(()=>document.addEventListener('click', rvFabDialClose, {once:true}), 10);
+  }
+}
+function rvFabDialClose() {
+  document.getElementById('rv-fab-dial')?.classList.remove('open');
+  document.getElementById('main-fab')?.classList.remove('dial-open');
+}
+function rvFabNew() { rvFabDialClose(); openNew(); }
+function rvFabPasteJson() { rvFabDialClose(); rvImportOpen(); rvImportTab('json'); }
+
+// ════════════════════════════════════════════════════════════════════════════
 // COPIER LE JSON — même format que l'import (voir rvJsonImport)
 // ════════════════════════════════════════════════════════════════════════════
 function _recetteToImportObj(r) {
@@ -7899,12 +7948,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if(t.querySelector('.nav-label')?.textContent==='Recettes') setTimeout(renderList,50);
     });
   });
-  var _f0 = window.fabAction;
-  window.fabAction = function() {
-    var p = document.querySelector('.page.active')?.id.replace('page-','');
-    if(p==='recettes'){ openNew(); return; }
-    _f0 && _f0();
-  };
 });
 
 // ════════════════════════════════════════════════════════════════════════════
