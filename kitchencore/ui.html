@@ -5503,20 +5503,26 @@ function searchRecettes(val) {
 function closeRecetteMenu() { closeCtx && closeCtx(); }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-// Appliquer la config de la page initiale (stock, ou la page d'accueil choisie dans Personnalisation)
+// Appliquer la config de la page initiale (stock par défaut)
 (function() {
-  const home = pzGetHomePage();
-  if (home !== 'stock') {
-    const tabEl = document.querySelector('.nav-tab[data-page="' + home + '"]');
-    switchPage(tabEl, home, PZ_HOME_PAGES[home].title);
-    return;
-  }
   const cfg = PAGE_CONFIG['stock'];
   document.querySelector('.header').style.background = 'var(--orange)';
   document.getElementById('fab-search')?.classList.remove('visible');
   document.getElementById('st-fab-search')?.classList.add('visible');
   document.getElementById('st-fab-scan-search')?.classList.add('visible');
 })();
+
+// Rediriger vers la page d'accueil personnalisée (Personnalisation).
+// Attend DOMContentLoaded : à ce stade tout le script a fini de s'exécuter, donc
+// les variables utilisées par les fonctions de chargement de page (ex: loadRecettes)
+// sont bien initialisées — un appel immédiat à switchPage() ici plantait silencieusement
+// et empêchait tout le reste de l'initialisation (courses, ingrédients…) de s'exécuter.
+document.addEventListener('DOMContentLoaded', function() {
+  const home = pzGetHomePage();
+  if (home === 'stock') return;
+  const tabEl = document.querySelector('.nav-tab[data-page="' + home + '"]');
+  switchPage(tabEl, home, PZ_HOME_PAGES[home].title);
+});
 
 // ════════════════════════════════════════════════════════════════════════════
 // SCANNER CODE-BARRES
