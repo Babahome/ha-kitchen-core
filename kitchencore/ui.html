@@ -2575,6 +2575,38 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
     </div>
 
+    <!-- ══ PAGE PERSONNALISATION ═══════════════════════════════════════════ -->
+    <div id="page-personnalisation" class="page">
+      <div style="padding:16px 14px 100px;display:flex;flex-direction:column;gap:14px">
+
+        <div class="bk-card">
+          <div class="bk-title">🏠 Page d'accueil</div>
+          <div class="bk-desc">Choisissez la page affichée à l'ouverture de l'application.</div>
+
+          <label class="bk-radio">
+            <input type="radio" name="pz-home" value="stock" onchange="pzSetHomePage(this.value)">
+            <div><span class="t">Cuisine (Stock)</span></div>
+          </label>
+          <div class="bk-sep"></div>
+          <label class="bk-radio">
+            <input type="radio" name="pz-home" value="recettes" onchange="pzSetHomePage(this.value)">
+            <div><span class="t">Recettes</span></div>
+          </label>
+          <div class="bk-sep"></div>
+          <label class="bk-radio">
+            <input type="radio" name="pz-home" value="menu" onchange="pzSetHomePage(this.value)">
+            <div><span class="t">Menu</span></div>
+          </label>
+          <div class="bk-sep"></div>
+          <label class="bk-radio">
+            <input type="radio" name="pz-home" value="courses" onchange="pzSetHomePage(this.value)">
+            <div><span class="t">Courses</span></div>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
   </div><!-- /content -->
 
   <!-- ══ OVERLAYS (enfants directs du frame — hors content pour éviter le stacking context iOS) ══ -->
@@ -2939,19 +2971,19 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
-    <div class="nav-tab active" onclick="switchPage(this,'stock','Stock Cuisine')">
+    <div class="nav-tab active" data-page="stock" onclick="switchPage(this,'stock','Stock Cuisine')">
       <div class="nav-icon">🏠</div>
       <div class="nav-label">Cuisine</div>
     </div>
-    <div class="nav-tab" onclick="switchPage(this,'recettes','Recettes')">
+    <div class="nav-tab" data-page="recettes" onclick="switchPage(this,'recettes','Recettes')">
       <div class="nav-icon">🍳</div>
       <div class="nav-label">Recettes</div>
     </div>
-    <div class="nav-tab" onclick="switchPage(this,'menu','Menu')">
+    <div class="nav-tab" data-page="menu" onclick="switchPage(this,'menu','Menu')">
       <div class="nav-icon">📅</div>
       <div class="nav-label">Menu</div>
     </div>
-    <div class="nav-tab" onclick="switchPage(this,'courses','Courses')">
+    <div class="nav-tab" data-page="courses" onclick="switchPage(this,'courses','Courses')">
       <div class="nav-icon">🛒</div>
       <div class="nav-label">Courses</div>
     </div>
@@ -3180,6 +3212,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       </div>
     </div>
     <div class="drawer-items">
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'personnalisation','Personnalisation')"><div class="d-icon">⚙️</div> Personnalisation</div>
+      <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Ingrédients</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'rayons','Rayons')"><div class="d-icon">🏷</div> Rayons</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Marchands</div>
@@ -5316,7 +5350,29 @@ const PAGE_CONFIG = {
   'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
   'produits':           { title: '📦 Gestion des produits',    fab: false, search: false, fabIcon: '', dark: false },
   'backup':             { title: '💾 Sauvegarde',              fab: false, search: false, fabIcon: '', dark: false },
+  'personnalisation':   { title: '⚙️ Personnalisation',         fab: false, search: false, fabIcon: '', dark: false },
 };
+
+// ── Personnalisation : page d'accueil ────────────────────────────────────────
+const PZ_HOME_KEY = 'kc_home_page';
+const PZ_HOME_PAGES = {
+  stock:    { title: 'Stock Cuisine' },
+  recettes: { title: 'Recettes' },
+  menu:     { title: 'Menu' },
+  courses:  { title: 'Courses' },
+};
+function pzGetHomePage() {
+  const v = localStorage.getItem(PZ_HOME_KEY);
+  return PZ_HOME_PAGES[v] ? v : 'stock';
+}
+function pzSetHomePage(page) {
+  localStorage.setItem(PZ_HOME_KEY, page);
+  showToast('Page d\'accueil mise à jour', 'ok');
+}
+function _pzLoad() {
+  const cur = pzGetHomePage();
+  document.querySelectorAll('input[name="pz-home"]').forEach(r => { r.checked = (r.value === cur); });
+}
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
 function switchPage(tab, page, title) {
@@ -5419,6 +5475,7 @@ function switchPage(tab, page, title) {
   }
   if (page !== 'courses' && typeof clExitSelMode === 'function') clExitSelMode();
   if (page !== 'backup' && typeof _bkReset === 'function') _bkReset();
+  if (page === 'personnalisation' && typeof _pzLoad === 'function') _pzLoad();
   if (page !== 'recettes' && typeof rvFabDialClose === 'function') rvFabDialClose();
 }
 
@@ -5446,8 +5503,14 @@ function searchRecettes(val) {
 function closeRecetteMenu() { closeCtx && closeCtx(); }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-// Appliquer la config de la page initiale (stock)
+// Appliquer la config de la page initiale (stock, ou la page d'accueil choisie dans Personnalisation)
 (function() {
+  const home = pzGetHomePage();
+  if (home !== 'stock') {
+    const tabEl = document.querySelector('.nav-tab[data-page="' + home + '"]');
+    switchPage(tabEl, home, PZ_HOME_PAGES[home].title);
+    return;
+  }
   const cfg = PAGE_CONFIG['stock'];
   document.querySelector('.header').style.background = 'var(--orange)';
   document.getElementById('fab-search')?.classList.remove('visible');
