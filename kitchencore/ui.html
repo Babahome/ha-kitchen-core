@@ -140,7 +140,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .fab-dial-label { background: white; color: var(--text); font-size: .78rem; font-weight: 700;
   padding: 7px 14px; border-radius: 99px; box-shadow: 0 3px 12px rgba(0,0,0,.15); white-space: nowrap; }
 .fab-dial-btn { width: 44px; height: 44px; border-radius: 50%; background: white;
-  display: grid; place-items: center; font-size: 1.2rem; box-shadow: 0 3px 12px rgba(0,0,0,.15);
+  display: grid; place-items: center; color: var(--orange); box-shadow: 0 3px 12px rgba(0,0,0,.15);
   cursor: pointer; border: none; flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2929,11 +2929,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="fab-dial" id="rv-fab-dial">
     <div class="fab-dial-item" onclick="rvFabPasteJson()">
       <span class="fab-dial-label">Coller un JSON</span>
-      <button class="fab-dial-btn">📋</button>
+      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button>
     </div>
     <div class="fab-dial-item" onclick="rvFabNew()">
       <span class="fab-dial-label">Nouvelle recette</span>
-      <button class="fab-dial-btn">📝</button>
+      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     </div>
   </div>
 
