@@ -127,6 +127,10 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .fab.dial-open svg { transform: rotate(45deg); }
 .fab svg { transition: transform .15s; }
 
+.fab-dial-backdrop { position: absolute; inset: 0; z-index: 18; background: transparent;
+  display: none; pointer-events: none; }
+.fab-dial-backdrop.open { display: block; pointer-events: auto; }
+
 .fab-dial { position: absolute; right: 16px; bottom: calc(var(--bottom-h) + 16px + 68px);
   display: flex; flex-direction: column; align-items: flex-end; gap: 14px; z-index: 19; }
 .fab-dial-item { display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -2921,6 +2925,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <div class="fab" id="main-fab" onclick="fabAction()"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
 
   <!-- FAB speed-dial recettes -->
+  <div class="fab-dial-backdrop" id="rv-fab-backdrop" onclick="rvFabDialClose()"></div>
   <div class="fab-dial" id="rv-fab-dial">
     <div class="fab-dial-item" onclick="rvFabPasteJson()">
       <span class="fab-dial-label">Coller un JSON</span>
@@ -7702,12 +7707,13 @@ function rvFabDialToggle() {
   rvFabDialClose();
   if (!isOpen) {
     dial.classList.add('open');
+    document.getElementById('rv-fab-backdrop')?.classList.add('open');
     document.getElementById('main-fab')?.classList.add('dial-open');
-    setTimeout(()=>document.addEventListener('click', rvFabDialClose, {once:true}), 10);
   }
 }
 function rvFabDialClose() {
   document.getElementById('rv-fab-dial')?.classList.remove('open');
+  document.getElementById('rv-fab-backdrop')?.classList.remove('open');
   document.getElementById('main-fab')?.classList.remove('dial-open');
 }
 function rvFabNew() { rvFabDialClose(); openNew(); }
