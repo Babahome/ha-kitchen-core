@@ -9197,9 +9197,9 @@ function _ingRenderCard(ing, i, depth) {
     : initials;
   const depthClass = depth > 0 ? ` ing-depth-${Math.min(depth,3)}` : '';
 
-  return `<div class="ing-card${selected?' selected':''}${depthClass}" data-ing-id="${ing.id}" style="animation-delay:${i*0.03}s"
+  return `<div class="ing-card${selected?' selected':''}${depthClass}" data-ing-id="${ing.id}" draggable="true" style="animation-delay:${i*0.03}s"
     onclick="ingOnCardClick('${ing.id}', event)">
-    <div class="ing-checkbox" onclick="ingToggleCard('${ing.id}', event)">${selected?'✓':''}</div>
+    <div class="ing-checkbox" draggable="false" onclick="ingToggleCard('${ing.id}', event)">${selected?'✓':''}</div>
     <div class="ing-avatar ${hasImage?'has-img':'no-img'}">${avatarContent}</div>
     <div class="ing-info">
       <div class="ing-name">${ing.name}</div>
@@ -9209,12 +9209,12 @@ function _ingRenderCard(ing, i, depth) {
       </div>
     </div>
     <div class="ing-actions">
-      <button class="ing-btn" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
+      <button class="ing-btn" draggable="false" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
     </div>
   </div>`;
 }
 
-// ─── Drag & drop pour équivalences ───
+// ─── Drag & drop pour équivalences (souris + tactile) ───
 let _ingDragSrcId = null, _ingDragOverId = null, _ingDragTimer = null, _ingDragActive = false, _ingJustDragged = false;
 
 function _ingDragSetup() {
@@ -9230,6 +9230,15 @@ function _ingDragSetup() {
     srcId = null; overId = null; srcCard = null; active = false;
   };
 
+  const autoScroll = clientY => {
+    const scrollEl = document.getElementById('content');
+    if (!scrollEl) return;
+    const zone = 80, vh = window.innerHeight;
+    if (clientY < zone) scrollEl.scrollTop -= Math.round((zone - clientY) / 4);
+    else if (clientY > vh - zone) scrollEl.scrollTop += Math.round((clientY - (vh - zone)) / 4);
+  };
+
+  // ── Tactile : appui long (300ms) sur le corps de la carte ──
   grid.addEventListener('touchstart', e => {
     const card = e.target.closest('.ing-card');
     if (!card || e.target.closest('.ing-btn, .ing-checkbox')) return;
@@ -9249,10 +9258,11 @@ function _ingDragSetup() {
     const t = e.touches[0];
     const dx = t.clientX - startX, dy = t.clientY - startY;
     if (!active) {
-      if (Math.hypot(dx, dy) > 8) reset(); // mouvement trop rapide = scroll, annuler
+      if (Math.hypot(dx, dy) > 12) reset(); // mouvement trop rapide = scroll, annuler
       return;
     }
     e.preventDefault(); // bloquer le scroll pendant le drag
+    autoScroll(t.clientY);
     const el = document.elementFromPoint(t.clientX, t.clientY);
     const target = el && el.closest('.ing-card');
     grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
@@ -9273,6 +9283,43 @@ function _ingDragSetup() {
   });
 
   grid.addEventListener('touchcancel', reset);
+
+  // ── Souris (desktop) : glisser-déposer natif HTML5, immédiat (pas d'appui long) ──
+  grid.addEventListener('dragstart', e => {
+    const card = e.target.closest('.ing-card');
+    if (!card || e.target.closest('.ing-btn, .ing-checkbox')) { e.preventDefault(); return; }
+    srcId = card.dataset.ingId; srcCard = card; active = true;
+    card.classList.add('ing-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', srcId); } catch(_) {}
+  });
+
+  grid.addEventListener('dragover', e => {
+    if (!active || !srcId) return;
+    e.preventDefault();
+    autoScroll(e.clientY);
+    const target = e.target.closest('.ing-card');
+    grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
+    if (target && target.dataset.ingId !== srcId) {
+      target.classList.add('ing-drag-over');
+      overId = target.dataset.ingId;
+    } else { overId = null; }
+  });
+
+  grid.addEventListener('drop', e => {
+    if (!active || !srcId) return;
+    e.preventDefault();
+  });
+
+  grid.addEventListener('dragend', async () => {
+    const wasActive = active, s = srcId, o = overId;
+    reset();
+    if (wasActive && s && o) {
+      await _ingSetParent(s, o);
+      _ingJustDragged = true;
+      setTimeout(() => { _ingJustDragged = false; }, 300);
+    }
+  });
 }
 
 async function _ingSetParent(childId, parentId) {
