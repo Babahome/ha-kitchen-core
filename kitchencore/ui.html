@@ -9271,8 +9271,16 @@ function _ingDragSetup() {
     }
     e.preventDefault(); // bloquer le scroll pendant le drag
     autoScroll(t.clientY);
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    const target = el && el.closest('.ing-card');
+    // elementFromPoint (singulier) peut renvoyer la carte source elle-même (semi-transparente
+    // mais toujours au-dessus pour le hit-test sur certains Android) : on utilise la pile complète
+    // et on ignore explicitement la source, comme sur la page Rayons.
+    const stack = document.elementsFromPoint(t.clientX, t.clientY);
+    let target = null;
+    for (const el of stack) {
+      if (el === srcCard) continue;
+      const c = el.closest && el.closest('.ing-card');
+      if (c && c !== srcCard) { target = c; break; }
+    }
     grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
     if (target && target.dataset.ingId !== srcId) {
       target.classList.add('ing-drag-over');
