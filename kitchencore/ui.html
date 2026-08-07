@@ -1843,6 +1843,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     gap: 4px; color: white; font-size: .8rem; font-weight: 700; cursor: pointer;
   }
   .ing-panel-hero-overlay-icon { font-size: 1.6rem; }
+  .ing-panel-hero-hint { font-size: .68rem; font-weight: 600; opacity: .85; }
 
   /* Scroll */
   .ing-panel-scroll {
@@ -2657,6 +2658,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <div class="ev3-hero-overlay">
           <span class="ev3-hero-overlay-icon">📷</span>
           <span>Changer la photo</span>
+          <span style="font-size:.68rem;font-weight:600;opacity:.85">ou coller (Ctrl+V)</span>
         </div>
         <div class="ev3-hero-fabs" onclick="event.stopPropagation()">
           <button class="ev3-hero-fab" id="ev3-clear-photo-btn" style="display:none" onclick="ev3ClearPhoto()">✕ Photo</button>
@@ -3352,6 +3354,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="ing-panel-hero-overlay" id="ing-editHeroOverlay">
         <span class="ing-panel-hero-overlay-icon">📷</span>
         <span id="ing-editHeroOverlayText">Ajouter une photo</span>
+        <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
       </div>
     </div>
     <input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none">
@@ -7558,6 +7561,26 @@ function ev3HandlePhotoFile(input) {
   rd.onload = ev => ev3SetPhoto(ev.target.result);
   rd.readAsDataURL(f);
 }
+// Coller une image (Ctrl+V) dans le panel d'édition recette
+document.addEventListener('paste', function(e) {
+  const editPanel = document.getElementById('panel-edit');
+  if (!editPanel || !editPanel.classList.contains('open')) return;
+  const items = (e.clipboardData || window.clipboardData || {}).items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        const rd = new FileReader();
+        rd.onload = ev => ev3SetPhoto(ev.target.result);
+        rd.readAsDataURL(file);
+        showToast('Image collée', 'ok');
+      }
+      break;
+    }
+  }
+});
 function ev3SetPhoto(url) {
   const img = document.getElementById('ev3-hero-img');
   img.src = url; img.style.display = 'block';
@@ -9728,12 +9751,14 @@ function _ingOpenEditPanel(id, e) {
       <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
         <span class="ing-panel-hero-overlay-icon">📷</span>
         <span>Changer la photo</span>
+        <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
       </div>`;
   } else {
     hero.innerHTML = `<span class="ing-panel-initials">${initials}</span>
       <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
         <span class="ing-panel-hero-overlay-icon">📷</span>
         <span>Ajouter une photo</span>
+        <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
       </div>`;
   }
 
@@ -9925,6 +9950,7 @@ function _ingSetPendingPhoto(file) {
       <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
         <span class="ing-panel-hero-overlay-icon">📷</span>
         <span>Changer la photo</span>
+        <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
       </div>`;
     document.getElementById('ing-editImageUrl').value = '';
   };
