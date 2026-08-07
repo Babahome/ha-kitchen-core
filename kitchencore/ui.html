@@ -9232,16 +9232,24 @@ function _ingDragSetup() {
 
   const autoScroll = clientY => {
     const scrollEl = document.getElementById('content');
-    if (!scrollEl) return;
-    const zone = 80, vh = window.innerHeight;
-    if (clientY < zone) scrollEl.scrollTop -= Math.round((zone - clientY) / 4);
-    else if (clientY > vh - zone) scrollEl.scrollTop += Math.round((clientY - (vh - zone)) / 4);
+    if (!scrollEl || scrollEl.scrollHeight <= scrollEl.clientHeight) return;
+    const rect = scrollEl.getBoundingClientRect();
+    const zone = 50;
+    const distTop = clientY - rect.top, distBottom = rect.bottom - clientY;
+    if (distTop >= 0 && distTop < zone) scrollEl.scrollTop -= Math.round((zone - distTop) / 4);
+    else if (distBottom >= 0 && distBottom < zone) scrollEl.scrollTop += Math.round((zone - distBottom) / 4);
   };
 
   // ── Tactile : appui long (300ms) sur le corps de la carte ──
   grid.addEventListener('touchstart', e => {
     const card = e.target.closest('.ing-card');
     if (!card || e.target.closest('.ing-btn, .ing-checkbox')) return;
+    // Fermer le clavier tout de suite (si on venait de la recherche) pour que le
+    // réajustement de la mise en page soit terminé avant que le glissé ne commence,
+    // sinon la cible sous le doigt se décale pendant le drag.
+    if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
     const t = e.touches[0];
     srcId = card.dataset.ingId; srcCard = card;
     startX = t.clientX; startY = t.clientY;
