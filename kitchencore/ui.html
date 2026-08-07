@@ -2444,7 +2444,8 @@ body[data-menu-sel="1"] #main-fab { display:none; }
                 <code>nom</code> (obligatoire), <code>emoji</code>, <code>description</code>,
                 <code>portions</code>, <code>temps_prep</code>, <code>temps_cuisson</code>,
                 <code>tags</code> (tableau), <code>ingredients</code> (tableau d'objets
-                <code>{nom, qty, unite}</code>), <code>etapes</code> (tableau d'objets
+                <code>{nom, qty, unite, note}</code> — <code>note</code> sert aux précisions
+                comme "optionnel" ou un équivalent), <code>etapes</code> (tableau d'objets
                 <code>{titre, texte, timer}</code>)
               </div>
               <div class="rv-json-actions">
@@ -7823,7 +7824,7 @@ function _recetteToImportObj(r) {
     temps_cuisson: parseInt(r.temps_cuisson) || 0,
     tags:          r.tags || [],
     source:        r.source || '',
-    ingredients: (r.ingredients||[]).map(i => ({ nom: i.nom||'', qty: i.qty||'', unite: i.unite||'' })),
+    ingredients: (r.ingredients||[]).map(i => ({ nom: i.nom||'', qty: i.qty||'', unite: i.unite||'', note: i.note||'' })),
     etapes:      (r.etapes||[]).map(e => ({ titre: e.titre||'', texte: e.texte||'', timer: parseInt(e.timer)||0 })),
   };
 }
@@ -7951,7 +7952,7 @@ async function rvMealieImport(slug, url, token) {
       temps_cuisson:d.recette.temps_cuisson || 0,
       tags:         d.recette.tags || [],
       favori:       false, note: d.recette.note || 0,
-      ingredients:  (d.recette.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite })),
+      ingredients:  (d.recette.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite, note: i.note||'' })),
       etapes:       (d.recette.etapes || []).map(e => ({ titre: e.titre, texte: e.texte, timer: e.timer })),
     });
     save(); renderList();
@@ -7994,6 +7995,7 @@ async function rvJsonImport() {
       nom:   String(i.nom || i.name || ''),
       qty:   String(i.qty || i.quantite || ''),
       unite: String(i.unite || i.unit || ''),
+      note:  String(i.note || ''),
     })).filter(i => i.nom.trim()),
     etapes: (data.etapes || data.steps || []).map(e => ({
       titre: String(e.titre || e.title || ''),
@@ -8023,7 +8025,7 @@ async function rvJsonImport() {
       temps_cuisson:d.temps_cuisson || 0,
       tags:         d.tags || [],
       favori: false, note: d.note || 0,
-      ingredients: (d.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite })),
+      ingredients: (d.ingredients || []).map(i => ({ nom: i.nom, qty: i.qty, unite: i.unite, note: i.note||'' })),
       etapes:      (d.etapes || []).map(e => ({ titre: e.titre, texte: e.texte, timer: e.timer })),
     });
     save(); renderList();
