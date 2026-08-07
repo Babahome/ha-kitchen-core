@@ -9910,6 +9910,10 @@ function _ingTriggerImageUpload() {
 function _ingHandleImageFile(input) {
   const file = input.files[0];
   if (!file) return;
+  _ingSetPendingPhoto(file);
+}
+
+function _ingSetPendingPhoto(file) {
   _ingPendingPhotoFile = file;
   const reader = new FileReader();
   reader.onload = e => {
@@ -9926,6 +9930,25 @@ function _ingHandleImageFile(input) {
   };
   reader.readAsDataURL(file);
 }
+
+// Coller une image (Ctrl+V) dans le panel d'édition ingrédient
+document.addEventListener('paste', function(e) {
+  const editPanel = document.getElementById('ing-editPanel');
+  if (!editPanel || !editPanel.classList.contains('open')) return;
+  const items = (e.clipboardData || window.clipboardData || {}).items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        _ingSetPendingPhoto(file);
+        _ingToast('Image collée');
+      }
+      break;
+    }
+  }
+});
 
 // ─── Merge ───
 function _ingOpenMergeSheet() {
