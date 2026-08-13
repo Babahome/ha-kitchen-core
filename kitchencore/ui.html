@@ -2373,7 +2373,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <span>🔍</span>
         <input class="cl-fab-search-input" id="cl-search-input" placeholder="Ajouter un article…"
           onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
-          onkeydown="if(event.key==='Escape')clToggleSearch()">
+          onkeydown="if(event.key==='Escape')clToggleSearch();else if(event.key==='Enter'){event.preventDefault();clAddItem();}">
         <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
       </div>
 
@@ -6785,8 +6785,8 @@ async function clAddItem() {
   const item = {qty:1, done:false, origin:'manuel', n:found?found.n:v, icone:null, m:defaultM, r:found?found.r:'Autre'};
   try {
     const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
-    const {id} = await res.json();
-    _cl.unshift({...item, id:String(id)});
+    const data = await res.json();
+    _cl.unshift({...item, id:String(data.id), icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null});
     clRender();
     if(inp){ inp.value=''; inp.classList.remove('expanded'); }
     _clSearchOpen=false;
@@ -6864,8 +6864,8 @@ async function clPickSuggestion(nom, rayon, icone) {
   const item = {qty:1,done:false,origin:'manuel',n:nom,icone:icone||null,m:defaultM,r:rayon||'Autre'};
   try {
     const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
-    const {id} = await res.json();
-    _cl.unshift({...item,id:String(id)});
+    const data = await res.json();
+    _cl.unshift({...item,id:String(data.id), icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null});
     clRender();
     inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
     showToast('✓ '+nom+' ajouté','ok');
