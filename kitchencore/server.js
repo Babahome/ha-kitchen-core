@@ -1122,8 +1122,15 @@ app.get('/api/courses', (_req, res) => {
 
 app.post('/api/courses/items', (req, res) => {
   const { n, icone=null, m='drive', r='Autre', qty=1, unit='', done=false, origin='manuel', recipeId=null } = req.body;
+  let { ingredientId=null } = req.body;
   if (!n) return res.status(400).json({ error: 'nom requis' });
-  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id) VALUES (?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId);
+  // Saisie libre non sélectionnée dans les suggestions : on tente quand même de
+  // retrouver l'ingrédient officiel par nom, nom_pluriel ou alias (ex: "mais" → "Maïs")
+  if (!ingredientId) {
+    const found = findIngByNameOrAlias(n);
+    if (found) ingredientId = found.id;
+  }
+  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id) VALUES (?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId);
   res.json({ id: result.lastInsertRowid });
 });
 
