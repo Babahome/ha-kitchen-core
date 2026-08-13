@@ -7819,6 +7819,7 @@ function rvFabPasteJson() { rvFabDialClose(); rvImportOpen(); rvImportTab('json'
 function _recetteToImportObj(r) {
   return {
     nom:           r.nom || '',
+    photo:         r.photo || '',
     description:   r.description || '',
     portions:      parseInt(r.portions) || 2,
     temps_prep:    parseInt(r.temps_prep) || 0,
@@ -7867,6 +7868,7 @@ async function copyEditJson() {
   if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
   const obj = _recetteToImportObj({
     nom,
+    photo:         document.getElementById('ev3-photo-hidden')?.value||'',
     description:   document.getElementById('e-desc')?.value.trim()||'',
     portions:      document.getElementById('e-portions')?.value,
     temps_prep:    document.getElementById('e-prep')?.value,
