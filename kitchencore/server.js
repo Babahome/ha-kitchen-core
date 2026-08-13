@@ -1131,16 +1131,16 @@ app.post('/api/courses/items', (req, res) => {
     if (found) ingredientId = found.id;
   }
   const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id) VALUES (?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId);
-  let resolved = { icone, rayon: r };
+  let resolved = { nom: n, icone, rayon: r };
   if (ingredientId) {
     const ing = db.prepare(`
-      SELECT i.icone AS icone, rv.nom AS rayon
+      SELECT i.nom AS nom, i.icone AS icone, rv.nom AS rayon
       FROM ingredients i LEFT JOIN rayons rv ON rv.id = i.rayon_id
       WHERE i.id = ?
     `).get(ingredientId);
-    if (ing) resolved = { icone: ing.icone || icone, rayon: ing.rayon || r };
+    if (ing) resolved = { nom: ing.nom || n, icone: ing.icone || icone, rayon: ing.rayon || r };
   }
-  res.json({ id: result.lastInsertRowid, ingredientId, icone: resolved.icone, rayon: resolved.rayon });
+  res.json({ id: result.lastInsertRowid, ingredientId, nom: resolved.nom, icone: resolved.icone, rayon: resolved.rayon });
 });
 
 app.put('/api/courses/items/:id', (req, res) => {
