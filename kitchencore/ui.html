@@ -2963,6 +2963,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   <!-- FAB speed-dial recettes -->
   <div class="fab-dial-backdrop" id="rv-fab-backdrop" onclick="rvFabDialClose()"></div>
   <div class="fab-dial" id="rv-fab-dial">
+    <div class="fab-dial-item" onclick="rvFabImportFile()">
+      <span class="fab-dial-label">Importer un fichier JSON</span>
+      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/></svg></button>
+    </div>
     <div class="fab-dial-item" onclick="rvFabPasteJson()">
       <span class="fab-dial-label">Coller un JSON</span>
       <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button>
@@ -2972,6 +2976,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     </div>
   </div>
+  <input type="file" id="rv-file-input" accept="application/json,.json" style="display:none" onchange="rvHandleImportFile(this)">
 
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
@@ -7812,6 +7817,18 @@ function rvFabDialClose() {
 }
 function rvFabNew() { rvFabDialClose(); openNew(); }
 function rvFabPasteJson() { rvFabDialClose(); rvImportOpen(); rvImportTab('json'); }
+function rvFabImportFile() { rvFabDialClose(); document.getElementById('rv-file-input').click(); }
+function rvHandleImportFile(input) {
+  const f = input.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = ev => {
+    document.getElementById('rv-json-ta').value = ev.target.result;
+    rvImportOpen(); rvImportTab('json');
+  };
+  rd.onerror = () => showToast('Erreur de lecture du fichier', 'error');
+  rd.readAsText(f);
+  input.value = '';
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // COPIER LE JSON — même format que l'import (voir rvJsonImport)
@@ -7830,9 +7847,44 @@ function _recetteToImportObj(r) {
     etapes:      (r.etapes||[]).map(e => ({ titre: e.titre||'', texte: e.texte||'', timer: parseInt(e.timer)||0 })),
   };
 }
+function _copyFallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
 async function _copyToClipboard(text) {
-  try { await navigator.clipboard.writeText(text); showToast('JSON copié ✓'); }
-  catch(e) { showToast('Impossible de copier', 'error'); }
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      showToast('JSON copié ✓');
+      return;
+    }
+    throw new Error('clipboard API indisponible');
+  } catch(e) {
+    if (_copyFallback(text)) showToast('JSON copié ✓');
+    else showToast('Impossible de copier — utilise plutôt "Exporter en fichier"', 'error');
+  }
+}
+// Convertit une photo locale (/photos/...) en data URI portable pour l'export/copie.
+// Les data: URI (déjà portables) et URLs externes sont laissées telles quelles.
+async function _photoToPortable(photo) {
+  if (!photo || photo.startsWith('data:') || !photo.startsWith('/')) return photo || '';
+  try {
+    const blob = await fetch(photo).then(r => { if (!r.ok) throw new Error(); return r.blob(); });
+    return await new Promise((resolve, reject) => {
+      const rd = new FileReader();
+      rd.onload = () => resolve(rd.result);
+      rd.onerror = reject;
+      rd.readAsDataURL(blob);
+    });
+  } catch(e) { return photo; }
 }
 async function copyDetailJson() {
   detailMenuClose();
@@ -7840,6 +7892,7 @@ async function copyDetailJson() {
   try {
     const numId = String(_currentId).replace(/^d_/, '');
     const r = await fetch('/api/recettes/'+numId).then(res=>res.json());
+    r.photo = await _photoToPortable(r.photo);
     await _copyToClipboard(JSON.stringify(_recetteToImportObj(r), null, 2));
   } catch(e) { showToast('Erreur lors de la copie', 'error'); }
 }
@@ -7857,6 +7910,7 @@ async function exportDetailJson() {
   try {
     const numId = String(_currentId).replace(/^d_/, '');
     const r = await fetch('/api/recettes/'+numId).then(res=>res.json());
+    r.photo = await _photoToPortable(r.photo);
     const obj = _recetteToImportObj(r);
     const slug = (obj.nom||'recette').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'recette';
     _downloadJson(obj, `recette-${slug}.json`);
@@ -7866,9 +7920,10 @@ async function exportDetailJson() {
 async function copyEditJson() {
   const nom = document.getElementById('e-nom')?.value.trim();
   if (!nom) { showToast('Le nom est obligatoire', 'warn'); return; }
+  const photo = await _photoToPortable(document.getElementById('ev3-photo-hidden')?.value||'');
   const obj = _recetteToImportObj({
     nom,
-    photo:         document.getElementById('ev3-photo-hidden')?.value||'',
+    photo,
     description:   document.getElementById('e-desc')?.value.trim()||'',
     portions:      document.getElementById('e-portions')?.value,
     temps_prep:    document.getElementById('e-prep')?.value,
