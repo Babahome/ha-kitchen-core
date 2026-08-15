@@ -276,6 +276,14 @@ db.exec(`UPDATE ingredients SET rayon_id=(
   }
 }
 
+// Helper : normaliser une liste de tags (trim, minuscules, dédoublonnage) — doit produire
+// exactement les mêmes valeurs que celles insérées dans la table `tags` par syncTagsToTable,
+// pour que recettes.tags corresponde toujours aux tags du catalogue (filtres, édition).
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return [...new Set(tags.filter(t => t && typeof t === 'string').map(t => t.trim().toLowerCase()).filter(Boolean))];
+}
+
 // Helper : s'assurer que chaque tag d'une liste existe dans la table tags
 function syncTagsToTable(tags) {
   if (!Array.isArray(tags)) return;
@@ -288,6 +296,20 @@ function syncTagsToTable(tags) {
   const ins = db.prepare('INSERT OR IGNORE INTO tags(nom) VALUES(?)');
   db.prepare("SELECT tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all().forEach(r => {
     try { JSON.parse(r.tags || '[]').forEach(t => { if (t) ins.run(t.trim().toLowerCase()); }); } catch(_) {}
+  });
+}
+
+// Migration : renormaliser recettes.tags (trim/minuscules) pour les recettes importées avant
+// la correction de normalizeTags — sinon leurs tags ne correspondent plus au catalogue
+// (filtres et panel édition qui comparent par nom exact).
+{
+  const upd = db.prepare('UPDATE recettes SET tags=? WHERE id=?');
+  db.prepare("SELECT id, tags FROM recettes WHERE tags IS NOT NULL AND tags != '[]'").all().forEach(r => {
+    try {
+      const arr  = JSON.parse(r.tags || '[]');
+      const norm = [...new Set(arr.filter(t => t && typeof t === 'string').map(t => t.trim().toLowerCase()).filter(Boolean))];
+      if (JSON.stringify(norm) !== JSON.stringify(arr)) upd.run(JSON.stringify(norm), r.id);
+    } catch(_) {}
   });
 }
 
@@ -999,9 +1021,10 @@ app.post('/api/recettes', (req, res) => {
           temps_prep=0, temps_cuisson=0, tags=[], favori=false,
           note=0, source='', remarque='', ingredients=[], etapes=[] } = req.body;
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
-  syncTagsToTable(tags);
+  const normTags = normalizeTags(tags);
+  syncTagsToTable(normTags);
   const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source,remarque) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
-  const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(tags), favori?1:0, note, source, remarque);
+  const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(normTags), favori?1:0, note, source, remarque);
   saveIngredients(info.lastInsertRowid, ingredients);
   saveEtapes(info.lastInsertRowid, etapes);
   res.status(201).json(getRecette(info.lastInsertRowid));
@@ -1014,7 +1037,7 @@ app.patch('/api/recettes/:id', (req, res) => {
   ['nom','emoji','photo','description','portions','temps_prep','temps_cuisson','favori','note','source','remarque'].forEach(k => {
     if (req.body[k] !== undefined) { sets.push(k+'=?'); vals.push(k==='favori'?(req.body[k]?1:0):req.body[k]); }
   });
-  if (req.body.tags !== undefined) { syncTagsToTable(req.body.tags); sets.push('tags=?'); vals.push(JSON.stringify(req.body.tags)); }
+  if (req.body.tags !== undefined) { const normTags = normalizeTags(req.body.tags); syncTagsToTable(normTags); sets.push('tags=?'); vals.push(JSON.stringify(normTags)); }
   sets.push("updated_at=datetime('now')");
   if (sets.length > 1) { vals.push(id); db.prepare(`UPDATE recettes SET ${sets.join(',')} WHERE id=?`).run(...vals); }
   if (req.body.ingredients !== undefined) saveIngredients(id, req.body.ingredients);
