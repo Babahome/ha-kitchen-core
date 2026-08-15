@@ -7453,10 +7453,11 @@ async function toggleFav(id) {
 function openNew()    { openEdit(null); }
 async function openEdit(id) {
   let r = id ? _rv.find(x=>String(x.id)===String(id)) : null;
-  _editId = id||null;
+  const numId = id ? String(id).replace(/^d_/, '') : null;
+  _editId = numId;
   if (id && r) {
     try {
-      const full = await fetch('/api/recettes/'+id).then(res=>res.json());
+      const full = await fetch('/api/recettes/'+numId).then(res=>res.json());
       r = { ...r, ...full };
     } catch(e) {}
   }
