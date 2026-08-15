@@ -7195,7 +7195,7 @@ function renderChips() {
 function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
 function fmt(s) { return s<60?s+'s':s<3600?Math.round(s/60)+'min':Math.floor(s/3600)+'h'+(s%3600?Math.round((s%3600)/60)+'min':''); }
-function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function norm(s){ return (s||'').toLowerCase().replace(/œ/g,'oe').replace(/æ/g,'ae').normalize('NFD').replace(/[̀-ͯ]/g,''); }
 
 // ── LISTE ─────────────────────────────────────────────────────────────────────
 function renderList() {
