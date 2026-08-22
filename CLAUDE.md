@@ -57,8 +57,9 @@ Prochaines étapes : historique mouvements.
 🏠 Stock — Détail & Édition produit (v0.10.55) : clic sur card → panel détail (photo/initiales, nom, marque, zone, ingrédient lié, stock +/−, code-barres) ; bouton ✏️ → panel édition (photo, nom, marque, zone chips, ingrédient autocomplétion, suppression). Pattern identique aux panels ingrédients.
 
 # BACKLOG — sujets en attente
-Règle : dans une nouvelle conversation, Claude ajoute ici le sujet SANS toucher au code.
-L'implémentation ne démarre que quand l'utilisateur dit explicitement "go" ou "commence".
+Source de vérité : base Notion "Backlog Claude Code" (https://app.notion.com/p/eb1ffcb0a51547bcb83cc765636be82a), filtrée sur Projet = KitchenCore. Toujours consulter Notion (via les outils MCP Notion) avant de dire "le backlog est vide" ou de proposer un sujet — ne pas se fier uniquement à la liste ci-dessous, qui est un ancien historique local conservé pour mémoire et n'est plus mise à jour.
+Champs utiles : Statut (Inbox/Prêt/En cours/Bloqué/À valider/Terminé), Priorité (P0-P3), Autonomie (Auto = go direct / PR à valider = implémenter puis demander confirmation avant commit+push / Demander avant = demander avant de commencer), Instructions (le brief détaillé).
+Règle historique (héritage, avant l'adoption de Notion) : dans une nouvelle conversation, Claude ajoutait ici le sujet SANS toucher au code, et l'implémentation ne démarrait que quand l'utilisateur disait explicitement "go" ou "commence".
 
 - [x] Menu drag & drop : tempo 250ms pour éviter les drags non voulus (touch uniquement) — v0.9.77
 - [x] Courses : lors d'une saisie manuelle, retrouver automatiquement l'ingrédient correspondant dans le catalogue (autocomplétion ou suggestion) — v0.9.79
