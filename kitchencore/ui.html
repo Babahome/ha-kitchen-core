@@ -2380,6 +2380,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
         <span>🔍</span>
         <input class="cl-fab-search-input" id="cl-search-input" placeholder="Ajouter un article…"
+          autocomplete="off"
           onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
           onkeydown="if(event.key==='Escape')clToggleSearch();else if(event.key==='Enter'){event.preventDefault();clAddItem();}">
         <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
@@ -3489,7 +3490,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <!-- Nom (saisie libre uniquement) -->
       <div id="cl-edit-nom-wrap" style="display:none;margin-bottom:22px">
         <div class="edit-field-label">Nom</div>
-        <input id="cl-edit-nom" type="text" placeholder="Nom de l'article…"
+        <input id="cl-edit-nom" type="text" placeholder="Nom de l'article…" autocomplete="off"
           style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
                  font-size:.95rem;font-weight:700;font-family:var(--font);
                  outline:none;color:var(--text);background:var(--grey-l);box-sizing:border-box;"
@@ -3501,7 +3502,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="edit-field-label">Quantité</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
         <button class="cl-edit-pm" onclick="clEditQtyStep(-1)">−</button>
-        <input id="cl-edit-qty" type="number" min="0.1" step="0.1"
+        <input id="cl-edit-qty" type="number" min="0.1" step="0.1" autocomplete="off"
           style="border:2px solid var(--grey);border-radius:10px;padding:10px 12px;
                  font-size:1.4rem;font-weight:900;font-family:var(--font);text-align:center;
                  outline:none;color:var(--text);background:var(--grey-l);display:block;"
@@ -3513,7 +3514,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
       <!-- Unité -->
       <div class="edit-field-label">Unité <span style="font-weight:600;text-transform:none;letter-spacing:0">(optionnelle)</span></div>
-      <input id="cl-edit-unit" type="text" placeholder="ex: kg, L, pièce…"
+      <input id="cl-edit-unit" type="text" placeholder="ex: kg, L, pièce…" autocomplete="off"
         style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
                font-size:.95rem;font-weight:700;font-family:var(--font);
                outline:none;color:var(--text);background:var(--grey-l);margin-bottom:10px;"
