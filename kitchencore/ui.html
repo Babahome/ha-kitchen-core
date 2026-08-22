@@ -9501,12 +9501,16 @@ function _ingFindDuplicateGroups() {
     .map(([key, items]) => ({ key, items }));
 }
 
+function _ingEffectiveRayonId(ing) {
+  return _ingGetEffectiveRayon(ing).rayon?.id ?? null;
+}
+
 function _ingUpdateStats() {
   const elT = document.getElementById('ing-statTotal');
   const elSR = document.getElementById('ing-statSansRayon');
   const elSI = document.getElementById('ing-statSansImage');
   if (elT) elT.textContent = _ingAll.length;
-  if (elSR) elSR.textContent = _ingAll.filter(i => !i.rayon_id).length;
+  if (elSR) elSR.textContent = _ingAll.filter(i => !_ingEffectiveRayonId(i)).length;
   if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
 }
 
@@ -9516,8 +9520,8 @@ function _ingGetFilteredItems() {
     const q = _ingNormalize(_ingSearchQuery);
     items = items.filter(i => _ingNormalize(i.name).includes(q));
   }
-  if (_ingFRayons.size > 0) items = items.filter(i => i.rayon_id && _ingFRayons.has(String(i.rayon_id)));
-  if (_ingFEtat.has('sans-rayon'))   items = items.filter(i => !i.rayon_id);
+  if (_ingFRayons.size > 0) items = items.filter(i => { const rid = _ingEffectiveRayonId(i); return rid && _ingFRayons.has(String(rid)); });
+  if (_ingFEtat.has('sans-rayon'))   items = items.filter(i => !_ingEffectiveRayonId(i));
   if (_ingFEtat.has('sans-image'))   items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingFEtat.has('sans-recette')) items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
   if (_ingFEtat.has('sans-saison'))  items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
@@ -9526,8 +9530,8 @@ function _ingGetFilteredItems() {
     if (_ingSort === 'recettes') {
       cmp = (a.usedIn?.length || 0) - (b.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr');
     } else if (_ingSort === 'rayon') {
-      const ra = (_ingRayons.find(r => r.id === a.rayon_id) || {}).nom || 'zzz';
-      const rb = (_ingRayons.find(r => r.id === b.rayon_id) || {}).nom || 'zzz';
+      const ra = (_ingRayons.find(r => r.id === _ingEffectiveRayonId(a)) || {}).nom || 'zzz';
+      const rb = (_ingRayons.find(r => r.id === _ingEffectiveRayonId(b)) || {}).nom || 'zzz';
       cmp = ra.localeCompare(rb, 'fr') || (a.name || '').localeCompare(b.name || '', 'fr');
     } else {
       cmp = (a.name || '').localeCompare(b.name || '', 'fr');
@@ -10426,7 +10430,7 @@ function _ingCloseAllSheets() {
 function _ingSfRenderRayonOptions() {
   const fr = document.getElementById('ing-sf-f-rayons');
   if (!fr) return;
-  const rayonsUsed = new Set(_ingAll.map(i => i.rayon_id).filter(Boolean));
+  const rayonsUsed = new Set(_ingAll.map(i => _ingEffectiveRayonId(i)).filter(Boolean));
   const parents = _ingRayons.filter(r => !r.parent_id &&
     (rayonsUsed.has(r.id) || _ingRayons.some(c => c.parent_id === r.id && rayonsUsed.has(c.id))));
 
