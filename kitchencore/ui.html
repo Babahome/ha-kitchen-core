@@ -9401,7 +9401,7 @@ function _ingRenderCard(ing, i, depth) {
     <div class="ing-actions">
       <button class="ing-btn" draggable="false" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
     </div>
-    <div class="ing-drag-handle" draggable="false" onclick="event.stopPropagation()" title="Glisser pour rattacher à un parent">⠿</div>
+    <div class="ing-drag-handle" draggable="false" ontouchstart="event.preventDefault()" onclick="event.stopPropagation()" title="Glisser pour rattacher à un parent">⠿</div>
   </div>`;
 }
 
@@ -9455,11 +9455,12 @@ function _ingDragSetup() {
   _ingDbg('SONDE ACTIVE — fais le drag qui echoue');
 
   let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
+  let moves = 0, downAt = 0; // diagnostic uniquement
 
   const reset = () => {
     clearTimeout(timer); timer = null;
     grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
-    srcId = null; overId = null; srcCard = null; active = false;
+    srcId = null; overId = null; srcCard = null; active = false; moves = 0;
   };
 
   // Validation du drop, partagee par touchend et touchcancel (voir le commentaire
@@ -9508,6 +9509,7 @@ function _ingDragSetup() {
     srcId = card.dataset.ingId; srcCard = card;
     startX = t.clientX; startY = t.clientY;
     _ingDbgReset();
+    moves = 0; downAt = Math.round(performance.now());
     _ingDbg('DOWN sur "' + (card.querySelector('.ing-name')||{}).textContent + '"');
     // Depuis la poignee : demarrage immediat. Elle porte touch-action:none, donc le
     // navigateur nous laisse le geste au lieu de le convertir en scroll (seul chemin
@@ -9537,6 +9539,7 @@ function _ingDragSetup() {
       return;
     }
     e.preventDefault(); // bloquer le scroll pendant le drag
+    moves++;
     autoScroll(t.clientY);
     // elementFromPoint (singulier) peut renvoyer la carte source elle-même (semi-transparente
     // mais toujours au-dessus pour le hit-test sur certains Android) : on utilise la pile complète
@@ -9557,7 +9560,8 @@ function _ingDragSetup() {
   }, { passive: false });
 
   grid.addEventListener('touchend', async () => {
-    _ingDbg('UP  actif=' + active + ' cible=' + (overId || 'AUCUNE'));
+    _ingDbg('UP  actif=' + active + ' moves=' + moves + ' cible=' + (overId || 'AUCUNE')
+      + ' (+' + (Math.round(performance.now()) - downAt) + 'ms)');
     await commitDrop();
   });
 
@@ -9571,7 +9575,8 @@ function _ingDragSetup() {
   // cible etait surlignee sous le doigt, l'intention est explicite (l'utilisateur
   // voit la card entourée d'orange) et on valide ce que l'interface promettait.
   grid.addEventListener('touchcancel', async () => {
-    _ingDbg('!! TOUCHCANCEL (navigateur) actif=' + active + ' cible=' + (overId || 'AUCUNE'));
+    _ingDbg('!! TOUCHCANCEL actif=' + active + ' moves=' + moves + ' cible=' + (overId || 'AUCUNE')
+      + ' (+' + (Math.round(performance.now()) - downAt) + 'ms)');
     await commitDrop();
   });
 
