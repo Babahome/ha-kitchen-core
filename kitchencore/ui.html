@@ -1564,7 +1564,11 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .ing-card.ing-depth-1 { margin-left: 20px; border-left: 3px solid #e0e0e0; }
   .ing-card.ing-depth-2 { margin-left: 40px; border-left: 3px solid #e0e0e0; }
   .ing-card.ing-depth-3 { margin-left: 60px; border-left: 3px solid #e0e0e0; }
-  .ing-card.ing-dragging { opacity: 0.35; transform: scale(0.97); }
+  /* animation:none est indispensable : .ing-card porte "animation: ingSlideUp .2s ease both"
+     et le fill-mode "both" fige l'etat final (opacity:1) en permanence. Une animation CSS
+     l'emporte sur une declaration normale dans la cascade, donc l'opacite de drag etait
+     ecrasee et la tuile ne s'estompait jamais. Couper l'animation rend la main au cascade. */
+  .ing-card.ing-dragging { animation: none; opacity: 0.35; transform: scale(0.97); }
   .ing-card.ing-drag-over { border-color: var(--orange) !important; box-shadow: 0 0 0 2px var(--orange); }
 
   .ing-checkbox {
