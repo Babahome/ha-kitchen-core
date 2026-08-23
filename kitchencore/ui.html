@@ -9443,6 +9443,23 @@ function _ingDragSetup() {
     srcId = null; overId = null; srcCard = null; active = false;
   };
 
+  // Validation du drop, partagee par touchend et touchcancel (voir le commentaire
+  // sur le listener touchcancel). Idempotente : reset() vide l'etat, donc un
+  // touchcancel suivi d'un touchend ne peut pas creer le lien deux fois.
+  const commitDrop = async () => {
+    const wasActive = active, s = srcId, o = overId;
+    reset();
+    if (!(wasActive && s && o)) return;
+    _ingDbg('-> LIEN ENVOYE');
+    // Le flag doit être posé AVANT l'await : sinon le clic fantôme que certains
+    // navigateurs Android synthétisent juste après touchend peut s'exécuter
+    // pendant que le fetch est encore en vol et rouvrir la card (ingOnCardClick)
+    // au lieu d'être ignoré, masquant le résultat du lien.
+    _ingJustDragged = true;
+    setTimeout(() => { _ingJustDragged = false; }, 300);
+    await _ingSetParent(s, o);
+  };
+
   const autoScroll = clientY => {
     const scrollEl = document.getElementById('content');
     if (!scrollEl || scrollEl.scrollHeight <= scrollEl.clientHeight) return;
@@ -9521,23 +9538,22 @@ function _ingDragSetup() {
   }, { passive: false });
 
   grid.addEventListener('touchend', async () => {
-    const wasActive = active, s = srcId, o = overId;
-    _ingDbg('UP  actif=' + wasActive + ' cible=' + (o || 'AUCUNE') + (wasActive && s && o ? ' -> LIEN ENVOYE' : ' -> RIEN'));
-    reset();
-    if (wasActive && s && o) {
-      // Le flag doit être posé AVANT l'await : sinon le clic fantôme que certains
-      // navigateurs Android synthétisent juste après touchend peut s'exécuter
-      // pendant que le fetch est encore en vol et rouvrir la card (ingOnCardClick)
-      // au lieu d'être ignoré, masquant le résultat du lien.
-      _ingJustDragged = true;
-      setTimeout(() => { _ingJustDragged = false; }, 300);
-      await _ingSetParent(s, o);
-    }
+    _ingDbg('UP  actif=' + active + ' cible=' + (overId || 'AUCUNE'));
+    await commitDrop();
   });
 
-  grid.addEventListener('touchcancel', () => {
-    _ingDbg('!! TOUCHCANCEL (le navigateur a repris le geste) actif=' + active + ' cible=' + (overId || 'AUCUNE'));
-    reset();
+  // Chrome Android decide vers 500ms que l'appui long est un geste a lui, emet un
+  // touchcancel et reprend la main. On ne peut pas l'en empecher : le listener
+  // touchstart est en {passive:true}, donc preventDefault() y est ignore, et on ne
+  // peut pas le passer en non-passif sans bloquer le scroll de la liste (BL-20).
+  // Notre seuil d'activation etant a 300ms, il ne restait qu'une fenetre d'environ
+  // 200ms pour terminer le drag — d'ou "le drop ne marche que si je relache vite".
+  // On ne jette donc plus le drop a l'annulation : si le drag etait actif ET qu'une
+  // cible etait surlignee sous le doigt, l'intention est explicite (l'utilisateur
+  // voit la card entourée d'orange) et on valide ce que l'interface promettait.
+  grid.addEventListener('touchcancel', async () => {
+    _ingDbg('!! TOUCHCANCEL (navigateur) actif=' + active + ' cible=' + (overId || 'AUCUNE'));
+    await commitDrop();
   });
 
   // ── Souris (desktop) : glisser-déposer natif HTML5, immédiat (pas d'appui long) ──
