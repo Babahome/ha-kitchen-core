@@ -9401,6 +9401,11 @@ function _ingDragSetup() {
     else if (distBottom >= 0 && distBottom < zone) scrollEl.scrollTop += Math.round((zone - distBottom) / 4);
   };
 
+  // Empêche le menu contextuel natif Android (ex: appui long sur une photo →
+  // "enregistrer l'image") d'interrompre le drag tactile en cours (touchcancel) —
+  // même garde-fou que sur la page Rayons (list0.addEventListener('contextmenu', …)).
+  grid.addEventListener('contextmenu', e => { if (e.target.closest('.ing-card')) e.preventDefault(); });
+
   // ── Tactile : appui long (300ms) sur le corps de la carte ──
   grid.addEventListener('touchstart', e => {
     const card = e.target.closest('.ing-card');
