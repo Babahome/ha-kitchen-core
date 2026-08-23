@@ -9458,11 +9458,10 @@ function _ingDragSetup() {
   // premier appui sur une card, ce qui donnait l'impression que la sonde ne marchait pas.
   _ingDbg('SONDE ACTIVE — fais le drag qui echoue');
 
-  let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
+  let srcId = null, overId = null, srcCard = null, active = false;
   let moves = 0, downAt = 0; // diagnostic uniquement
 
   const reset = () => {
-    clearTimeout(timer); timer = null;
     grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
     srcId = null; overId = null; srcCard = null; active = false; moves = 0;
   };
@@ -9499,49 +9498,38 @@ function _ingDragSetup() {
   // même garde-fou que sur la page Rayons (list0.addEventListener('contextmenu', …)).
   grid.addEventListener('contextmenu', e => { if (e.target.closest('.ing-card')) e.preventDefault(); });
 
-  // ── Tactile : appui long (300ms) sur le corps de la carte ──
+  // ── Tactile : uniquement depuis la poignee ⠿ ──
+  // L'appui long sur le corps de la card a ete retire (v0.10.244) : Chrome Android
+  // annule ce geste vers 600ms (son propre seuil d'appui long) et le drop etait perdu.
+  // Seul preventDefault() sur touchstart neutralise cette annulation, et on ne peut
+  // l'appliquer qu'a la poignee — la faire sur le corps de la card bloquerait le
+  // scroll de la liste (BL-20). Le corps n'offrait donc qu'un geste non fiable.
   grid.addEventListener('touchstart', e => {
+    if (!e.target.closest('.ing-drag-handle')) return;
     const card = e.target.closest('.ing-card');
-    if (!card || e.target.closest('.ing-btn, .ing-checkbox')) return;
+    if (!card) return;
     // Fermer le clavier tout de suite (si on venait de la recherche) pour que le
     // réajustement de la mise en page soit terminé avant que le glissé ne commence,
     // sinon la cible sous le doigt se décale pendant le drag.
     if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
       document.activeElement.blur();
     }
-    const t = e.touches[0];
     srcId = card.dataset.ingId; srcCard = card;
-    startX = t.clientX; startY = t.clientY;
     _ingDbgReset();
     moves = 0; downAt = Math.round(performance.now());
     _ingDbg('DOWN sur "' + (card.querySelector('.ing-name')||{}).textContent + '"');
-    // Depuis la poignee : demarrage immediat. Elle porte touch-action:none, donc le
-    // navigateur nous laisse le geste au lieu de le convertir en scroll (seul chemin
-    // fiable sur Chrome Android — cf. page Rayons). Depuis le corps de la card on
-    // garde l'appui long historique, qui marche sur desktop et iOS.
-    if (e.target.closest('.ing-drag-handle')) {
-      active = true;
-      card.classList.add('ing-dragging');
-      _ingDbg('POIGNEE -> drag ACTIF immediat');
-      return;
-    }
-    timer = setTimeout(() => {
-      active = true;
-      card.classList.add('ing-dragging');
-      _ingDbg('HOLD 300ms -> drag ACTIF');
-      // La recherche reste active pendant le drag : elle sert justement
-      // à faire apparaître le parent visé sans avoir à scroller toute la liste.
-    }, 300);
+    // Demarrage immediat : la poignee porte touch-action:none et son handler inline
+    // appelle preventDefault(), donc le navigateur nous laisse le geste.
+    // La recherche reste active pendant le drag : elle sert justement
+    // à faire apparaître le parent visé sans avoir à scroller toute la liste.
+    active = true;
+    card.classList.add('ing-dragging');
+    _ingDbg('POIGNEE -> drag ACTIF immediat');
   }, { passive: true });
 
   grid.addEventListener('touchmove', e => {
-    if (!srcId) return;
+    if (!srcId || !active) return;
     const t = e.touches[0];
-    const dx = t.clientX - startX, dy = t.clientY - startY;
-    if (!active) {
-      if (Math.hypot(dx, dy) > 12) { _ingDbg('MOVE avant le hold (' + Math.round(Math.hypot(dx,dy)) + 'px) -> annule'); reset(); } // mouvement trop rapide = scroll, annuler
-      return;
-    }
     e.preventDefault(); // bloquer le scroll pendant le drag
     moves++;
     autoScroll(t.clientY);
