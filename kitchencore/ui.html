@@ -9331,6 +9331,9 @@ function _ingRender() {
   const tree = _ingBuildTree(items);
   grid.innerHTML = tree.map(({ing, depth}, i) => _ingRenderCard(ing, i, depth)).join('');
   _ingDragSetup();
+  // Trace utile : un re-rendu pendant un geste detache les cards, et le touchend
+  // n'atteint alors plus la grille — le drop serait perdu sans aucun signe visible.
+  if (typeof _ingDbg === 'function') _ingDbg('RENDER liste (' + tree.length + ' cards)');
 }
 
 function _ingGetEffectiveImage(ing, visited) {
@@ -9406,19 +9409,32 @@ function _ingRenderCard(ing, i, depth) {
 let _ingDragSrcId = null, _ingDragOverId = null, _ingDragTimer = null, _ingDragActive = false, _ingJustDragged = false;
 
 // ── Sonde de diagnostic du drag tactile (opt-in) ────────────────────────────
-// Activation : ouvrir l'app avec #debugdrag dans l'URL. Sert a savoir ce que le
-// navigateur Android fait reellement du geste (notamment s'il tire un touchcancel,
-// signe qu'il a repris la main pour scroller et coupe le drag avant le drop).
-function _ingDragDebugOn() { return String(location.hash || '').toLowerCase().includes('debugdrag'); }
+// Activation : ouvrir l'app avec #debugdrag (ou ?debugdrag) dans l'URL ; l'etat est
+// memorise en localStorage pour survivre a une navigation qui perdrait le hash.
+// Desactivation : #debugdragoff. Sert a savoir ce que le navigateur Android fait
+// reellement du geste (a quel moment exact il coupe le drag avant le drop).
+function _ingDragDebugOn() {
+  const url = (String(location.hash || '') + String(location.search || '')).toLowerCase();
+  try {
+    if (url.includes('debugdragoff')) { localStorage.removeItem('kc_debugdrag'); return false; }
+    if (url.includes('debugdrag'))    { localStorage.setItem('kc_debugdrag', '1'); return true; }
+    return localStorage.getItem('kc_debugdrag') === '1';
+  } catch(_) { return url.includes('debugdrag'); }
+}
 function _ingDbg(msg) {
-  if (!_ingDragDebugOn()) return;
+  if (!_ingDragDebugOn()) {
+    // Retire le cadre a la desactivation, y compris si #debugdragoff a ete atteint
+    // par simple changement de hash (sans rechargement de page).
+    document.getElementById('ing-dragdbg')?.remove();
+    return;
+  }
   let box = document.getElementById('ing-dragdbg');
   if (!box) {
     box = document.createElement('div');
     box.id = 'ing-dragdbg';
     box.style.cssText = 'position:absolute;left:6px;right:6px;top:6px;z-index:9999;'
-      + 'background:rgba(0,0,0,.86);color:#0f0;font:11px/1.35 monospace;padding:8px 10px;'
-      + 'border-radius:8px;max-height:38%;overflow:auto;white-space:pre-wrap;pointer-events:none';
+      + 'background:rgba(0,0,0,.92);color:#0f0;font:12px/1.45 monospace;padding:10px 12px;'
+      + 'border-radius:8px;max-height:45%;overflow:auto;white-space:pre-wrap;pointer-events:none';
     (document.querySelector('.frame') || document.body).appendChild(box);
   }
   const t = Math.round(performance.now());
@@ -9434,6 +9450,9 @@ function _ingDragSetup() {
   const grid = document.getElementById('ing-ingredientsGrid');
   if (!grid || grid._dragBound) return;
   grid._dragBound = true;
+  // Affiche le cadre des l'arrivee sur la page : sinon il n'apparaissait qu'au
+  // premier appui sur une card, ce qui donnait l'impression que la sonde ne marchait pas.
+  _ingDbg('SONDE ACTIVE — fais le drag qui echoue');
 
   let srcId = null, overId = null, srcCard = null, timer = null, active = false, startX = 0, startY = 0;
 
