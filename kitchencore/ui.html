@@ -1613,6 +1613,18 @@ body[data-menu-sel="1"] #main-fab { display:none; }
     transition: background 0.15s;
   }
   .ing-btn:hover { background: var(--orange-l); color: var(--orange); }
+  /* Poignee de glissement (equivalences parent/enfant).
+     touch-action:none est indispensable : sans elle, Chrome Android considere le
+     deplacement du doigt comme un scroll, reprend la main et coupe le drag par un
+     touchcancel avant le drop. Meme mecanique que .mch-rayon-handle (page Rayons). */
+  .ing-drag-handle {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 26px; align-self: stretch;
+    color: var(--grey-d); font-size: 1.05rem; line-height: 1;
+    cursor: grab; touch-action: none;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .ing-drag-handle:active { cursor: grabbing; color: var(--orange); }
 
   /* ── EMPTY STATE ── */
   #page-ingredients .empty-state {
@@ -9372,11 +9384,37 @@ function _ingRenderCard(ing, i, depth) {
     <div class="ing-actions">
       <button class="ing-btn" draggable="false" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
     </div>
+    <div class="ing-drag-handle" draggable="false" onclick="event.stopPropagation()" title="Glisser pour rattacher à un parent">⠿</div>
   </div>`;
 }
 
 // ─── Drag & drop pour équivalences (souris + tactile) ───
 let _ingDragSrcId = null, _ingDragOverId = null, _ingDragTimer = null, _ingDragActive = false, _ingJustDragged = false;
+
+// ── Sonde de diagnostic du drag tactile (opt-in) ────────────────────────────
+// Activation : ouvrir l'app avec #debugdrag dans l'URL. Sert a savoir ce que le
+// navigateur Android fait reellement du geste (notamment s'il tire un touchcancel,
+// signe qu'il a repris la main pour scroller et coupe le drag avant le drop).
+function _ingDragDebugOn() { return String(location.hash || '').toLowerCase().includes('debugdrag'); }
+function _ingDbg(msg) {
+  if (!_ingDragDebugOn()) return;
+  let box = document.getElementById('ing-dragdbg');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'ing-dragdbg';
+    box.style.cssText = 'position:absolute;left:6px;right:6px;top:6px;z-index:9999;'
+      + 'background:rgba(0,0,0,.86);color:#0f0;font:11px/1.35 monospace;padding:8px 10px;'
+      + 'border-radius:8px;max-height:38%;overflow:auto;white-space:pre-wrap;pointer-events:none';
+    (document.querySelector('.frame') || document.body).appendChild(box);
+  }
+  const t = Math.round(performance.now());
+  box.textContent = (box.textContent ? box.textContent + '\n' : '') + t + ' ' + msg;
+  box.scrollTop = box.scrollHeight;
+}
+function _ingDbgReset() {
+  const box = document.getElementById('ing-dragdbg');
+  if (box) box.textContent = '';
+}
 
 function _ingDragSetup() {
   const grid = document.getElementById('ing-ingredientsGrid');
@@ -9419,9 +9457,22 @@ function _ingDragSetup() {
     const t = e.touches[0];
     srcId = card.dataset.ingId; srcCard = card;
     startX = t.clientX; startY = t.clientY;
+    _ingDbgReset();
+    _ingDbg('DOWN sur "' + (card.querySelector('.ing-name')||{}).textContent + '"');
+    // Depuis la poignee : demarrage immediat. Elle porte touch-action:none, donc le
+    // navigateur nous laisse le geste au lieu de le convertir en scroll (seul chemin
+    // fiable sur Chrome Android — cf. page Rayons). Depuis le corps de la card on
+    // garde l'appui long historique, qui marche sur desktop et iOS.
+    if (e.target.closest('.ing-drag-handle')) {
+      active = true;
+      card.classList.add('ing-dragging');
+      _ingDbg('POIGNEE -> drag ACTIF immediat');
+      return;
+    }
     timer = setTimeout(() => {
       active = true;
       card.classList.add('ing-dragging');
+      _ingDbg('HOLD 300ms -> drag ACTIF');
       // La recherche reste active pendant le drag : elle sert justement
       // à faire apparaître le parent visé sans avoir à scroller toute la liste.
     }, 300);
@@ -9432,7 +9483,7 @@ function _ingDragSetup() {
     const t = e.touches[0];
     const dx = t.clientX - startX, dy = t.clientY - startY;
     if (!active) {
-      if (Math.hypot(dx, dy) > 12) reset(); // mouvement trop rapide = scroll, annuler
+      if (Math.hypot(dx, dy) > 12) { _ingDbg('MOVE avant le hold (' + Math.round(Math.hypot(dx,dy)) + 'px) -> annule'); reset(); } // mouvement trop rapide = scroll, annuler
       return;
     }
     e.preventDefault(); // bloquer le scroll pendant le drag
@@ -9450,12 +9501,14 @@ function _ingDragSetup() {
     grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
     if (target && target.dataset.ingId !== srcId) {
       target.classList.add('ing-drag-over');
+      if (overId !== target.dataset.ingId) _ingDbg('CIBLE = "' + (target.querySelector('.ing-name')||{}).textContent + '"');
       overId = target.dataset.ingId;
     } else { overId = null; }
   }, { passive: false });
 
   grid.addEventListener('touchend', async () => {
     const wasActive = active, s = srcId, o = overId;
+    _ingDbg('UP  actif=' + wasActive + ' cible=' + (o || 'AUCUNE') + (wasActive && s && o ? ' -> LIEN ENVOYE' : ' -> RIEN'));
     reset();
     if (wasActive && s && o) {
       // Le flag doit être posé AVANT l'await : sinon le clic fantôme que certains
@@ -9468,7 +9521,10 @@ function _ingDragSetup() {
     }
   });
 
-  grid.addEventListener('touchcancel', reset);
+  grid.addEventListener('touchcancel', () => {
+    _ingDbg('!! TOUCHCANCEL (le navigateur a repris le geste) actif=' + active + ' cible=' + (overId || 'AUCUNE'));
+    reset();
+  });
 
   // ── Souris (desktop) : glisser-déposer natif HTML5, immédiat (pas d'appui long) ──
   grid.addEventListener('dragstart', e => {
