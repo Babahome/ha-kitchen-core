@@ -131,14 +131,28 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   display: none; pointer-events: none; }
 .fab-dial-backdrop.open { display: block; pointer-events: auto; }
 
+/* visibility:hidden (et pas seulement opacity:0 sur les enfants) est indispensable :
+   le dial est enfant direct de .frame, donc present sur TOUTES les pages. Ferme, ses
+   libelles restaient du texte reel, invisible mais selectionnable, flottant en bas a
+   droite de chaque page. pointer-events:none bloque les clics mais PAS la selection de
+   texte native d'Android : un appui long dessus ouvrait le menu "Copier/Partager", qui
+   emet un touchcancel et tuait le drag des ingredients (BL-27), et un scroll amorce
+   dessus selectionnait au lieu de scroller (BL-20, "zone morte" transversale).
+   Volontairement SANS transition sur visibility : la propriete doit etre inconditionnelle.
+   Une transition ne s'execute pas toujours (onglet en arriere-plan, page qui ne compose
+   pas ses frames, prefers-reduced-motion) — le dial resterait alors visible et le texte
+   fantome reviendrait. On perd le fondu de fermeture de 150ms, ce qui est sans importance. */
 .fab-dial { position: absolute; right: 16px; bottom: calc(var(--bottom-h) + 16px + 68px);
-  display: flex; flex-direction: column; align-items: flex-end; gap: 14px; z-index: 19; }
+  display: flex; flex-direction: column; align-items: flex-end; gap: 14px; z-index: 19;
+  visibility: hidden; }
+.fab-dial.open { visibility: visible; }
 .fab-dial-item { display: flex; align-items: center; gap: 10px; cursor: pointer;
   opacity: 0; transform: translateY(10px) scale(.85); pointer-events: none;
   transition: opacity .15s, transform .15s; }
 .fab-dial.open .fab-dial-item { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 .fab-dial-label { background: white; color: var(--text); font-size: .78rem; font-weight: 700;
-  padding: 7px 14px; border-radius: 99px; box-shadow: 0 3px 12px rgba(0,0,0,.15); white-space: nowrap; }
+  padding: 7px 14px; border-radius: 99px; box-shadow: 0 3px 12px rgba(0,0,0,.15); white-space: nowrap;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .fab-dial-btn { width: 44px; height: 44px; border-radius: 50%; background: white;
   display: grid; place-items: center; color: var(--orange); box-shadow: 0 3px 12px rgba(0,0,0,.15);
   cursor: pointer; border: none; flex-shrink: 0; }
