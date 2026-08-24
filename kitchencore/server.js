@@ -173,6 +173,13 @@ db.exec(`
     created_at    TEXT DEFAULT (datetime('now')),
     UNIQUE(alias)
   );
+  CREATE TABLE IF NOT EXISTS conversions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+    unite         TEXT NOT NULL,
+    grammes       REAL NOT NULL,
+    UNIQUE(ingredient_id, unite)
+  );
 `);
 
 // Migrations : ajout de colonnes manquantes sur DB existantes (idempotent)
@@ -463,6 +470,52 @@ app.delete('/api/ingredients/:id/aliases/:aliasId', (req, res) => {
 });
 // ────────────────────────────────────────────────────────────────────────────
 
+// ── Conversions unité → grammes ─────────────────────────────────────────────
+// Unité vide (ex: "2 tomates") = 1 pièce
+const CONV_UNITE_DEFAUT = 'pièce';
+function convNormUnite(u) { return (u || '').trim() || CONV_UNITE_DEFAUT; }
+
+// Retourne le poids en grammes d'UNE unité, ou null si aucune conversion connue
+function convGrammes(ingredientId, unite) {
+  if (!ingredientId) return null;
+  try {
+    const row = db.prepare(
+      'SELECT grammes FROM conversions WHERE ingredient_id=? AND NORM(unite)=NORM(?) LIMIT 1'
+    ).get(ingredientId, convNormUnite(unite));
+    return row ? row.grammes : null;
+  } catch(_) { return null; }
+}
+
+app.get('/api/ingredients/:id/conversions', (req, res) => {
+  try {
+    res.json(db.prepare('SELECT * FROM conversions WHERE ingredient_id=? ORDER BY id').all(req.params.id));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ingredients/:id/conversions', (req, res) => {
+  const unite   = convNormUnite(req.body.unite);
+  const grammes = parseFloat(String(req.body.grammes ?? '').replace(',', '.'));
+  if (!isFinite(grammes) || grammes <= 0) return res.status(400).json({ error: 'grammes doit être un nombre > 0' });
+  const ing = db.prepare('SELECT id FROM ingredients WHERE id=?').get(req.params.id);
+  if (!ing) return res.status(404).json({ error: 'Ingrédient introuvable' });
+  try {
+    // Même unité déjà enregistrée (à l'accent/casse près) → on met à jour au lieu de dupliquer
+    const existing = db.prepare('SELECT id FROM conversions WHERE ingredient_id=? AND NORM(unite)=NORM(?)').get(ing.id, unite);
+    if (existing) {
+      db.prepare('UPDATE conversions SET unite=?, grammes=? WHERE id=?').run(unite, grammes, existing.id);
+      return res.json(db.prepare('SELECT * FROM conversions WHERE id=?').get(existing.id));
+    }
+    const r = db.prepare('INSERT INTO conversions(ingredient_id, unite, grammes) VALUES(?,?,?)').run(ing.id, unite, grammes);
+    res.status(201).json(db.prepare('SELECT * FROM conversions WHERE id=?').get(r.lastInsertRowid));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/conversions/:id', (req, res) => {
+  db.prepare('DELETE FROM conversions WHERE id=?').run(req.params.id);
+  res.status(204).end();
+});
+// ────────────────────────────────────────────────────────────────────────────
+
 app.post('/api/ingredients/merge', (req, res) => {
   const { keep_id, merge_ids, name } = req.body;
   if (!keep_id || !name || !Array.isArray(merge_ids))
@@ -495,6 +548,12 @@ app.post('/api/ingredients/merge', (req, res) => {
       const oldAliases = db.prepare('SELECT alias FROM ingredient_aliases WHERE ingredient_id=?').all(id);
       for (const a of oldAliases) addAlias.run(keep_id, a.alias);
       db.prepare('DELETE FROM ingredient_aliases WHERE ingredient_id=?').run(id);
+      // Récupérer les conversions (unité → g) de l'ingrédient supprimé
+      try {
+        const oldConv = db.prepare('SELECT unite, grammes FROM conversions WHERE ingredient_id=?').all(id);
+        const addConv = db.prepare('INSERT OR IGNORE INTO conversions(ingredient_id, unite, grammes) VALUES(?,?,?)');
+        for (const c of oldConv) addConv.run(keep_id, c.unite, c.grammes);
+      } catch(_) {}
       db.prepare('DELETE FROM ingredients WHERE id=?').run(id);
     }
     // S'assurer que le nom final de keep_id n'est pas lui-même un alias
@@ -775,6 +834,10 @@ function getRecette(id) {
     LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(id);
+  // Conversion unité → grammes (informatif dans le détail recette)
+  r.ingredients.forEach(ri => {
+    ri.conversion_grammes = ri.type === 'sous_recette' ? null : convGrammes(ri.ingredient_id, ri.unite);
+  });
   r.etapes      = db.prepare('SELECT * FROM recette_etapes WHERE recette_id=? ORDER BY position').all(id);
   return r;
 }
@@ -1632,7 +1695,7 @@ app.get('/api/suggestion', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 const BACKUP_TABLES = [
   'rayons', 'zones_stock', 'unites', 'marchands', 'marchand_rayons', 'tags',
-  'ingredients', 'ingredient_aliases', 'produits', 'stocks', 'mouvements',
+  'ingredients', 'ingredient_aliases', 'conversions', 'produits', 'stocks', 'mouvements',
   'recettes', 'recette_ingredients', 'recette_etapes', 'menu',
   'courses_recipes', 'courses_items', 'suggestion_rules',
 ];
@@ -1765,6 +1828,14 @@ function importMerge(tables) {
     const info = db.prepare('INSERT OR IGNORE INTO ingredient_aliases(ingredient_id,alias,created_at) VALUES(?,?,?)')
       .run(ingredientId, a.alias, a.created_at);
     if (info.changes) counts.ingredient_aliases++;
+  });
+
+  rowsOf('conversions').forEach(c => {
+    const ingredientId = idMap.ingredients[c.ingredient_id];
+    if (!ingredientId) return;
+    const info = db.prepare('INSERT OR IGNORE INTO conversions(ingredient_id,unite,grammes) VALUES(?,?,?)')
+      .run(ingredientId, c.unite, c.grammes);
+    if (info.changes) counts.conversions++;
   });
 
   rowsOf('produits').forEach(p => {

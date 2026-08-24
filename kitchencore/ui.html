@@ -1168,6 +1168,13 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .d-ingr-photo img { width:100%;height:100%;object-fit:cover; }
 .d-ingr-nom { font-size:.88rem;flex:1;min-width:0; }
 .d-ingr-note { font-size:.75rem;color:var(--text2);font-style:italic;margin-top:1px; }
+.d-ingr-conv { font-size:.75rem;color:var(--grey-d);font-weight:700;margin-left:6px;white-space:nowrap; }
+.ing-conv-row { display:flex;align-items:center;gap:8px;background:var(--orange-l);border-radius:10px;padding:6px 10px; }
+.ing-conv-row .ing-conv-u { max-width:60%;font-weight:700;color:var(--orange);font-size:14px;cursor:pointer;
+                            border-bottom:1px dashed var(--orange);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.ing-conv-row .ing-conv-sp { flex:1; }
+.ing-conv-row .ing-conv-g { font-weight:800;color:var(--orange);font-size:14px;flex-shrink:0; }
+.ing-conv-row .ing-conv-x { background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;flex-shrink:0; }
 .d-step-row { display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l); }
 .d-step-row:last-child{ border-bottom:none; }
 .d-step-num { width:28px;height:28px;border-radius:50%;background:var(--orange);color:white;display:grid;place-items:center;font-size:.8rem;font-weight:800;flex-shrink:0;margin-top:1px; }
@@ -3381,6 +3388,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
         <span class="ing-panel-label">Durée de conservation</span>
         <div class="ing-panel-value" id="ing-detailConservation"></div>
       </div>
+      <div class="ing-panel-section" id="ing-detailConvSection" style="display:none">
+        <span class="ing-panel-label">Conversions</span>
+        <div id="ing-detailConvList"></div>
+      </div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Utilisé dans</span>
         <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
@@ -3422,6 +3433,20 @@ body[data-menu-sel="1"] #main-fab { display:none; }
           <input class="ing-panel-input" id="ing-aliasInput" placeholder="Ajouter un alias…" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();ingAddAlias();}">
           <button onclick="ingAddAlias()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:0 14px;font-size:18px;cursor:pointer">+</button>
         </div>
+      </div>
+      <div class="ing-panel-section">
+        <label class="ing-panel-label">Conversions <span style="font-weight:400;color:var(--grey-d);font-size:12px">(poids d'une unité, pour cuisiner à la balance)</span></label>
+        <div id="ing-convRows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="ing-panel-input" id="ing-convUnite" list="ing-conv-units-dl" placeholder="unité (ex: pièce)" style="flex:1"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('ing-convGrammes').focus();}">
+          <span style="color:var(--grey-d);font-weight:800">=</span>
+          <input class="ing-panel-input" id="ing-convGrammes" type="text" inputmode="decimal" placeholder="50" style="width:78px"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();ingAddConversion();}">
+          <span style="color:var(--grey-d);font-weight:800">g</span>
+          <button onclick="ingAddConversion()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:0 14px;font-size:18px;cursor:pointer">+</button>
+        </div>
+        <datalist id="ing-conv-units-dl"></datalist>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Rayon</label>
@@ -7437,6 +7462,17 @@ function abbrevUnit(u) {
   return _UNIT_ABBR.hasOwnProperty(k) ? _UNIT_ABBR[k] : u;
 }
 
+// Poids exact tel que saisi : 50 → "50", 12.5 → "12,5"
+function fmtGrammes(n) {
+  return (Math.round(n * 100) / 100).toString().replace('.', ',');
+}
+
+// Poids estimé (calculé) : arrondi à l'entier au-dessus de 10 g, sinon 1 décimale
+function fmtGrammesApprox(n) {
+  const v = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+  return v.toString().replace('.', ',');
+}
+
 // ── DETAIL ────────────────────────────────────────────────────────────────────
 async function openDetail(id) {
   let r = _rv.find(x=>String(x.id)===String(id)); if(!r) return;
@@ -7477,12 +7513,15 @@ async function openDetail(id) {
     const displayNom = (i.nom_pluriel && !isNaN(qtyNum) && qtyNum > 1) ? i.nom_pluriel : i.nom;
     const rowClick = (isSub && subRecId) ? `onclick="window.open('?recipe=${subRecId}','_blank')" style="cursor:pointer"` : '';
     const linkIcon = (isSub && subRecId) ? `<span style="font-size:.75rem;color:#1d4ed8;margin-left:.25rem">↗</span>` : '';
+    // Conversion unité → grammes (informatif) : "2 tomates  ≈ 100 g"
+    const convG = (!isSub && i.conversion_grammes && !isNaN(qtyNum) && qtyNum > 0)
+      ? `<span class="d-ingr-conv">≈ ${fmtGrammesApprox(qtyNum * i.conversion_grammes)} g</span>` : '';
     return `
     <div class="d-ingr-row" ${rowClick}>
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${displayNom}${linkIcon}</div>
+        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${displayNom}${linkIcon}${convG}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
@@ -9199,6 +9238,9 @@ let _ingEditingId       = null;
 let _ingAliasesLoaded   = [];   // [{id, alias}] chargés depuis API
 let _ingAliasesToDelete = [];   // ids à supprimer
 let _ingAliasesToAdd    = [];   // strings à créer
+let _ingConvLoaded      = [];   // [{id, unite, grammes}] chargés depuis API
+let _ingConvToDelete    = [];   // ids à supprimer
+let _ingConvToAdd       = [];   // [{unite, grammes}] à créer
 let _ingPendingPhotoFile = null;
 let _ingLastSelectedId  = null;
 let _ingDetailId     = null;
@@ -9931,6 +9973,22 @@ function _ingOpenDetailPanel(id) {
   const detailSaison = (() => { try { return JSON.parse(ing.saison || '[]'); } catch(e) { return []; } })();
   _ingBuildSaisonBar('ing-detailSaisonBar', 'ing-detailSaisonLabels', 'ing-detailSaisonSummary', new Set(detailSaison), false);
 
+  // Conversions (lecture seule, section masquée si aucune)
+  const convSection = document.getElementById('ing-detailConvSection');
+  const convList    = document.getElementById('ing-detailConvList');
+  convSection.style.display = 'none';
+  convList.innerHTML = '';
+  fetch('/api/ingredients/' + ing._dbId + '/conversions')
+    .then(r => r.ok ? r.json() : [])
+    .then(convs => {
+      if (_ingDetailId !== id || !convs.length) return;   // panel changé entre-temps
+      convList.innerHTML = convs.map(c =>
+        `<div class="ing-panel-value" style="padding:2px 0">1 ${c.unite} = ${fmtGrammes(c.grammes)} g</div>`
+      ).join('');
+      convSection.style.display = '';
+    })
+    .catch(() => {});
+
   // Durée de conservation
   const conservSection = document.getElementById('ing-detailConservationSection');
   if (ing.duree_conservation_jours) {
@@ -10052,6 +10110,94 @@ function _ingRemoveAlias(id, aliasStr) {
   _ingRenderAliasChips();
 }
 
+// ─── Conversions unité → grammes ───
+const ING_CONV_UNITE_DEFAUT = 'pièce';   // unité vide (ex: "2 tomates") = 1 pièce
+
+function _ingConvFillUnits() {
+  const dl = document.getElementById('ing-conv-units-dl');
+  if (!dl) return;
+  const units = (typeof UNITS !== 'undefined' && Array.isArray(UNITS)) ? UNITS : ['pièce','c.à.s','c.à.c','pincée'];
+  dl.innerHTML = units.filter(Boolean).map(u => `<option value="${u}">`).join('');
+}
+
+// Conversions affichées = chargées (moins les supprimées) + celles en attente d'ajout
+function _ingConvVisible() {
+  return [
+    ..._ingConvLoaded.filter(c => !_ingConvToDelete.includes(c.id)),
+    ..._ingConvToAdd.map(c => ({ id: null, unite: c.unite, grammes: c.grammes })),
+  ];
+}
+
+function _ingRenderConvRows() {
+  const box = document.getElementById('ing-convRows');
+  if (!box) return;
+  const all = _ingConvVisible();
+  box.innerHTML = '';
+  if (!all.length) {
+    box.innerHTML = '<span style="color:var(--grey-d);font-size:13px">Aucune conversion</span>';
+    return;
+  }
+  all.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'ing-conv-row';
+
+    const u = document.createElement('span');
+    u.className = 'ing-conv-u';
+    u.textContent = '1 ' + c.unite;
+    u.title = 'Cliquer pour modifier';
+    u.onclick = () => _ingEditConversion(c.id, c.unite, c.grammes);
+    row.appendChild(u);
+
+    const sp = document.createElement('span');
+    sp.className = 'ing-conv-sp';
+    row.appendChild(sp);
+
+    const g = document.createElement('span');
+    g.className = 'ing-conv-g';
+    g.textContent = '= ' + fmtGrammes(c.grammes) + ' g';
+    row.appendChild(g);
+
+    const x = document.createElement('button');
+    x.className = 'ing-conv-x';
+    x.textContent = '✕';
+    x.onclick = () => _ingRemoveConversion(c.id, c.unite);
+    row.appendChild(x);
+
+    box.appendChild(row);
+  });
+}
+
+function _ingAddConversion() {
+  const uInp = document.getElementById('ing-convUnite');
+  const gInp = document.getElementById('ing-convGrammes');
+  if (!uInp || !gInp) return;
+  const unite   = uInp.value.trim() || ING_CONV_UNITE_DEFAUT;
+  const grammes = parseFloat((gInp.value || '').replace(',', '.'));
+  if (!isFinite(grammes) || grammes <= 0) { _ingToast('Indiquer un poids en grammes'); gInp.focus(); return; }
+  if (_ingConvVisible().some(c => _ingNormalize(c.unite) === _ingNormalize(unite))) { _ingToast('Unité déjà convertie'); return; }
+  _ingConvToAdd.push({ unite, grammes });
+  uInp.value = ''; gInp.value = '';
+  _ingRenderConvRows();
+  uInp.focus();
+}
+
+function _ingEditConversion(id, unite, grammes) {
+  // Remet la ligne dans les champs de saisie pour modification
+  _ingRemoveConversion(id, unite);
+  const uInp = document.getElementById('ing-convUnite');
+  const gInp = document.getElementById('ing-convGrammes');
+  if (!uInp || !gInp) return;
+  uInp.value = unite;
+  gInp.value = grammes;
+  gInp.focus();
+}
+
+function _ingRemoveConversion(id, unite) {
+  if (id) _ingConvToDelete.push(id);
+  else _ingConvToAdd = _ingConvToAdd.filter(c => _ingNormalize(c.unite) !== _ingNormalize(unite));
+  _ingRenderConvRows();
+}
+
 function _ingOpenEditFromDetail() {
   _ingCloseDetailPanel();
   setTimeout(() => _ingOpenEditPanel(_ingDetailId), 100);
@@ -10067,6 +10213,9 @@ function _ingOpenEditPanel(id, e) {
   _ingAliasesLoaded   = [];
   _ingAliasesToDelete = [];
   _ingAliasesToAdd    = [];
+  _ingConvLoaded      = [];
+  _ingConvToDelete    = [];
+  _ingConvToAdd       = [];
 
   const initials = (ing.name || '?').slice(0, 2);
   document.getElementById('ing-editIngId').value = id;
@@ -10081,6 +10230,16 @@ function _ingOpenEditPanel(id, e) {
   fetch('/api/ingredients/' + ing._dbId + '/aliases')
     .then(r => r.ok ? r.json() : [])
     .then(aliases => { _ingAliasesLoaded = aliases; _ingRenderAliasChips(); })
+    .catch(() => {});
+
+  // Charger les conversions en arrière-plan
+  _ingConvFillUnits();
+  document.getElementById('ing-convUnite').value   = '';
+  document.getElementById('ing-convGrammes').value = '';
+  _ingRenderConvRows();
+  fetch('/api/ingredients/' + ing._dbId + '/conversions')
+    .then(r => r.ok ? r.json() : [])
+    .then(convs => { _ingConvLoaded = convs; _ingRenderConvRows(); })
     .catch(() => {});
 
   // Hero
@@ -10227,6 +10386,19 @@ async function _ingSaveIngredient() {
         if (!ar.ok) { const d = await ar.json(); _ingToast(d.error || 'Alias non ajouté'); }
       } catch(_) {}
     }
+
+    // Sauvegarder les conversions (suppressions puis ajouts / mises à jour)
+    await Promise.all(_ingConvToDelete.map(cid =>
+      fetch('/api/conversions/' + cid, { method: 'DELETE' }).catch(() => {})
+    ));
+    const convBase = '/api/ingredients/' + ing._dbId + '/conversions';
+    for (const conv of _ingConvToAdd) {
+      try {
+        const cr = await fetch(convBase, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(conv) });
+        if (!cr.ok) { const d = await cr.json(); _ingToast(d.error || 'Conversion non ajoutée'); }
+      } catch(_) {}
+    }
+    _ingConvToDelete = []; _ingConvToAdd = [];
 
     await _ingLoadData();
     _ingCloseEditPanel();
@@ -10791,6 +10963,9 @@ window.ingAutoFillPluriel  = _ingAutoFillPluriel;
 window.ingAddAlias         = _ingAddAlias;
 window.ingRemoveAlias      = _ingRemoveAlias;
 window.ingEditAlias        = _ingEditAlias;
+window.ingAddConversion    = _ingAddConversion;
+window.ingEditConversion   = _ingEditConversion;
+window.ingRemoveConversion = _ingRemoveConversion;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingDeselectAll         = _ingDeselectAll;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
