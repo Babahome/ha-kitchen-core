@@ -926,6 +926,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-suggest-item:active{ background:var(--orange-l); }
 .cl-suggest-name{ font-size:.88rem;font-weight:700;flex:1;min-width:0; }
 .cl-suggest-name b{ color:var(--orange);font-weight:900; }
+.cl-suggest-tag { margin-left:6px; font-size:.62rem; font-weight:800; text-transform:uppercase;
+                  letter-spacing:.04em; color:var(--orange); background:var(--orange-l);
+                  border-radius:5px; padding:1px 5px; vertical-align:middle; }
 .cl-suggest-rayon{ font-size:.68rem;color:var(--grey-d);font-weight:700;flex-shrink:0;white-space:nowrap; }
 .cl-suggest-empty{ padding:12px 14px;font-size:.82rem;color:var(--grey-d);font-weight:600;font-style:italic; }
 /* Edit sheet quantité / unité */
@@ -6975,23 +6978,31 @@ function clSearchFilter(val) {
   else { clHideSuggestions(); }
 }
 
-// ── Autocomplétion ingrédients ────────────────────────────────────────────────
+// ── Autocomplétion : ingrédients du catalogue + produits déjà scannés ────────
+// Les produits couvrent surtout le non-alimentaire (sac poubelle, eau de repassage,
+// déodorant…) : pas d'ingrédient de recette derrière, mais un code-barres scanné.
+// Une source qui échoue ne doit pas faire disparaître l'autre, d'où les catch([]).
 async function clFetchSuggestions(q) {
-  try {
-    const res = await fetch('/api/ingredients/search?q='+encodeURIComponent(q));
-    if(!res.ok) return;
-    clShowSuggestions(await res.json(), q);
-  } catch(e) { /* silencieux */ }
+  const e = encodeURIComponent(q);
+  const [ings, prods] = await Promise.all([
+    fetch('/api/ingredients/search?q='+e).then(r=>r.ok?r.json():[]).catch(()=>[]),
+    fetch('/api/produits/search?q='+e).then(r=>r.ok?r.json():[]).catch(()=>[]),
+  ]);
+  const items = [
+    ...ings.map(i =>({ type:'ingredient', nom:i.nom, marque:'',           icone:i.icone||'', rayon:i.rayon_nom||'' })),
+    ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'' })),
+  ].slice(0, 10);
+  clShowSuggestions(items, q);
 }
 function clShowSuggestions(items, q) {
   const list = document.getElementById('cl-suggest-list'); if(!list) return;
-  if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient trouvé</div>'; list.classList.add('visible'); return; }
+  if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient ni produit trouvé</div>'; list.classList.add('visible'); return; }
   const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // Stocke les données dans _clSuggestData pour éviter les problèmes d'apostrophes dans les onclick inline
-  window._clSuggestData = items.map(it=>({nom:it.nom, rayon:it.rayon_nom||'', icone:it.icone||''}));
+  window._clSuggestData = items.map(it=>({nom:it.nom, marque:it.marque||'', rayon:it.rayon||'', icone:it.icone||'', type:it.type||'ingredient'}));
   list.innerHTML = items.map((it,idx)=>{
     const hl  = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
-    const r   = it.rayon_nom||'';
+    const r   = it.marque || it.rayon || '';
     const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
     const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
     const avatar = isUrl
@@ -6999,7 +7010,7 @@ function clShowSuggestions(items, q) {
       : `<span style="font-size:.6rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
     return `<div class="cl-suggest-item" onclick="clPickSuggestionIdx(${idx})">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${avatar}</div>
-      <div class="cl-suggest-name">${hl}</div>
+      <div class="cl-suggest-name">${hl}${it.type==='produit'?'<span class="cl-suggest-tag">produit</span>':''}</div>
       ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
     </div>`;
   }).join('');
@@ -7007,7 +7018,11 @@ function clShowSuggestions(items, q) {
 }
 function clPickSuggestionIdx(idx) {
   const d = window._clSuggestData?.[idx]; if(!d) return;
-  clPickSuggestion(d.nom, d.rayon, d.icone);
+  // Pour un produit, la marque fait partie de ce qu'on cherche en rayon
+  // (« Eau de repassage Carrefour ») — sauf si le nom la contient déjà.
+  let nom = d.nom;
+  if (d.type === 'produit' && d.marque && !clNorm(nom).includes(clNorm(d.marque))) nom += ' ' + d.marque;
+  clPickSuggestion(nom, d.rayon, d.icone);
 }
 function clHideSuggestions(){ document.getElementById('cl-suggest-list')?.classList.remove('visible'); }
 async function clPickSuggestion(nom, rayon, icone) {

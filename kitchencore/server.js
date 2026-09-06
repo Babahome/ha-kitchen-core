@@ -641,6 +641,33 @@ app.get('/api/ingredients/search', (req, res) => {
   ).all(`%${q}%`));
 });
 
+// Recherche dans les produits deja scannes, pour les ajouter a la liste de courses.
+// Cherche sur le nom ET la marque (« eau de repassage carrefour »), d'ou le
+// decoupage de la requete en mots : chaque mot doit apparaitre dans « nom marque ».
+// Le rayon vient du produit s'il en a un, sinon de l'ingredient lie.
+app.get('/api/produits/search', (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json([]);
+  const mots = q.split(/\s+/).filter(Boolean).slice(0, 6);
+  const cond = mots.map(() => "NORM(COALESCE(p.nom,'') || ' ' || COALESCE(p.marque,'')) LIKE NORM(?)").join(' AND ');
+  try {
+    res.json(db.prepare(
+      `SELECT p.id, p.nom, p.marque, p.ingredient_id,
+              COALESCE(p.icone, a.icone)        AS icone,
+              COALESCE(rp.nom, ra.nom)          AS rayon_nom
+       FROM produits p
+       LEFT JOIN ingredients a  ON a.id  = p.ingredient_id
+       LEFT JOIN rayons      rp ON rp.id = p.rayon_id
+       LEFT JOIN rayons      ra ON ra.id = a.rayon_id
+       WHERE ${cond}
+       ORDER BY p.nom LIMIT 8`
+    ).all(...mots.map(m => `%${m}%`)));
+  } catch (e) {
+    console.error('[/api/produits/search]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Auto-ajout transparent d'un ingrédient (appelé depuis saveIngredients)
 app.post('/api/ingredients/auto-add', (req, res) => {
   const { nom } = req.body;
