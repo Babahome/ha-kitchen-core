@@ -1629,14 +1629,21 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .ing-name {
     font-size: 15px; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    text-transform: uppercase;
   }
-  /* Noms d'ingrédients affichés en MAJUSCULES (v0.10.252). Purement visuel :
-     text-transform n'altère jamais la valeur stockée en base, qui garde sa casse
-     d'origine. Ne s'applique qu'aux noms d'INGRÉDIENTS — pas aux noms de recettes,
-     de produits ni aux champs de saisie (taper en capitales serait illisible). */
-  #ing-detailName, #ing-editTitle { text-transform: uppercase; }
-  .d-ingr-nom-txt                 { text-transform: uppercase; }
+  /* Noms d'ingrédients : majuscule sur la PREMIÈRE LETTRE uniquement (v0.10.253).
+     Purement visuel — la valeur stockée en base garde sa casse d'origine.
+     ::first-letter et pas text-transform:capitalize, qui capitaliserait chaque mot
+     (« Herbe De Provence »). Le reste du nom n'est pas force en minuscules : 17
+     ingredients ont des majuscules internes legitimes (Saint-Jacques, Gruyere,
+     Provence, Madras…) que ca detruirait.
+     ::first-letter ne s'applique qu'aux conteneurs de bloc — d'ou les selecteurs
+     sur le bloc parent et non sur un span inline.
+     Ne s'applique qu'aux INGREDIENTS : ni recettes, ni produits Stock, ni champs
+     de saisie. */
+  .ing-name::first-letter,
+  #ing-detailName::first-letter,
+  #ing-editTitle::first-letter,
+  .d-ingr-nom-cap::first-letter { text-transform: uppercase; }
   .ing-meta {
     display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;
   }
@@ -7558,7 +7565,7 @@ async function openDetail(id) {
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}><span${isSub?'':' class="d-ingr-nom-txt"'}>${displayNom}</span>${linkIcon}${convG}</div>
+        <div class="d-ingr-nom${isSub?'':' d-ingr-nom-cap'}"${isSub?' style="font-style:italic"':''}>${displayNom}${linkIcon}${convG}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
