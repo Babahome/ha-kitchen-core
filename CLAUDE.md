@@ -11,6 +11,8 @@ Tout le code Node.js directement dans server.js — jamais de sous-dossiers (Doc
 Après chaque feature validée : bumper la version dans config.yaml (patch +0.0.1) puis git add + commit + push sur GitHub pour déclencher le rebuild Docker Home Assistant
 Panels overlay (iOS Safari) : tout élément position:absolute;inset:0 (panel plein écran, modal) DOIT être enfant direct de .frame — jamais dans #content. Le #content a -webkit-overflow-scrolling:touch qui crée un stacking context isolé sur iOS : les z-index des enfants ne s'appliquent pas correctement, le header et la bottom-nav restent visibles par dessus.
 
+Cache navigateur : `GET /` renvoie `Cache-Control: no-cache` (v0.10.249). Sans ce header, Chrome applique un cache heuristique et continue d'afficher l'ancienne `ui.html` après une mise à jour de l'add-on — symptôme classique « je ne vois aucun changement après la mise à jour HA ». Ne jamais retirer ce header. La version réelle (lue dans `config.yaml` par `ADDON_VERSION`) est injectée dans la page via `window._kcVersion` et affichée dans le menu burger (`#drawer-version`) : c'est le moyen de vérifier en un coup d'œil si la page affichée est à jour. `GET /health` renvoie la même version.
+
 Design : Police Nunito, --orange: #E8671A, --orange-l: #FDF0E8, --grey-l: #F5F5F5. Bottom nav 4 onglets, header orange, cards blanches fond gris clair. FAB orange bas droite, fab-search pill blanche bas gauche.
 
 Pages — état v0.10.113

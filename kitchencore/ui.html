@@ -3296,7 +3296,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'backup','Sauvegarde')"><div class="d-icon">💾</div> Import / Export</div>
     </div>
-    <div class="drawer-version">KitchenCore v0.8 · Home Assistant Add-on</div>
+    <div class="drawer-version" id="drawer-version">KitchenCore · Home Assistant Add-on</div>
   </div>
 
   <!-- TOASTS -->
@@ -5588,6 +5588,14 @@ function searchRecettes(val) {
 function closeRecetteMenu() { closeCtx && closeCtx(); }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Version réelle de l'add-on (injectée par server.js) dans le menu burger :
+// permet de voir d'un coup d'œil si la page affichée est bien la dernière version
+// ou une vieille page servie depuis le cache du navigateur.
+(function() {
+  const el = document.getElementById('drawer-version');
+  if (el) el.textContent = 'KitchenCore v' + (window._kcVersion || '?') + ' · Home Assistant Add-on';
+})();
+
 // Appliquer la config de la page initiale (stock par défaut)
 (function() {
   const cfg = PAGE_CONFIG['stock'];

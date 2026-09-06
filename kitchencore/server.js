@@ -345,16 +345,29 @@ app.use((_req, res, next) => {
 app.options('*', (_req, res) => res.sendStatus(204));
 
 // ── UI ────────────────────────────────────────────────────────────────────────
+// Version réelle de l'add-on, lue dans config.yaml : source unique de vérité,
+// affichée dans le menu burger pour vérifier qu'une mise à jour HA a bien été prise.
+const ADDON_VERSION = (() => {
+  try {
+    const m = fs.readFileSync(path.join(__dirname, 'config.yaml'), 'utf8').match(/^version:\s*"?([^"\s]+)"?/m);
+    return m ? m[1] : '?';
+  } catch (_) { return '?'; }
+})();
 const HTML = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
 app.get('/', (req, res) => {
   const base = req.headers['x-ingress-path'] || '';
-  if (!base) return res.send(HTML);
-  // Injecter le chemin ingress HA pour que fetch('/api/...') soit redirigé correctement
-  const patched = HTML.replace('</head>', `<script>window._haIngressPath=${JSON.stringify(base)};</script></head>`);
-  res.send(patched);
+  // Sans Cache-Control, Chrome applique un cache heuristique et continue de servir
+  // l'ancienne page après une mise à jour de l'add-on. no-cache = revalidation
+  // systématique (l'ETag renvoie un 304 quand rien n'a changé, donc ça reste léger).
+  res.setHeader('Cache-Control', 'no-cache');
+  // Injecter la version + le chemin ingress HA (pour que fetch('/api/...') soit redirigé)
+  const inject = `<script>window._kcVersion=${JSON.stringify(ADDON_VERSION)};`
+    + (base ? `window._haIngressPath=${JSON.stringify(base)};` : '')
+    + `</script></head>`;
+  res.send(HTML.replace('</head>', inject));
 });
 app.get('/scanner-debug.html', (_req, res) => res.sendFile(path.join(__dirname, 'scanner-debug.html')));
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '0.9.0' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: ADDON_VERSION }));
 
 // ══════════════════════════════════════════════════════════════════════════════
 // INGRÉDIENTS
