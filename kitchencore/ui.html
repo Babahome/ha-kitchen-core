@@ -8339,12 +8339,11 @@ function mBuild(scrollY){
     const b=MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
     const l=i===0?'📍 Aujourd\'hui — '+b:i===1?'Demain — '+b:i===-1?'Hier — '+b:b;
     const rp=_md[k]||[];
-    const rvList=(typeof _rv!=='undefined')?_rv:[];
     const cards=rp.map((r,x)=>{
       const c=MC[r.t]||MC.a;
       const tCls = r.t==='g' ? 'tg2' : c.t;
       const portStr = r.portions ? `<span class="m-port">👥 ${r.portions} port.</span>` : '';
-      const rvMatch=rvList.find(v=>v.nom&&v.nom.toLowerCase()===r.n.toLowerCase());
+      const rvMatch=_mFindRecette(r);
       const photo=r.photo||(rvMatch&&rvMatch.photo)||null;
       const ini=r.n.trim().substring(0,2).toUpperCase();
       const thumbHtml=photo
@@ -8467,7 +8466,7 @@ function mOpen(k,l){
 function mEdit(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
   _mKey=k; _mEditIdx=x;
-  _mP={n:item.n,e:item.e};
+  _mP={n:item.n,e:item.e,rid:item.rid||null};
   _mPortions = item.portions || 2;
   // Restaurer le mode depuis l'emoji de l'item (sans appeler mSetMode qui efface _mP et l'input)
   const isIng = item.e === '🥕';
@@ -8511,7 +8510,7 @@ function mSrch(v){
       ?`<div class="m-si2-th"><img src="${r.photo}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
       :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
   };
-  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}')">
+  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}',${r.id})">
     ${mkThumb(r)}<span style="font-size:.87rem;font-weight:700;flex:1">${r.nom}</span><span style="font-size:.7rem;color:var(--grey-d)">recette</span></div>`).join('')
     +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\\'")}','📝')"><div class="m-si2-th"><span class="m-si2-emo">📝</span></div><span style="font-size:.87rem;font-weight:700;flex:1">"${v.trim()}"</span><span style="font-size:.7rem;color:var(--grey-d)">Note libre</span></div>`;
   w.className='m-sg on';
@@ -8546,12 +8545,15 @@ function mPkIng(nom, icone){
   document.getElementById('m-si').value = nom;
   document.getElementById('m-sg').className = 'm-sg';
 }
-function mPk(n,e){
+function mPk(n,e,id){
   _mP={n,e};
   document.getElementById('m-si').value=n;
   document.getElementById('m-sg').className='m-sg';
   const rvList=(typeof _rv!=='undefined')?_rv:[];
-  const rv=rvList.find(rr=>rr.nom&&rr.nom.toLowerCase()===n.toLowerCase());
+  // Priorite a l'id reel de la recette ; fallback par nom pour les appels sans id
+  const rv=(id!=null?rvList.find(rr=>String(rr.id)===String(id)):null)
+          ||rvList.find(rr=>rr.nom&&rr.nom.toLowerCase()===n.toLowerCase());
+  if(rv?.id!=null) _mP.rid=rv.id;
   if(rv?.photo) _mP.photo=rv.photo;
   if(_mEditIdx===null&&rv?.portions){ _mPortions=rv.portions; _mPortRender(); }
 }
@@ -8579,15 +8581,15 @@ async function mRnd(){
       const pool=(typeof _rv!=='undefined')?_rv:[];
       if(!pool.length){showToast('Aucune recette disponible','warn');return;}
       const rf=pool[Math.floor(Math.random()*pool.length)];
-      mPk(rf.nom,rf.emoji||'🍽️');
+      mPk(rf.nom,rf.emoji||'🍽️',rf.id);
       showToast('Aucune recette ne correspond aux règles — suggestion aléatoire','warn');
     } else {
-      mPk(r.nom, r.emoji||'🍽️');
+      mPk(r.nom, r.emoji||'🍽️', r.id);
     }
   } catch(e) {
     // Fallback si API indisponible
     const pool=(typeof _rv!=='undefined')?_rv:[];
-    if(pool.length){ const rf=pool[Math.floor(Math.random()*pool.length)]; mPk(rf.nom,rf.emoji||'🍽️'); }
+    if(pool.length){ const rf=pool[Math.floor(Math.random()*pool.length)]; mPk(rf.nom,rf.emoji||'🍽️',rf.id); }
   }
 }
 async function mAdd(){
@@ -8595,6 +8597,7 @@ async function mAdd(){
   if(!v){showToast('Entrez une recette ou un ingrédient','warn');return;}
   const origE = _mEditIdx !== null ? (_md[_mKey]?.[_mEditIdx]?.e || '📝') : '📝';
   const item={...(_mP||{n:v,e:origE}),t:_mT,portions:_mPortions};
+  if(item.rid===undefined) item.rid=null; // explicite : efface le lien si le nom a ete retape
   if(!_md[_mKey])_md[_mKey]=[];
   try{
     if(_mEditIdx!==null){
@@ -8721,13 +8724,23 @@ function ryHideHdmenu(){
   document.getElementById('ry-hdmenu')?.classList.remove('on');
 }
 
+// Résout la recette d'un item de menu : par id réel (item.rid) en priorité,
+// fallback sur le nom pour les items planifiés avant l'ajout de menu.recette_id.
+function _mFindRecette(item){
+  if(!item) return null;
+  const rvList = (typeof _rv!=='undefined') ? _rv : [];
+  if(item.rid!=null){
+    const byId = rvList.find(r=>String(r.id)===String(item.rid));
+    if(byId) return byId;
+  }
+  return rvList.find(r=>r.nom && r.nom.toLowerCase()===String(item.n||'').toLowerCase()) || null;
+}
+
 // Tap card → ouvrir détail recette si trouvée
 let _mReturnPage = null; // page d'où on vient avant d'ouvrir le détail recette
 function mOpenDetailFromCard(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
-  // Chercher dans _rv par nom (case insensitive)
-  const rvList = (typeof _rv!=='undefined') ? _rv : [];
-  const r = rvList.find(x=>x.nom && x.nom.toLowerCase()===item.n.toLowerCase());
+  const r = _mFindRecette(item);
   if(r && typeof openDetail==='function'){
     // Mémoriser la page actuelle pour y revenir à la fermeture
     const active = document.querySelector('.page.active');
@@ -8768,13 +8781,12 @@ let _mIngData = [], _mIngChecked = new Set();
 
 async function mSelAddToCourses(){
   if(_mSelSet.size===0) return;
-  const rvList = (typeof _rv!=='undefined') ? _rv : [];
   _mIngData = [];
 
   for(const key of _mSelSet){
     const [k,xs] = key.split('|'); const x = parseInt(xs);
     const item=(_md[k]||[])[x]; if(!item) continue;
-    const r = rvList.find(rr=>rr.nom && rr.nom.toLowerCase()===item.n.toLowerCase());
+    const r = _mFindRecette(item);
     if(!r) continue;
     const portMenu = item.portions || 2;
     try {
@@ -8790,9 +8802,8 @@ async function mSelAddToCourses(){
 }
 
 async function mAddOneToCourses(k,x){
-  const rvList=(typeof _rv!=='undefined')?_rv:[];
   const item=(_md[k]||[])[x]; if(!item) return;
-  const r=rvList.find(rr=>rr.nom&&rr.nom.toLowerCase()===item.n.toLowerCase());
+  const r=_mFindRecette(item);
   if(!r){ showToast('Recette non trouvée dans le catalogue','warn'); return; }
   const portMenu=item.portions||2;
   try{

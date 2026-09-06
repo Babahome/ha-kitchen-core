@@ -203,6 +203,7 @@ db.exec(`
   ['ingredients',    'nom_pluriel',   'TEXT'],
   ['ingredients',    'parent_id',     'INTEGER REFERENCES ingredients(id)'],
   ['menu',           'position',      'INTEGER DEFAULT 0'],
+  ['menu',           'recette_id',    'INTEGER REFERENCES recettes(id)'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
   ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
@@ -1145,20 +1146,20 @@ app.get('/api/menu', (_req, res) => {
   const grouped = {};
   for (const r of rows) {
     if (!grouped[r.date]) grouped[r.date] = [];
-    grouped[r.date].push({ id: r.id, n: r.nom, t: r.type, portions: r.portions, e: r.emoji || '🍽️', note: r.note || '', photo: r.photo || null });
+    grouped[r.date].push({ id: r.id, n: r.nom, t: r.type, portions: r.portions, e: r.emoji || '🍽️', note: r.note || '', photo: r.photo || null, rid: r.recette_id || null });
   }
   res.json(grouped);
 });
 
 app.post('/api/menu', (req, res) => {
-  const { date, n, t = 'n', portions = 2, e = '🍽️', note = '', photo = null } = req.body;
+  const { date, n, t = 'n', portions = 2, e = '🍽️', note = '', photo = null, rid = null } = req.body;
   if (!date || !n) return res.status(400).json({ error: 'date et nom requis' });
-  const r = db.prepare('INSERT INTO menu (date,nom,type,portions,emoji,note,photo) VALUES (?,?,?,?,?,?,?)').run(date, n, t, portions, e || '🍽️', note || '', photo);
+  const r = db.prepare('INSERT INTO menu (date,nom,type,portions,emoji,note,photo,recette_id) VALUES (?,?,?,?,?,?,?,?)').run(date, n, t, portions, e || '🍽️', note || '', photo, rid || null);
   res.json({ id: r.lastInsertRowid });
 });
 
 app.put('/api/menu/:id', (req, res) => {
-  const { date, n, t, portions, e, note, photo, position } = req.body;
+  const { date, n, t, portions, e, note, photo, position, rid } = req.body;
   const fields = [], vals = [];
   if (date     !== undefined) { fields.push('date=?');     vals.push(date); }
   if (n        !== undefined) { fields.push('nom=?');      vals.push(n); }
@@ -1168,6 +1169,7 @@ app.put('/api/menu/:id', (req, res) => {
   if (note     !== undefined) { fields.push('note=?');     vals.push(note); }
   if (photo    !== undefined) { fields.push('photo=?');    vals.push(photo); }
   if (position !== undefined) { fields.push('position=?'); vals.push(position); }
+  if (rid      !== undefined) { fields.push('recette_id=?'); vals.push(rid || null); }
   if (!fields.length) return res.json({ ok: true });
   vals.push(req.params.id);
   db.prepare(`UPDATE menu SET ${fields.join(',')} WHERE id=?`).run(...vals);
@@ -1901,8 +1903,9 @@ function importMerge(tables) {
   });
 
   rowsOf('menu').forEach(m => {
-    db.prepare('INSERT INTO menu(date,nom,type,portions,emoji,note,photo,position) VALUES(?,?,?,?,?,?,?,?)')
-      .run(m.date, m.nom, m.type, m.portions, m.emoji, m.note, m.photo, m.position || 0);
+    const recetteId = m.recette_id ? (idMap.recettes[m.recette_id] || null) : null;
+    db.prepare('INSERT INTO menu(date,nom,type,portions,emoji,note,photo,position,recette_id) VALUES(?,?,?,?,?,?,?,?,?)')
+      .run(m.date, m.nom, m.type, m.portions, m.emoji, m.note, m.photo, m.position || 0, recetteId);
     counts.menu++;
   });
 
