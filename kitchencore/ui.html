@@ -35,11 +35,19 @@
 html, body { height: 100%; overflow: hidden; background: var(--white); }
 body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: antialiased; }
 
+/* position:fixed + inset:0 plutôt que height:100dvh (v0.10.255).
+   Sur Safari iPadOS, 100dvh se résolvait à ~553 px pour ~693 px réellement
+   disponibles : il restait une bande blanche d'environ 140 px sous la bottom-nav
+   (le fond du body qui apparaît), ce qui faisait lire la barre comme énorme.
+   Avec inset:0 la taille vient des décalages sur le viewport, plus aucun calcul
+   de dvh en jeu, donc plus d'écart possible.
+   .frame reste bloc conteneur pour tous les overlays position:absolute;inset:0
+   (fixed établit un bloc conteneur comme relative), et overflow:hidden continue
+   d'empêcher le scroll du body — le scroll se fait dans #content. */
 .frame {
-  width: 100%; height: 100dvh;
+  position: fixed; inset: 0;
   background: var(--white);
   overflow: hidden;
-  position: relative;
   display: flex; flex-direction: column;
 }
 
