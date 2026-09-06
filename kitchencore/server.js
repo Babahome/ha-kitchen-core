@@ -396,6 +396,15 @@ app.get('/api/ingredients', (_req, res) => {
 app.post('/api/ingredients', (req, res) => {
   const { nom, categorie='Autre', seuil_alerte=1, icone='🥫' } = req.body;
   if (!nom) return res.status(400).json({ error: 'nom requis' });
+  // Doublon de casse : la contrainte UNIQUE de ingredients.nom est sensible à la
+  // casse (collation BINARY), donc « Tomate » et « tomate » passeraient tous les
+  // deux. On refuse avant l'INSERT, comme le font déjà saveIngredients() et
+  // l'import de sauvegarde, et on renvoie l'ingrédient existant.
+  const deja = findIngByNameOrAlias(nom);
+  if (deja) {
+    const ex = db.prepare('SELECT * FROM ingredients WHERE id=?').get(deja.id);
+    return res.status(409).json({ error: `« ${ex.nom} » existe déjà.`, ingredient: ex });
+  }
   try {
     const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), categorie, seuil_alerte, icone);
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));

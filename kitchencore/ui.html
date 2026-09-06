@@ -1629,7 +1629,14 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   .ing-name {
     font-size: 15px; font-weight: 700;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-transform: uppercase;
   }
+  /* Noms d'ingrédients affichés en MAJUSCULES (v0.10.252). Purement visuel :
+     text-transform n'altère jamais la valeur stockée en base, qui garde sa casse
+     d'origine. Ne s'applique qu'aux noms d'INGRÉDIENTS — pas aux noms de recettes,
+     de produits ni aux champs de saisie (taper en capitales serait illisible). */
+  #ing-detailName, #ing-editTitle { text-transform: uppercase; }
+  .d-ingr-nom-txt                 { text-transform: uppercase; }
   .ing-meta {
     display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;
   }
@@ -6998,9 +7005,14 @@ async function clCtxToIngredient() {
     let ing=null; let msg='✓ "'+item.n+'" ajouté aux ingrédients';
     const res=await fetch('/api/ingredients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:item.n})});
     if(res.status===409){
-      // Ingrédient déjà existant → on le retrouve pour lier quand même
-      const found=await fetch('/api/ingredients/search?q='+encodeURIComponent(item.n));
-      if(found.ok){const list=await found.json(); ing=list.find(x=>x.nom.toLowerCase()===item.n.toLowerCase())||list[0]||null;}
+      // Ingrédient déjà existant → on le retrouve pour lier quand même.
+      // Depuis v0.10.252 le 409 renvoie directement l'ingrédient trouvé (y compris
+      // sur une simple différence de casse) ; recherche de secours si absent.
+      try { ing=(await res.clone().json()).ingredient||null; } catch(_) {}
+      if(!ing){
+        const found=await fetch('/api/ingredients/search?q='+encodeURIComponent(item.n));
+        if(found.ok){const list=await found.json(); ing=list.find(x=>x.nom.toLowerCase()===item.n.toLowerCase())||list[0]||null;}
+      }
       if(!ing){showToast('"'+item.n+'" est déjà un ingrédient','warn');return;}
       msg='"'+item.n+'" lié à l\'ingrédient existant';
     } else if(!res.ok){showToast('Erreur création ingrédient','error');return;}
@@ -7546,7 +7558,7 @@ async function openDetail(id) {
       <span class="d-ingr-qty">${qtyTxt}</span>
       ${photoHtml}
       <div style="flex:1;min-width:0">
-        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}>${displayNom}${linkIcon}${convG}</div>
+        <div class="d-ingr-nom"${isSub?' style="font-style:italic"':''}><span${isSub?'':' class="d-ingr-nom-txt"'}>${displayNom}</span>${linkIcon}${convG}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
     </div>`;
