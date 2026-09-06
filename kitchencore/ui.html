@@ -2161,6 +2161,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .rv-mealie-url-inp:focus { outline:none; border-color:var(--orange); }
 .btn-rv-load { background:var(--orange); color:#fff; border:none; border-radius:10px; padding:9px 14px; font-family:'Nunito',sans-serif; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap; }
 .btn-rv-load:disabled { opacity:.5; cursor:default; }
+/* Reprise des photos Mealie restees en URL externe (import anterieur au correctif) */
+.btn-rv-repair { width:100%; margin-bottom:14px; background:transparent; color:var(--grey-d);
+                 border:1px dashed var(--grey); border-radius:10px; padding:8px 12px;
+                 font-family:'Nunito',sans-serif; font-size:.78rem; font-weight:700; cursor:pointer; }
+.btn-rv-repair:disabled { opacity:.5; cursor:default; }
 .rv-mealie-results { display:flex; flex-direction:column; gap:8px; }
 .rv-mealie-empty { text-align:center; padding:2.5rem 1rem; color:var(--grey-d); font-size:.88rem; }
 .rv-spinner { text-align:center; padding:2rem; color:var(--grey-d); font-size:.88rem; }
@@ -2683,10 +2688,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
               value="http://192.168.1.166:30111">
             <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
           </div>
-          <div class="rv-mealie-url-row" style="margin-bottom:14px">
+          <div class="rv-mealie-url-row" style="margin-bottom:8px">
             <input class="rv-mealie-url-inp" id="rv-mealie-token" autocomplete="off"
               placeholder="API Token (laisser vide si non requis)" type="text">
           </div>
+          <button class="btn-rv-repair" id="rv-btn-repair" onclick="rvMealieRepairPhotos()">🖼 Réparer les photos manquantes</button>
           <div id="rv-mealie-results" class="rv-mealie-results">
             <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
           </div>
@@ -8276,6 +8282,35 @@ function rvImportFeedback(msg, type) {
 }
 
 // ── Mealie ───────────────────────────────────────────────────────────────────
+// Recettes importees avant le correctif du jeton Mealie : leur photo est restee une
+// URL externe malformee et ne s'affiche pas. On redemande l'image a Mealie et on la
+// stocke en local, comme le fait desormais l'import.
+async function rvMealieRepairPhotos() {
+  const url   = document.getElementById('rv-mealie-url').value.trim();
+  const token = document.getElementById('rv-mealie-token').value.trim();
+  if (!url) { rvImportFeedback('URL Mealie vide.', 'err'); return; }
+  const btn = document.getElementById('rv-btn-repair');
+  const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Réparation…';
+  rvImportFeedback('', '');
+  try {
+    const r = await fetch('/api/recettes/reparer-photos-mealie', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, token })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Erreur serveur');
+    if (d.total === 0)   rvImportFeedback('Aucune photo à réparer ✓', 'ok');
+    else if (d.reparees) rvImportFeedback(`${d.reparees}/${d.total} photo(s) réparée(s) ✓`, 'ok');
+    else                 rvImportFeedback(`Aucune réparée sur ${d.total} — ${d.echecs[0]?.raison || 'échec'}`, 'err');
+    if (d.reparees && typeof loadRecettes === 'function') await loadRecettes();
+  } catch(e) {
+    rvImportFeedback('Erreur : ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = txt;
+  }
+}
+
 async function rvMealieLoad() {
   const url   = document.getElementById('rv-mealie-url').value.trim();
   const token = document.getElementById('rv-mealie-token').value.trim();

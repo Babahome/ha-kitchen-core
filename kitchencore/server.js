@@ -984,6 +984,39 @@ function saveEtapes(recetteId, etapes) {
 // RECETTES — routes
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Reprise des photos restees en URL externe (recettes importees avant le correctif
+// du jeton Mealie). Le slug est recuperable dans recettes.source, renseigne a
+// l'import : on redemande l'id Mealie, puis on telecharge l'image en local.
+// A placer avant /api/recettes/:id, comme les routes d'import.
+app.post('/api/recettes/reparer-photos-mealie', async (req, res) => {
+  const { url: mealie_url, token } = req.body || {};
+  if (!mealie_url) return res.status(400).json({ error: 'url requis' });
+  const base    = String(mealie_url).replace(/\/$/, '');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const rows = db.prepare("SELECT id, nom, source FROM recettes WHERE photo LIKE 'http%'").all();
+  const out  = { total: rows.length, reparees: 0, echecs: [] };
+  for (const r of rows) {
+    const slug = (r.source || '').split('/r/')[1]?.split(/[/?#]/)[0];
+    if (!slug) { out.echecs.push({ id: r.id, nom: r.nom, raison: 'slug introuvable dans source' }); continue; }
+    try {
+      const meta = await fetch(`${base}/api/recipes/${encodeURIComponent(slug)}`, { headers });
+      if (!meta.ok) { out.echecs.push({ id: r.id, nom: r.nom, raison: `Mealie ${meta.status}` }); continue; }
+      const mealieId = (await meta.json())?.id;
+      if (!mealieId) { out.echecs.push({ id: r.id, nom: r.nom, raison: 'id Mealie absent' }); continue; }
+      const img = await fetch(`${base}/api/media/recipes/${mealieId}/images/original.webp`, { headers });
+      if (!img.ok) { out.echecs.push({ id: r.id, nom: r.nom, raison: `image ${img.status}` }); continue; }
+      const filename = `r${r.id}.webp`;
+      fs.writeFileSync(path.join(PHOTOS_DIR, filename), Buffer.from(await img.arrayBuffer()));
+      db.prepare('UPDATE recettes SET photo=? WHERE id=?').run(`/photos/${filename}`, r.id);
+      out.reparees++;
+    } catch (e) { out.echecs.push({ id: r.id, nom: r.nom, raison: e.message }); }
+  }
+  console.log(`[reparer-photos-mealie] ${out.reparees}/${out.total} reparee(s)`);
+  res.json(out);
+});
+
 // IMPORTANT : les routes /import/mealie/* doivent être AVANT /api/recettes/:id
 app.get('/api/recettes/import/mealie/search', async (req, res) => {
   const { url: mealie_url, q='', token } = req.query;
@@ -1061,7 +1094,12 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
     const info = ins.run(
       m.name||'Recette importée', '🍽️',
-      m.image ? `${base}${m.image}` : '',
+      // Jamais d'URL externe ici : le champ `image` de Mealie contient souvent un
+      // simple jeton de cache-busting (« 23GB », « kGfS ») et non un chemin, ce qui
+      // produisait une adresse malformee du type http://host:30111kGfS. Le bloc de
+      // telechargement ci-dessous est la seule source de verite : il ecrit la photo
+      // en local puis fait l'UPDATE. recettes.photo ne contient donc que /photos/… .
+      '',
       m.description||'',
       m.recipeYield ? parseInt(m.recipeYield)||2 : 2,
       parseDuration(m.prepTime),
@@ -1074,7 +1112,8 @@ app.post('/api/recettes/import/mealie', async (req, res) => {
     saveEtapes(info.lastInsertRowid, etapes);
 
     // Télécharger la photo depuis Mealie
-    const imgPath = m.image || (m.id ? `/api/media/recipes/${m.id}/images/original.webp` : '');
+    const imgRef  = (typeof m.image === 'string' && (m.image.startsWith('/') || m.image.startsWith('http'))) ? m.image : '';
+    const imgPath = imgRef || (m.id ? `/api/media/recipes/${m.id}/images/original.webp` : '');
     if (imgPath) {
       try {
         const imgUrl = imgPath.startsWith('http') ? imgPath : `${base}${imgPath}`;
