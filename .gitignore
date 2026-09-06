@@ -1,0 +1,10 @@
+# Sauvegardes de la base exportees depuis l'add-on (plusieurs centaines de Mo,
+# photos embarquees en base64) — ne doivent jamais partir sur GitHub.
+EXPORTS/
+*.gsheet
+
+# Captures de bugs
+Screenshot bug/
+
+# Copie de travail non suivie de l'add-on
+ha-kitchen-core/

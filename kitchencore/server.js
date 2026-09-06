@@ -17,6 +17,23 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
 if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 
+// Une photo qui arrive en data URI (base64) est ecrite sur disque, et la BDD ne
+// garde que son URL — comme le font deja les ingredients, les produits et l'import
+// Mealie. Sans ca, GET /api/recettes transporte les images entieres a chaque
+// chargement de la liste : mesure du 6 sept. 2026, 87,5 Mo pour 104 recettes dont
+// 99,9 % de photos, et rien n'est mis en cache puisque tout est inline dans le JSON.
+const PHOTO_EXT = { 'image/jpeg':'jpg', 'image/jpg':'jpg', 'image/png':'png',
+                    'image/webp':'webp', 'image/gif':'gif', 'image/avif':'avif' };
+function photoToFile(photo, prefix) {
+  if (typeof photo !== 'string') return photo;
+  const m = photo.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/);
+  if (!m) return photo;                       // deja une URL, ou vide : on ne touche pas
+  const ext  = PHOTO_EXT[m[1].toLowerCase()] || 'jpg';
+  const name = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  fs.writeFileSync(path.join(PHOTOS_DIR, name), Buffer.from(m[2], 'base64'));
+  return `/photos/${name}`;
+}
+
 const db = new Database(path.join(DATA_DIR, 'kitchencore.db'));
 db.function('NORM', s => s ? s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : '');
 db.pragma('journal_mode = WAL');
@@ -213,6 +230,27 @@ db.exec(`
 ].forEach(([table, col, def]) => {
   try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
 });
+
+// Migration idempotente : photos de recettes stockees en base64 -> fichiers.
+// Ne fait rien aux prochains demarrages (le LIKE 'data:%' ne remonte plus rien).
+try {
+  const b64 = db.prepare("SELECT id, photo FROM recettes WHERE photo LIKE 'data:%'").all();
+  if (b64.length) {
+    console.log(`[migration photos] ${b64.length} recette(s) avec photo en base64 -> fichiers`);
+    const upd = db.prepare('UPDATE recettes SET photo=? WHERE id=?');
+    let ok = 0;
+    for (const r of b64) {
+      try {
+        const url = photoToFile(r.photo, `rec${r.id}`);
+        if (url !== r.photo) { upd.run(url, r.id); ok++; }
+      } catch (e) { console.error(`[migration photos] recette ${r.id} :`, e.message); }
+    }
+    console.log(`[migration photos] ${ok}/${b64.length} converties`);
+    // Le fichier SQLite ne se retrecit pas tout seul apres suppression du base64
+    if (ok) { try { db.exec('VACUUM'); console.log('[migration photos] VACUUM ok'); }
+              catch (e) { console.error('[migration photos] VACUUM :', e.message); } }
+  }
+} catch (e) { console.error('[migration photos]', e.message); }
 
 // Migration : peupler recette_ingredients.ingredient_id depuis les noms existants
 try {
@@ -1109,8 +1147,9 @@ app.post('/api/recettes', (req, res) => {
   if (!nom?.trim()) return res.status(400).json({ error: 'nom requis' });
   const normTags = normalizeTags(tags);
   syncTagsToTable(normTags);
+  const photoUrl = photoToFile(photo, 'rec');
   const ins  = db.prepare('INSERT INTO recettes(nom,emoji,photo,description,portions,temps_prep,temps_cuisson,tags,favori,note,source,remarque) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
-  const info = ins.run(nom.trim(), emoji, photo, description, portions, temps_prep, temps_cuisson, JSON.stringify(normTags), favori?1:0, note, source, remarque);
+  const info = ins.run(nom.trim(), emoji, photoUrl, description, portions, temps_prep, temps_cuisson, JSON.stringify(normTags), favori?1:0, note, source, remarque);
   saveIngredients(info.lastInsertRowid, ingredients);
   saveEtapes(info.lastInsertRowid, etapes);
   res.status(201).json(getRecette(info.lastInsertRowid));
@@ -1121,7 +1160,11 @@ app.patch('/api/recettes/:id', (req, res) => {
   if (!db.prepare('SELECT id FROM recettes WHERE id=?').get(id)) return res.status(404).json({ error: 'Introuvable' });
   const sets=[], vals=[];
   ['nom','emoji','photo','description','portions','temps_prep','temps_cuisson','favori','note','source','remarque'].forEach(k => {
-    if (req.body[k] !== undefined) { sets.push(k+'=?'); vals.push(k==='favori'?(req.body[k]?1:0):req.body[k]); }
+    if (req.body[k] === undefined) return;
+    let v = req.body[k];
+    if (k === 'favori') v = v ? 1 : 0;
+    if (k === 'photo')  v = photoToFile(v, `rec${id}`);  // base64 -> fichier
+    sets.push(k+'=?'); vals.push(v);
   });
   if (req.body.tags !== undefined) { const normTags = normalizeTags(req.body.tags); syncTagsToTable(normTags); sets.push('tags=?'); vals.push(JSON.stringify(normTags)); }
   sets.push("updated_at=datetime('now')");
