@@ -1453,6 +1453,12 @@ body[data-menu-sel="1"] #page-menu .m-bts { pointer-events:none;opacity:.3; }
 .mcard.m-on { background:var(--orange-l);border-color:var(--orange); }
 /* Cacher FAB en mode sélection */
 body[data-menu-sel="1"] #main-fab { display:none; }
+/* Modale d'import ouverte : on retire les boutons flottants de la page Recettes.
+   Le vrai correctif est le déplacement de #rv-import-overlay hors de #content
+   (stacking context iOS), mais garder le FAB visible par-dessus une modale n'a
+   de toute façon aucun sens. */
+body[data-import-open="1"] #main-fab,
+body[data-import-open="1"] #fab-search { display:none !important; }
 /* Menu contextuel header (sélection menu) */
 .m-hdmenu { position:absolute; top:54px; right:12px; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:6px 0; min-width:200px; z-index:50; display:none; }
 .m-hdmenu.on { display:block; }
@@ -2076,7 +2082,15 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   }
   #page-ingredients .dup-item:last-child { border-bottom: none; }
   #page-ingredients .dup-item:hover { background: var(--grey-l); }
-  #page-ingredients .dup-item-avatar { font-size: 20px; width: 32px; text-align: center; }
+  /* Avatar d'un doublon : vraie photo si l'ingrédient en a une (v0.10.254). Deux
+     doublons ont souvent le même emoji générique — la photo est la seule chose qui
+     permet de les distinguer pour choisir lequel garder. */
+  #page-ingredients .dup-item-avatar {
+    font-size: 20px; width: 32px; height: 32px; flex-shrink: 0; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  #page-ingredients .dup-item-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  #page-ingredients .dup-item-avatar.inherited { box-shadow: inset 0 0 0 1.5px var(--orange); }
   #page-ingredients .dup-item-name { flex: 1; font-size: 14px; font-weight: 700; }
   #page-ingredients .dup-item-count { font-size: 12px; font-weight: 600; color: var(--grey-d); }
   #page-ingredients .dup-group-actions {
@@ -2127,7 +2141,10 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 .rv-import-tabs { display:flex; gap:8px; padding:12px 16px 0; flex-shrink:0; }
 .rv-import-tab { flex:1; padding:8px 0; border:1.5px solid transparent; border-radius:10px; background:var(--grey-l); color:var(--grey-d); font-family:'Nunito',sans-serif; font-size:.83rem; font-weight:700; cursor:pointer; }
 .rv-import-tab.on { background:var(--orange-l); color:var(--orange); border-color:var(--orange); }
-.rv-import-body { flex:1; overflow-y:auto; padding:14px 16px 24px; }
+/* La modale étant enfant direct de .frame (et non plus de #content), la feuille
+   descend jusqu'au bas réel de l'écran : réserver la safe-area iPhone pour que le
+   bouton « Importer » ne passe pas sous la barre de geste. */
+.rv-import-body { flex:1; overflow-y:auto; padding:14px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
 .rv-import-feedback { font-size:.82rem; font-weight:700; text-align:center; padding:8px 12px; border-radius:10px; margin-bottom:10px; display:none; }
 .rv-import-feedback.ok  { display:block; background:#E6F9EE; color:#1a7a3a; }
 .rv-import-feedback.err { display:block; background:#FDE8E8; color:#a31a1a; }
@@ -2480,59 +2497,6 @@ body[data-menu-sel="1"] #main-fab { display:none; }
 
       <div style="height:90px"></div>
 
-      <!-- ══ MODAL IMPORT RECETTE ══════════════════════════════════════════ -->
-      <div class="rv-import-overlay" id="rv-import-overlay" onclick="if(event.target===this)rvImportClose()">
-        <div class="rv-import-sheet" onclick="event.stopPropagation()">
-          <div class="rv-import-handle"></div>
-          <div class="rv-import-head">
-            <div class="rv-import-title">⬇ Importer une recette</div>
-            <button class="rv-import-close" onclick="rvImportClose()">✕</button>
-          </div>
-          <div class="rv-import-tabs">
-            <button class="rv-import-tab on" id="rv-tab-mealie" onclick="rvImportTab('mealie')">🥗 Depuis Mealie</button>
-            <button class="rv-import-tab"    id="rv-tab-json"   onclick="rvImportTab('json')">📋 Coller un JSON</button>
-          </div>
-          <div class="rv-import-body">
-            <div class="rv-import-feedback" id="rv-import-feedback"></div>
-            <!-- Panneau Mealie -->
-            <div id="rv-pane-mealie">
-              <div class="rv-mealie-url-row">
-                <input class="rv-mealie-url-inp" id="rv-mealie-url"
-                  placeholder="http://192.168.1.166:30111"
-                  value="http://192.168.1.166:30111">
-                <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
-              </div>
-              <div class="rv-mealie-url-row" style="margin-bottom:14px">
-                <input class="rv-mealie-url-inp" id="rv-mealie-token" autocomplete="off"
-                  placeholder="API Token (laisser vide si non requis)" type="text">
-              </div>
-              <div id="rv-mealie-results" class="rv-mealie-results">
-                <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
-              </div>
-            </div>
-            <!-- Panneau JSON -->
-            <div id="rv-pane-json" style="display:none">
-              <label class="rv-json-label">Colle le JSON de ta recette ici :</label>
-              <textarea class="rv-json-textarea" id="rv-json-ta"
-                placeholder='{"nom":"Ma recette","emoji":"🍽️","portions":4,...}'></textarea>
-              <div class="rv-json-hint">
-                <strong>Format attendu :</strong>
-                <code>nom</code> (obligatoire), <code>emoji</code>, <code>description</code>,
-                <code>portions</code>, <code>temps_prep</code>, <code>temps_cuisson</code>,
-                <code>tags</code> (tableau), <code>ingredients</code> (tableau d'objets
-                <code>{nom, qty, unite, note}</code> — <code>note</code> sert aux précisions
-                comme "optionnel" ou un équivalent), <code>etapes</code> (tableau d'objets
-                <code>{titre, texte, timer}</code>)
-              </div>
-              <div class="rv-json-actions">
-                <button class="btn-json-clear" onclick="rvJsonClear()">Effacer</button>
-                <button class="btn-json-import" id="rv-btn-json-import" onclick="rvJsonImport()">⬇ Importer cette recette</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════ -->
 
     </div>
 
@@ -2688,6 +2652,60 @@ body[data-menu-sel="1"] #main-fab { display:none; }
   </div><!-- /content -->
 
   <!-- ══ OVERLAYS (enfants directs du frame — hors content pour éviter le stacking context iOS) ══ -->
+
+  <!-- ══ MODAL IMPORT RECETTE ══════════════════════════════════════════ -->
+  <div class="rv-import-overlay" id="rv-import-overlay" onclick="if(event.target===this)rvImportClose()">
+    <div class="rv-import-sheet" onclick="event.stopPropagation()">
+      <div class="rv-import-handle"></div>
+      <div class="rv-import-head">
+        <div class="rv-import-title">⬇ Importer une recette</div>
+        <button class="rv-import-close" onclick="rvImportClose()">✕</button>
+      </div>
+      <div class="rv-import-tabs">
+        <button class="rv-import-tab on" id="rv-tab-mealie" onclick="rvImportTab('mealie')">🥗 Depuis Mealie</button>
+        <button class="rv-import-tab"    id="rv-tab-json"   onclick="rvImportTab('json')">📋 Coller un JSON</button>
+      </div>
+      <div class="rv-import-body">
+        <div class="rv-import-feedback" id="rv-import-feedback"></div>
+        <!-- Panneau Mealie -->
+        <div id="rv-pane-mealie">
+          <div class="rv-mealie-url-row">
+            <input class="rv-mealie-url-inp" id="rv-mealie-url"
+              placeholder="http://192.168.1.166:30111"
+              value="http://192.168.1.166:30111">
+            <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
+          </div>
+          <div class="rv-mealie-url-row" style="margin-bottom:14px">
+            <input class="rv-mealie-url-inp" id="rv-mealie-token" autocomplete="off"
+              placeholder="API Token (laisser vide si non requis)" type="text">
+          </div>
+          <div id="rv-mealie-results" class="rv-mealie-results">
+            <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
+          </div>
+        </div>
+        <!-- Panneau JSON -->
+        <div id="rv-pane-json" style="display:none">
+          <label class="rv-json-label">Colle le JSON de ta recette ici :</label>
+          <textarea class="rv-json-textarea" id="rv-json-ta"
+            placeholder='{"nom":"Ma recette","emoji":"🍽️","portions":4,...}'></textarea>
+          <div class="rv-json-hint">
+            <strong>Format attendu :</strong>
+            <code>nom</code> (obligatoire), <code>emoji</code>, <code>description</code>,
+            <code>portions</code>, <code>temps_prep</code>, <code>temps_cuisson</code>,
+            <code>tags</code> (tableau), <code>ingredients</code> (tableau d'objets
+            <code>{nom, qty, unite, note}</code> — <code>note</code> sert aux précisions
+            comme "optionnel" ou un équivalent), <code>etapes</code> (tableau d'objets
+            <code>{titre, texte, timer}</code>)
+          </div>
+          <div class="rv-json-actions">
+            <button class="btn-json-clear" onclick="rvJsonClear()">Effacer</button>
+            <button class="btn-json-import" id="rv-btn-json-import" onclick="rvJsonImport()">⬇ Importer cette recette</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════ -->
 
   <!-- Panel détail recette -->
   <div class="panel detail" id="panel-detail">
@@ -7271,6 +7289,14 @@ let _eFavori = false;
 let _eEmoji  = '🍽️';
 let _eSelTags = [];
 
+// Un seul chargement en vol a la fois : plusieurs appelants peuvent attendre
+// la meme promesse au lieu de declencher autant de fetch.
+let _rvLoading = null;
+async function _rvEnsureLoaded() {
+  if (_rv.length) return;
+  if (!_rvLoading) _rvLoading = loadRecettes().finally(()=>{ _rvLoading = null; });
+  await _rvLoading;
+}
 async function loadRecettes() {
   try {
     const res  = await fetch('/api/recettes');
@@ -8220,10 +8246,13 @@ async function copyEditJson() {
 
 function rvImportOpen() {
   document.getElementById('rv-import-overlay').classList.add('open');
+  document.body.setAttribute('data-import-open', '1');
+  if (typeof rvFabDialClose === 'function') rvFabDialClose();
   rvImportFeedback('', '');
 }
 function rvImportClose() {
   document.getElementById('rv-import-overlay').classList.remove('open');
+  document.body.removeAttribute('data-import-open');
 }
 function rvImportTab(tab) {
   document.getElementById('rv-tab-mealie').classList.toggle('on', tab === 'mealie');
@@ -8428,6 +8457,9 @@ function _pantrySave(){ localStorage.setItem('kc_pantry',JSON.stringify([..._pan
 function mdk(d){ return d.toISOString().split('T')[0]; }
 
 async function _mLoad(){
+  // Les cards du menu resolvent leur recette dans _rv (vignette + ouverture du
+  // detail) : sans ce chargement, ouvrir la page Menu en premier laissait _rv vide.
+  const _rvReady = (typeof _rvEnsureLoaded === 'function') ? _rvEnsureLoaded() : Promise.resolve();
   try {
     const r = await fetch('/api/menu');
     if (!r.ok) { mBuild(); return; }
@@ -8449,6 +8481,7 @@ async function _mLoad(){
       showToast('Menu migré ✓','ok');
     }
   } catch(e) {}
+  try { await _rvReady; } catch(e) {}
   mBuild();
 }
 function mSrt(k){ if(_md[k]) _md[k].sort((a,b)=>(MC[a.t]?.o??9)-(MC[b.t]?.o??9)); }
@@ -8866,6 +8899,7 @@ function _mFindRecette(item){
 let _mReturnPage = null; // page d'où on vient avant d'ouvrir le détail recette
 async function mOpenDetailFromCard(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
+  if(typeof _rvEnsureLoaded==='function') await _rvEnsureLoaded();
   const r = _mFindRecette(item);
   if(r && typeof openDetail==='function'){
     // Mémoriser la page actuelle pour y revenir à la fermeture
@@ -8909,6 +8943,7 @@ let _mIngData = [], _mIngChecked = new Set();
 
 async function mSelAddToCourses(){
   if(_mSelSet.size===0) return;
+  if(typeof _rvEnsureLoaded==='function') await _rvEnsureLoaded();
   _mIngData = [];
 
   for(const key of _mSelSet){
@@ -8931,6 +8966,7 @@ async function mSelAddToCourses(){
 
 async function mAddOneToCourses(k,x){
   const item=(_md[k]||[])[x]; if(!item) return;
+  if(typeof _rvEnsureLoaded==='function') await _rvEnsureLoaded();
   const r=_mFindRecette(item);
   if(!r){ showToast('Recette non trouvée dans le catalogue','warn'); return; }
   const portMenu=item.portions||2;
@@ -9815,6 +9851,16 @@ async function _ingSetParent(childId, parentId) {
   } catch(_) { _ingToast('Erreur réseau'); }
 }
 
+// Contenu de l'avatar d'un doublon : photo de l'ingrédient (ou héritée du parent),
+// sinon l'emoji. Repli sur l'emoji si l'image ne charge pas.
+function _ingDupAvatarInner(ing) {
+  const img = _ingGetEffectiveImage(ing).url;
+  const emo = (ing.emoji || '🍽').replace(/'/g, '');
+  return img
+    ? `<img src="${img.replace(/"/g,'&quot;')}" alt="" onerror="this.parentElement.textContent='${emo}'">`
+    : emo;
+}
+
 function _ingRenderDoublons() {
   const grid = document.getElementById('ing-ingredientsGrid');
   const groups = _ingFindDuplicateGroups();
@@ -9828,7 +9874,7 @@ function _ingRenderDoublons() {
       <div class="dup-group-items">
         ${g.items.map(ing => `
           <div class="dup-item" onclick="ingOpenDetailPanel('${ing.id}')">
-            <div class="dup-item-avatar">${ing.emoji || '🍽'}</div>
+            <div class="dup-item-avatar${_ingGetEffectiveImage(ing).inherited ? ' inherited' : ''}">${_ingDupAvatarInner(ing)}</div>
             <div class="dup-item-name">${ing.name}</div>
             <div class="dup-item-count">${ing.usedIn?.length || 0} recette(s)</div>
           </div>
