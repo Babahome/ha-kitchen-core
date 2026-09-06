@@ -8832,19 +8832,21 @@ function _mFindRecette(item){
 
 // Tap card → ouvrir détail recette si trouvée
 let _mReturnPage = null; // page d'où on vient avant d'ouvrir le détail recette
-function mOpenDetailFromCard(k,x){
+async function mOpenDetailFromCard(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
   const r = _mFindRecette(item);
   if(r && typeof openDetail==='function'){
     // Mémoriser la page actuelle pour y revenir à la fermeture
     const active = document.querySelector('.page.active');
     _mReturnPage = active?.id.replace('page-','');
-    // Basculer vers la page recettes pour que le panel soit visible
+    // Ouvrir le panel AVANT de changer de page : #panel-detail est un enfant direct
+    // de .frame (position:absolute;inset:0) et recouvre tout l'écran, donc la liste
+    // des recettes ne s'affiche jamais en transit. Avant : switchPage puis openDetail
+    // 80 ms plus tard → la liste complète clignotait le temps du fetch.
+    await openDetail(r.id);
     const recTab = Array.from(document.querySelectorAll('.nav-tab'))
       .find(t=>t.querySelector('.nav-label')?.textContent==='Recettes');
     if(typeof switchPage==='function') switchPage(recTab, 'recettes', 'Recettes');
-    // Laisser le temps à la transition + au rendu de la page
-    setTimeout(()=>openDetail(r.id), 80);
   } else {
     showToast('Recette non enregistrée — utilisez ✏️ pour modifier','warn');
   }
