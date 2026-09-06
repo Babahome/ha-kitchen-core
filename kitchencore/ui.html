@@ -1159,6 +1159,14 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .d-sec      { padding:0 16px 16px; }
 .d-sec-ttl  { font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--grey-d);padding:14px 0 10px;display:flex;align-items:center;gap:6px; }
 .d-sec-ttl::after{ content:'';flex:1;height:1px;background:var(--grey); }
+/* En-tête de section avec action à droite (mode cuisine) */
+.d-sec-hd   { display:flex;align-items:center;gap:10px; }
+.d-sec-hd .d-sec-ttl { flex:1;min-width:0; }
+.d-cook-btn { flex-shrink:0;border:1px solid var(--grey);background:#fff;color:var(--text2);
+              font-family:var(--font);font-size:.72rem;font-weight:800;border-radius:999px;
+              padding:6px 11px;cursor:pointer;white-space:nowrap;
+              transition:background .15s,color .15s,border-color .15s; }
+.d-cook-btn.on { background:var(--orange);border-color:var(--orange);color:#fff; }
 .d-ingr-row { display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--grey-l); }
 .d-ingr-row:last-child{ border-bottom:none; }
 .d-ingr-qty { font-size:.85rem;font-weight:800;color:var(--orange);min-width:72px;flex-shrink:0; }
@@ -7580,14 +7588,55 @@ async function openDetail(id) {
       </div>
     </div>
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
-    ${steps?`<div class="d-sec"><div class="d-sec-ttl">Préparation</div>${steps}</div>`:''}
+    ${steps?`<div class="d-sec"><div class="d-sec-hd"><div class="d-sec-ttl">Préparation</div>${_cookModeBtnHtml()}</div>${steps}</div>`:''}
     ${r.remarque?`<div class="d-sec"><div class="d-sec-ttl">Remarques</div><div style="font-size:.88rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;padding:0 4px">${r.remarque.replace(/</g,'&lt;')}</div></div>`:''}
     ${r.source?`<div class="d-sec"><div class="d-sec-ttl">Source</div><div style="font-size:.88rem;color:var(--text2);padding:0 4px">${/^https?:\/\//.test(r.source)?`<a href="${r.source.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="color:var(--orange);word-break:break-all">${r.source.replace(/</g,'&lt;')}</a>`:r.source.replace(/</g,'&lt;')}</div></div>`:''}
     <div style="height:30px"></div>
   `;
+  _cookModeRender();
   document.getElementById('panel-detail').classList.add('open');
 }
-function closeDetail() { detailMenuClose(); document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
+
+// ── Mode cuisine : garder l'écran allumé pendant la recette (Wake Lock API) ──
+let _wakeLock = null, _cookMode = false;
+function _cookModeBtnHtml(){
+  // Bouton masqué si le navigateur ne supporte pas l'API (fallback silencieux)
+  if(!('wakeLock' in navigator)) return '';
+  return `<button class="d-cook-btn" id="d-cook-btn" onclick="cookModeToggle()">🔆 Mode cuisine</button>`;
+}
+async function _cookWakeRequest(){
+  try{
+    _wakeLock = await navigator.wakeLock.request('screen');
+    // Le navigateur peut relâcher le verrou de lui-même (batterie, arrière-plan)
+    _wakeLock.addEventListener('release', ()=>{ _wakeLock = null; });
+    return true;
+  }catch(e){ _wakeLock = null; return false; }
+}
+async function cookModeToggle(){
+  if(_cookMode){ cookModeOff(); return; }
+  if(!('wakeLock' in navigator)) return;
+  if(!(await _cookWakeRequest())){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
+  _cookMode = true; _cookModeRender();
+  showToast('🔆 Mode cuisine — écran maintenu allumé','ok');
+}
+function cookModeOff(silencieux){
+  _cookMode = false;
+  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
+  _cookModeRender();
+  if(!silencieux) showToast("Mode cuisine désactivé",'ok');
+}
+function _cookModeRender(){
+  const b = document.getElementById('d-cook-btn');
+  if(!b) return;
+  b.classList.toggle('on', _cookMode);
+  b.textContent = _cookMode ? '🔆 Écran allumé' : '🔆 Mode cuisine';
+}
+// Retour au premier plan : le verrou a été relâché par le navigateur, on le redemande
+document.addEventListener('visibilitychange', ()=>{
+  if(_cookMode && document.visibilityState === 'visible' && !_wakeLock) _cookWakeRequest();
+});
+
+function closeDetail() { detailMenuClose(); cookModeOff(true); document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
 function detailMenuToggle(e) {
   e.stopPropagation();
   const m = document.getElementById('detail-ctx');
