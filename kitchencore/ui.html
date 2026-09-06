@@ -2683,6 +2683,7 @@ body[data-menu-sel="1"] #main-fab { display:none; }
       <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
     </div>
     <div class="detail-ctx" id="detail-ctx">
+      <div class="ctx-item" id="ctx-cook" onclick="cookModeToggle();detailMenuClose()"><span>🔆</span> <span id="ctx-cook-lbl">Mode cuisine</span></div>
       <div class="ctx-item" onclick="addToCourses(_currentId);detailMenuClose()"><span>🛒</span> Ajouter aux courses</div>
       <div class="ctx-item" onclick="addToMenu(_currentId);detailMenuClose()"><span>📅</span> Ajouter au menu</div>
       <div class="ctx-item" onclick="copyDetailJson()"><span>📋</span> Copier le JSON</div>
@@ -7608,9 +7609,17 @@ async function openDetail(id) {
 // ── Mode cuisine : garder l'écran allumé pendant la recette (Wake Lock API) ──
 let _wakeLock = null, _cookMode = false;
 function _cookModeBtnHtml(){
-  // Bouton masqué si le navigateur ne supporte pas l'API (fallback silencieux)
-  if(!('wakeLock' in navigator)) return '';
+  // Toujours rendu, même si l'API est absente : un bouton masqué en silence est
+  // impossible à diagnostiquer (« je ne vois pas le bouton »). Si l'API manque,
+  // cookModeToggle() explique pourquoi au lieu de ne rien faire.
   return `<button class="d-cook-btn" id="d-cook-btn" onclick="cookModeToggle()">🔆 Mode cuisine</button>`;
+}
+// Pourquoi le mode cuisine est indisponible, ou null s'il est disponible
+function _cookModeUnavailable(){
+  if('wakeLock' in navigator) return null;
+  return window.isSecureContext
+    ? "Mode cuisine non supporté par ce navigateur"
+    : "Mode cuisine : nécessite HTTPS — ouvre l'app via https://kitchencore.duckdns.org:8443";
 }
 async function _cookWakeRequest(){
   try{
@@ -7622,7 +7631,8 @@ async function _cookWakeRequest(){
 }
 async function cookModeToggle(){
   if(_cookMode){ cookModeOff(); return; }
-  if(!('wakeLock' in navigator)) return;
+  const ko = _cookModeUnavailable();
+  if(ko){ showToast(ko,'warn'); return; }
   if(!(await _cookWakeRequest())){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
   _cookMode = true; _cookModeRender();
   showToast('🔆 Mode cuisine — écran maintenu allumé','ok');
@@ -7635,9 +7645,12 @@ function cookModeOff(silencieux){
 }
 function _cookModeRender(){
   const b = document.getElementById('d-cook-btn');
-  if(!b) return;
-  b.classList.toggle('on', _cookMode);
-  b.textContent = _cookMode ? '🔆 Écran allumé' : '🔆 Mode cuisine';
+  if(b){
+    b.classList.toggle('on', _cookMode);
+    b.textContent = _cookMode ? '🔆 Écran allumé' : '🔆 Mode cuisine';
+  }
+  const l = document.getElementById('ctx-cook-lbl');
+  if(l) l.textContent = _cookMode ? 'Écran allumé ✓' : 'Mode cuisine';
 }
 // Retour au premier plan : le verrou a été relâché par le navigateur, on le redemande
 document.addEventListener('visibilitychange', ()=>{
