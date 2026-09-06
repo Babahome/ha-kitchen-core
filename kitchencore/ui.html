@@ -1340,6 +1340,14 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-drag-handle { flex-shrink:0; width:18px; height:32px; display:grid; place-items:center; cursor:grab; color:var(--grey-d); font-size:12px; touch-action:none; user-select:none; }
 .ev3-type-btn  { width:24px; height:24px; border-radius:50%; background:var(--orange-l); border:none; display:grid; place-items:center; cursor:pointer; font-size:.8rem; flex-shrink:0; }
 .ev3-type-btn.sub { background:#dbeafe; }
+/* Vignette ingrédient dans l'éditeur de recette : image du catalogue, initiales,
+   ou pastille orange en pointillés = ingrédient inconnu qui sera créé à l'enregistrement */
+.ev3-ith       { width:28px; height:28px; border-radius:6px; flex-shrink:0; display:flex; align-items:center;
+                 justify-content:center; font-size:.6rem; font-weight:700; overflow:hidden;
+                 background:var(--grey-l); color:var(--text2); }
+.ev3-ith img   { width:100%; height:100%; object-fit:cover; display:block; }
+.ev3-ith.new   { background:var(--orange-l); color:var(--orange); border:1px dashed var(--orange);
+                 font-size:.95rem; line-height:1; font-weight:800; }
 .ev3-qty-input { font-size:.85rem; font-weight:800; color:var(--orange); width:48px; border:none; border-bottom:1.5px solid transparent; background:transparent; font-family:var(--font); text-align:center; outline:none; transition:border-color .15s; flex-shrink:0; }
 .ev3-qty-input:focus { border-bottom-color:var(--orange); }
 .ev3-qty-input::placeholder { color:rgba(232,103,26,.35); font-weight:700; }
@@ -7838,6 +7846,40 @@ function ev3BindDrag(cid, arr, renderFn, handleSel) {
 function ev3Esc(v){ return (v||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 // ── Ingrédients v3 ───────────────────────────────────────────────────────────
+// Résout l'ingrédient du catalogue correspondant au nom saisi (nom, pluriel ou alias)
+function _ev3FindIng(nom){
+  const q = (nom||'').toString().trim().toLowerCase();
+  if(!q) return null;
+  return _evIngs.find(ig =>
+    (ig.nom||'').toLowerCase() === q ||
+    (ig.nom_pluriel||'').toLowerCase() === q ||
+    (Array.isArray(ig.aliases) && ig.aliases.some(a => String(a&&a.alias || a).toLowerCase() === q))
+  ) || null;
+}
+// Vignette d'une ligne ingrédient : image si connue, initiales si connue sans image,
+// pastille « + » orange si le nom ne correspond à aucun ingrédient du catalogue
+function _ev3IngThumbHtml(x){
+  const row = _eIngr[x] || {};
+  const n   = (row.nom||'').trim();
+  const ing = _ev3FindIng(n);
+  const ini = (n||'?').slice(0,2).toUpperCase().split("'").join('');
+  const ic  = (ing && ing.icone) || (!ing && row.ingredient_icone) || '';
+  const isUrl = ic && (ic.startsWith('http') || ic.startsWith('/'));
+  if(!n) return `<div class="ev3-ith" id="ev3-ith-${x}"></div>`;
+  if(isUrl) return `<div class="ev3-ith" id="ev3-ith-${x}" title="${ev3Esc(ing?ing.nom:n)}"><img src="${ev3Esc(ic)}" onerror="this.parentElement.textContent='${ini}'"></div>`;
+  if(ing)   return `<div class="ev3-ith" id="ev3-ith-${x}" title="${ev3Esc(ing.nom)}">${ini}</div>`;
+  // Catalogue non chargé (erreur réseau) : pas de badge « nouveau », on ne sait rien
+  if(!_evIngs.length) return `<div class="ev3-ith" id="ev3-ith-${x}">${ini}</div>`;
+  return `<div class="ev3-ith new" id="ev3-ith-${x}" title="Nouvel ingrédient — il sera créé à l'enregistrement">+</div>`;
+}
+// Rafraîchit la vignette en place, sans re-render (sinon on perd le focus du champ)
+function _ev3IngThumbSync(x){
+  const el = document.getElementById('ev3-ith-'+x);
+  if(!el) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = _ev3IngThumbHtml(x);
+  el.replaceWith(tmp.firstElementChild);
+}
 function renderIngrs() {
   document.getElementById('e-ingrs').innerHTML =
     _eIngr.map((i,x) => {
@@ -7849,13 +7891,8 @@ function renderIngrs() {
       const subThumb = subPhoto
         ? `<img src="${subPhoto}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
         : `<div style="width:28px;height:28px;border-radius:6px;background:#dbeafe;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#1d4ed8">${subIni}</div>`;
-      // Miniature ingrédient normal
-      const ingIcone = i.ingredient_icone;
-      const ingIsUrl = ingIcone && (ingIcone.startsWith('http') || ingIcone.startsWith('/'));
-      const ingIni = (i.nom||'?').slice(0,2).toUpperCase();
-      const ingThumb = ingIsUrl
-        ? `<img src="${ingIcone}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
-        : `<div style="width:28px;height:28px;border-radius:6px;background:var(--grey-l);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--text2)">${ingIni}</div>`;
+      // Miniature ingrédient normal (image catalogue / initiales / « + » si inconnu)
+      const ingThumb = _ev3IngThumbHtml(x);
       return `<div class="ev3-ingr-row" data-idx="${x}">
         <span class="ev3-drag-handle">⠿</span>
         <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?'🍳':'🥕'}</button>
@@ -7870,7 +7907,7 @@ function renderIngrs() {
              <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
              ${ingThumb}
              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_evIngs.find(ig=>ig.nom.toLowerCase()===this.value.toLowerCase().trim());_eIngr[${x}].ingredient_id=_m?_m.id:null;}).call(this)">
+               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_ev3FindIng(this.value);_eIngr[${x}].ingredient_id=_m?_m.id:null;}).call(this);_ev3IngThumbSync(${x})">
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
              </div>`
         }
