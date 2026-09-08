@@ -35,7 +35,9 @@ function photoToFile(photo, prefix) {
 }
 
 const db = new Database(path.join(DATA_DIR, 'kitchencore.db'));
-db.function('NORM', s => s ? s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : '');
+// œ et æ sont des LIGATURES, pas des lettres accentuees : NFD ne les decompose
+// pas, donc « oeuf » et « œuf » ne se rencontraient jamais. On les deplie avant.
+db.function('NORM', s => s ? String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : '');
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -46,7 +48,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS ingredients (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     nom          TEXT NOT NULL UNIQUE,
-    categorie    TEXT DEFAULT 'Autre',
+    categorie    TEXT DEFAULT '',
     seuil_alerte REAL DEFAULT 1,
     icone        TEXT DEFAULT '🥫',
     created_at   TEXT DEFAULT (datetime('now'))
@@ -299,10 +301,17 @@ if (db.prepare('SELECT COUNT(*) as n FROM rayons').get().n === 0) {
   ].forEach(([n,e]) => ins.run(n,e));
 }
 
-// Migration : mapper ingredients.categorie → rayon_id (correspondance par nom)
+// Migration : mapper ingredients.categorie → rayon_id (correspondance par nom).
+// « Autre » est EXCLU : c'est la valeur fourre-tout de categorie, et il existe un
+// rayon du meme nom. Sans ce garde-fou, tout ingredient cree automatiquement
+// (categorie='Autre' en dur) se voyait attribuer le rayon « Autre » au demarrage
+// suivant, disparaissait du filtre « Sans rayon » et n'etait donc jamais
+// categorise — 95 ingredients s'y etaient accumules. Meme effet en vidant le
+// rayon d'un ingredient : il revenait sur « Autre » au redemarrage.
 db.exec(`UPDATE ingredients SET rayon_id=(
   SELECT id FROM rayons WHERE LOWER(TRIM(nom))=LOWER(TRIM(ingredients.categorie)) LIMIT 1
-) WHERE rayon_id IS NULL AND categorie IS NOT NULL AND categorie!=''`);
+) WHERE rayon_id IS NULL AND categorie IS NOT NULL AND categorie!=''
+    AND LOWER(TRIM(categorie)) != 'autre'`);
 
 // Seed tags : récupère les tags des recettes existantes + liste de base
 {
@@ -432,7 +441,7 @@ app.get('/api/ingredients', (_req, res) => {
 });
 
 app.post('/api/ingredients', (req, res) => {
-  const { nom, categorie='Autre', seuil_alerte=1, icone='🥫' } = req.body;
+  const { nom, categorie='', seuil_alerte=1, icone='🥫' } = req.body;
   if (!nom) return res.status(400).json({ error: 'nom requis' });
   // Doublon de casse : la contrainte UNIQUE de ingredients.nom est sensible à la
   // casse (collation BINARY), donc « Tomate » et « tomate » passeraient tous les
@@ -675,7 +684,7 @@ app.post('/api/ingredients/auto-add', (req, res) => {
   const found = findIngByNameOrAlias(nom.trim());
   if (found) return res.json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(found.id));
   try {
-    const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), 'Autre', 1, '🥫');
+    const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), '', 1, '🥫');
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -988,7 +997,7 @@ function saveIngredients(recetteId, ingredients) {
       if (found) {
         ingredient_id = ingredient_id || found.id;
       } else {
-        autoAdd.run(ing.nom.trim(), 'Autre', 1, '🥫');
+        autoAdd.run(ing.nom.trim(), '', 1, '🥫');
         if (!ingredient_id) {
           const created = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1').get(ing.nom.trim());
           if (created) ingredient_id = created.id;

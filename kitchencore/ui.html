@@ -2149,6 +2149,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     to { opacity: 1; transform: translateY(0); }
   }
   .ing-card { animation: ingSlideUp 0.2s ease both; }
+  /* En-tete de groupe rayon dans la liste des ingredients (modele : .cl-rayon-hd) */
+  #page-ingredients .ing-rayon-hd {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 4px 6px; font-size: .78rem; font-weight: 800; color: var(--text2);
+  }
+  #page-ingredients .ing-rayon-hd.sans { color: var(--orange); }
+  #page-ingredients .ing-rayon-nb {
+    margin-left: auto; font-size: .7rem; font-weight: 700; color: var(--grey-d);
+    background: var(--grey-l); border-radius: 99px; padding: 1px 8px;
+  }
 
 /* ══ /PAGE INGRÉDIENTS ═════════════════════════════════════════════════════ */
 
@@ -6961,7 +6971,8 @@ function clToggleSearch() {
   if(_clSearchOpen){ inp.classList.add('expanded'); setTimeout(()=>inp.focus(),50); }
   else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); clHideSuggestions(); inp.blur(); }
 }
-function clNorm(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+// Ligatures depliees avant NFD (voir NORM dans server.js)
+function clNorm(s){ return String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
 function clSearchFilter(val) {
   const q = clNorm(val.trim());
   document.querySelectorAll('.cl-item').forEach(el=>{
@@ -9422,7 +9433,7 @@ const _ING_RECIPES_KEY = 'kc_recettes';
 
 let _ingRayons = []; // chargé depuis /api/rayons
 async function _ingLoadRayons() {
-  try { _ingRayons = await fetch('/api/rayons').then(r => r.json()); } catch(_) {}
+  try { _ingRayons = await fetch('/api/rayons').then(r => r.json()); _ingRayonRankMap = null; } catch(_) {}
 }
 
 
@@ -9510,7 +9521,7 @@ const _ING_DEMO_RECIPES = [
 // ─── State (toutes les vars sont locales à l'IIFE) ───
 let _ingAll             = [];
 let _ingSelectedIds     = new Set();
-let _ingSort            = 'nom';
+let _ingSort            = 'rayon';   // groupement par rayon par defaut (v0.10.261)
 let _ingOrder           = 'asc';
 let _ingFRayons         = new Set();
 let _ingFEtat           = new Set();
@@ -9531,7 +9542,10 @@ let _ingBooted       = false;
 
 // ─── Helpers ───
 function _ingNormalize(name) {
-  return name.toLowerCase().trim()
+  // œ et æ sont des ligatures, pas des lettres accentuées : NFD ne les décompose
+  // pas, donc « oeuf » et « œuf » ne se rencontraient jamais. On les déplie avant.
+  return String(name).toLowerCase().trim()
+    .replace(/œ/g,'oe').replace(/æ/g,'ae')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[''`]/g,'')
     .replace(/%/g,'')
@@ -9658,7 +9672,26 @@ function _ingRender() {
     return;
   }
   const tree = _ingBuildTree(items);
-  grid.innerHTML = tree.map(({ing, depth}, i) => _ingRenderCard(ing, i, depth)).join('');
+  if (_ingGroupByRayon()) {
+    let courant = ' ';
+    grid.innerHTML = tree.map(({ing, depth}, i) => {
+      let hd = '';
+      if (depth === 0) {
+        const r   = _ingRayons.find(x => x.id === _ingEffectiveRayonId(ing));
+        const cle = r ? String(r.id) : 'sans';
+        if (cle !== courant) {
+          courant = cle;
+          const nb = tree.filter(t => t.depth === 0 && String((_ingRayons.find(x => x.id === _ingEffectiveRayonId(t.ing))||{}).id || 'sans') === cle).length;
+          hd = r
+            ? `<div class="ing-rayon-hd">${_rayonIcon(r)} <span>${r.nom}</span><span class="ing-rayon-nb">${nb}</span></div>`
+            : `<div class="ing-rayon-hd sans">⚠️ <span>Sans rayon</span><span class="ing-rayon-nb">${nb}</span></div>`;
+        }
+      }
+      return hd + _ingRenderCard(ing, i, depth);
+    }).join('');
+  } else {
+    grid.innerHTML = tree.map(({ing, depth}, i) => _ingRenderCard(ing, i, depth)).join('');
+  }
   _ingDragSetup();
   // Trace utile : un re-rendu pendant un geste detache les cards, et le touchend
   // n'atteint alors plus la grille — le drop serait perdu sans aucun signe visible.
@@ -10047,6 +10080,42 @@ function _ingUpdateStats() {
   if (elSI) elSI.textContent = _ingAll.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫')).length;
 }
 
+// Ordre des rayons dans le magasin. rayons.position n'est PAS unique : les
+// sous-rayons sont numerotes a l'interieur de leur parent, donc trier dessus
+// donnait des rangs ex aequo, le tri secondaire par nom melangeait les rayons
+// entre eux et un meme rayon reapparaissait plusieurs fois dans la liste
+// (106 en-tetes pour ~25 rayons). On aplatit donc la hierarchie une fois :
+// racines triees par position, chacune suivie de ses enfants, rang croissant.
+let _ingRayonRankMap = null;
+function _ingRayonRanks() {
+  if (_ingRayonRankMap) return _ingRayonRankMap;
+  const m = new Map(); let n = 0;
+  const tri = (a, b) => (a.position ?? 9998) - (b.position ?? 9998)
+                     || (a.nom || '').localeCompare(b.nom || '', 'fr');
+  const parcours = (parentId) => {
+    _ingRayons.filter(r => (r.parent_id ?? null) === parentId).sort(tri).forEach(r => {
+      if (m.has(r.id)) return;            // securite anti-cycle
+      m.set(r.id, n++); parcours(r.id);
+    });
+  };
+  parcours(null);
+  _ingRayons.forEach(r => { if (!m.has(r.id)) m.set(r.id, n++); }); // orphelins a la suite
+  _ingRayonRankMap = m;
+  return m;
+}
+// Rang d'un ingredient : celui de son rayon ; sans rayon => tout en bas, ce sont
+// eux qui restent a categoriser.
+function _ingRayonRank(ing) {
+  const id = _ingEffectiveRayonId(ing);
+  const r  = id != null ? _ingRayonRanks().get(id) : undefined;
+  return r != null ? r : Number.MAX_SAFE_INTEGER;
+}
+// Les en-tetes de rayon n'ont de sens qu'en tri par rayon, et pas quand on a deja
+// filtre sur un seul rayon (le titre serait repete a l'identique une seule fois).
+function _ingGroupByRayon() {
+  return _ingSort === 'rayon' && _ingFRayons.size !== 1 && !_ingFEtat.has('sans-rayon');
+}
+
 function _ingGetFilteredItems() {
   let items = [..._ingAll];
   if (_ingSearchQuery) {
@@ -10063,9 +10132,9 @@ function _ingGetFilteredItems() {
     if (_ingSort === 'recettes') {
       cmp = (a.usedIn?.length || 0) - (b.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr');
     } else if (_ingSort === 'rayon') {
-      const ra = (_ingRayons.find(r => r.id === _ingEffectiveRayonId(a)) || {}).nom || 'zzz';
-      const rb = (_ingRayons.find(r => r.id === _ingEffectiveRayonId(b)) || {}).nom || 'zzz';
-      cmp = ra.localeCompare(rb, 'fr') || (a.name || '').localeCompare(b.name || '', 'fr');
+      // Ordre du magasin (rayons.position) plutot qu'alphabetique ; sans rayon en dernier
+      const pa = _ingRayonRank(a), pb = _ingRayonRank(b);
+      cmp = pa - pb || (a.name || '').localeCompare(b.name || '', 'fr');
     } else {
       cmp = (a.name || '').localeCompare(b.name || '', 'fr');
     }
@@ -11162,7 +11231,7 @@ function ingSfToggleFetat(el, val) { el.classList.toggle('active'); _ingFEtat.ha
 function ingSfToggleDoublons(el) { el.classList.toggle('active'); _ingFDoublons = el.classList.contains('active'); }
 
 function ingSfReset() {
-  _ingSort = 'nom'; _ingOrder = 'asc';
+  _ingSort = 'rayon'; _ingOrder = 'asc';
   _ingFRayons.clear(); _ingFEtat.clear(); _ingFDoublons = false;
   ingSfClose();
   _ingRender();
