@@ -791,6 +791,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-top       { display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0; }
 .cl-title     { font-size:1rem;font-weight:800; }
 .cl-count     { font-size:.75rem;color:var(--grey-d);font-weight:700; }
+.cl-top-right { display:flex;align-items:center;gap:10px; }
+.cl-scan-btn  { width:32px;height:32px;border-radius:50%;border:none;background:var(--orange-l);color:var(--orange);
+                display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+                padding:0;transition:transform .15s; }
+.cl-scan-btn:active { transform:scale(.9); }
+.scan-item-rename { flex:1;min-width:0;border:1.5px solid var(--orange);border-radius:8px;padding:5px 8px;
+                    font-family:inherit;font-size:.85rem;font-weight:700;background:#fff;color:#222; }
 .cl-tabs      { display:flex;overflow-x:auto;scrollbar-width:none;padding:8px 14px 0; }
 .cl-tabs::-webkit-scrollbar{display:none}
 .cl-tab       { padding:8px 14px;font-size:.8rem;font-weight:800;color:var(--text2);cursor:pointer;
@@ -2467,7 +2474,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="cl-header">
         <div class="cl-top">
           <div class="cl-title">Ma Liste</div>
-          <div class="cl-count" id="cl-count">0 article</div>
+          <div class="cl-top-right">
+            <div class="cl-count" id="cl-count">0 article</div>
+            <button class="cl-scan-btn" id="cl-scan-btn" onclick="clOpenScan()" title="Scanner un code-barres" aria-label="Scanner un code-barres"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/></svg></button>
+          </div>
         </div>
         <div class="cl-tabs" id="cl-tabs">
           <div class="cl-tab on"  data-m="all"     onclick="clTab(this,'all')">Tout</div>
@@ -5712,6 +5722,7 @@ let _lastCode = null;       // pour double confirmation ZXing
 let _confirmCount = 0;
 const _CONFIRM_NEEDED = 2;  // lectures ZXing requises (fallback uniquement)
 let _stockScanSearchMode = false;   // true = scanner recherche dans le stock (pas ajout)
+let _scanTarget = 'stock';          // 'stock' | 'courses' — destination des produits scannés
 let _stockScanSearchLastId = null;  // dernier produit_id trouvé en mode recherche
 
 async function _stopScanner() {
@@ -5749,6 +5760,7 @@ async function openScanner() {
   _scanList = [];
   _scanCooldown = {};
   _scanTargetZone = null;
+  _scanTarget = 'stock';
   _renderScanList();
   _videoDevices = []; // empêche resetScan() de lancer _startScanner() prématurément
   resetScan();
@@ -5798,6 +5810,16 @@ async function stockOpenScanSearch() {
   document.querySelector('.scanner-zone-bar').style.display = 'none';
   document.querySelector('.scanner-manual').style.display = 'none';
   document.querySelector('.scanner-hint').textContent = 'Scannez un produit pour le trouver dans votre stock';
+}
+
+// Ouvre le scanner en mode « ajouter à la liste de courses » (bouton de la page Courses).
+// La zone de rangement ne concerne que le stock : on la masque.
+async function clOpenScan() {
+  await openScanner();
+  _scanTarget = 'courses';
+  document.querySelector('#scanner-modal .scanner-title').textContent = 'Ajouter aux courses';
+  document.querySelector('.scanner-zone-bar').style.display = 'none';
+  _renderScanList();
 }
 
 // Démarre le flux vidéo avec focus continu, retourne le stream
@@ -6122,7 +6144,7 @@ async function onCodeDetected(code) {
 
   // Nouveau code : capturer frame et ajouter en "loading"
   const photo = _captureFrame();
-  const item = { code, produitId: null, nom: code, marque: '', zone: 'Frigo', qty: 1, photo, status: 'loading' };
+  const item = { code, produitId: null, nom: code, marque: '', zone: 'Frigo', rayon: '', qty: 1, photo, status: 'loading' };
   _scanList.unshift(item);
   _renderScanList();
   _flashFrame();
@@ -6136,6 +6158,7 @@ async function onCodeDetected(code) {
       item.nom = p.nom;
       item.marque = p.marque || '';
       item.zone = p.zone || 'Frigo';
+      item.rayon = p.rayon_nom || '';
       item.photo = (p.icone && (p.icone.startsWith('http') || p.icone.startsWith('/'))) ? p.icone : (photo || null);
       item.status = 'known';
     } else {
@@ -6194,7 +6217,9 @@ function _renderScanList() {
   const readyItems = _scanList.filter(i => i.status !== 'loading');
   const totalQty   = readyItems.reduce((s, i) => s + i.qty, 0);
   fab.classList.toggle('visible', readyItems.length > 0);
-  fab.textContent = `✓ Ajouter ${totalQty} au stock`;
+  fab.textContent = _scanTarget === 'courses'
+    ? `✓ Ajouter ${totalQty} aux courses`
+    : `✓ Ajouter ${totalQty} au stock`;
 
   list.innerHTML = _scanList.map((item, idx) => {
     const photoSrc = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/') || item.photo.startsWith('data:')) ? item.photo : null);
@@ -6202,10 +6227,13 @@ function _renderScanList() {
       ? `<img src="${photoSrc}">`
       : `📦`;
 
+    // En destination « courses » on ne crée aucun produit : on range par rayon, pas par zone
+    const toCourses = _scanTarget === 'courses';
+    const detail = toCourses ? (item.rayon || '') : (item.zone || '');
     const sub = item.status === 'loading' ? `<span style="color:#aaa">recherche…</span>`
       : item.status === 'unknown' ? `<span style="color:#c62828;font-weight:700">❓ Inconnu</span>`
-      : item.status === 'new'     ? `<span style="color:#e65100;font-weight:700">✦ Nouveau — sera créé</span>`
-      : `<span>${item.marque || ''}${item.marque && item.zone ? ' · ' : ''}${item.zone || ''}</span>`;
+      : item.status === 'new'     ? `<span style="color:#e65100;font-weight:700">✦ ${toCourses ? 'Nouveau produit' : 'Nouveau — sera créé'}</span>`
+      : `<span>${item.marque || ''}${item.marque && detail ? ' · ' : ''}${detail}</span>`;
 
     const qtyHtml = item.status !== 'loading' ? `
       <div class="scan-item-qty">
@@ -6215,16 +6243,27 @@ function _renderScanList() {
       </div>` : '';
 
     const isNew = item.status === 'new' || item.status === 'unknown';
+    // Vers les courses, « 3017620422003 » ne veut rien dire dans la liste :
+    // tant que le nom vaut le code-barres, on affiche un champ de saisie.
+    const nameHtml = (toCourses && item.status !== 'loading' && item.nom === item.code)
+      ? `<input class="scan-item-rename" placeholder="Nom du produit…" onclick="event.stopPropagation()" onchange="_scanRename(${idx}, this.value)">`
+      : item.nom;
     return `<div class="scan-item${isNew ? ' unknown' : ''}">
       <div class="scan-item-photo">${photoHtml}</div>
       <div class="scan-item-info">
-        <div class="scan-item-name">${item.nom}</div>
+        <div class="scan-item-name">${nameHtml}</div>
         <div class="scan-item-sub">${sub}</div>
       </div>
       ${qtyHtml}
       <span class="scan-item-del" onclick="event.stopPropagation();_scanRemove(${idx})">✕</span>
     </div>`;
   }).join('');
+}
+
+function _scanRename(idx, val) {
+  if (!_scanList[idx]) return;
+  _scanList[idx].nom = String(val || '').trim() || _scanList[idx].code;
+  _renderScanList();
 }
 
 function _scanQty(idx, delta) {
@@ -6239,6 +6278,7 @@ function _scanRemove(idx) {
 }
 
 async function validateScanList() {
+  if (_scanTarget === 'courses') return _validateScanToCourses();
   const items = _scanList.filter(i => i.status !== 'loading');
   if (!items.length) { showToast('Liste vide', 'warn'); return; }
 
@@ -6314,6 +6354,57 @@ async function validateScanList() {
   );
 }
 
+// Ajoute les produits scannés à la liste de courses.
+// On ne crée volontairement PAS le produit en catalogue : POST /api/produits ouvre
+// aussi une ligne de stocks, le produit apparaîtrait à 0 sur la page Stock alors
+// qu'il n'y a jamais été rangé.
+async function _validateScanToCourses() {
+  const items = _scanList.filter(i => i.status !== 'loading');
+  if (!items.length) { showToast('Liste vide', 'warn'); return; }
+  if (items.some(i => i.nom === i.code)) { showToast('Nommez les produits inconnus avant de valider', 'warn'); return; }
+
+  const fab = document.getElementById('scan-validate-fab');
+  fab.textContent = '⏳ En cours…';
+  fab.disabled = true;
+
+  // Marchand = onglet actif de la page Courses, repli sur le premier marchand
+  const tabM = document.querySelector('#cl-tabs .cl-tab.on')?.dataset.m;
+  const marchand = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
+
+  let ok = 0, err = 0;
+  for (const item of items) {
+    // La marque aide à retrouver le produit en rayon, sauf si le nom la contient déjà
+    let nom = item.nom;
+    if (item.marque && !clNorm(nom).includes(clNorm(item.marque))) nom += ' ' + item.marque;
+    // Jamais de data URI en base : seule une URL de photo est conservée
+    const icone = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/')) ? item.photo : null);
+    const payload = { n: nom, icone, m: marchand, r: item.rayon || 'Autre', qty: item.qty, done: false, origin: 'manuel' };
+    try {
+      const res = await fetch('/api/courses/items', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) { err++; continue; }
+      const data = await res.json();
+      _cl.unshift({ ...payload, id: String(data.id), n: data.nom || nom,
+                    icone: data.icone || icone, r: data.rayon || payload.r,
+                    ingredientId: data.ingredientId || null });
+      ok += item.qty;
+    } catch(e) { err++; }
+  }
+
+  fab.disabled = false;
+  _scanList = [];
+  _renderScanList();
+  closeScanner();
+  switchPage(document.querySelector('.nav-tab[data-page="courses"]'), 'courses', 'Courses');
+  clRender();
+
+  showToast(
+    `${ok} article${ok > 1 ? 's' : ''} ajouté${ok > 1 ? 's' : ''} aux courses` + (err ? ` · ${err} erreur${err > 1 ? 's' : ''}` : ''),
+    err ? 'warn' : 'ok'
+  );
+}
+
 function confirmManual() {
   const code = document.getElementById('manual-barcode').value.trim();
   if (!code) return;
@@ -6338,6 +6429,11 @@ function closeScanner() {
   document.getElementById('torch-btn').classList.remove('on');
   document.getElementById('scanner-modal').classList.remove('open');
   document.getElementById('manual-barcode').value = '';
+  if (_scanTarget === 'courses') {
+    _scanTarget = 'stock';
+    document.querySelector('#scanner-modal .scanner-title').textContent = 'Scanner un produit';
+    document.querySelector('.scanner-zone-bar').style.display = '';
+  }
   // Remettre les éléments masqués en mode recherche + scroller vers la card trouvée
   if (_stockScanSearchMode) {
     const lastId = _stockScanSearchLastId;

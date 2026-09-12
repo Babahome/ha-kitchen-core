@@ -708,8 +708,11 @@ app.get('/api/produits', (_req, res) => {
 app.get('/api/produits/barcode/:code', (req, res) => {
   try {
     const row = db.prepare(`
-      SELECT p.*, a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone
+      SELECT p.*, a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte, s.packs_pleins, s.unites_ouvert, s.zone,
+             COALESCE(rp.nom, ra.nom) AS rayon_nom
       FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id LEFT JOIN stocks s ON s.produit_id=p.id
+      LEFT JOIN rayons rp ON rp.id = p.rayon_id
+      LEFT JOIN rayons ra ON ra.id = a.rayon_id
       WHERE p.code_barres=?
     `).get(req.params.code);
     if (!row) return res.status(404).json({ error: 'Code-barres inconnu', code: req.params.code });
