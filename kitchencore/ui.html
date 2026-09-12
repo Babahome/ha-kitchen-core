@@ -6379,7 +6379,8 @@ async function _validateScanToCourses() {
     if (item.marque && !clNorm(nom).includes(clNorm(item.marque))) nom += ' ' + item.marque;
     // Jamais de data URI en base : seule une URL de photo est conservée
     const icone = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/')) ? item.photo : null);
-    const payload = { n: nom, icone, m: marchand, r: item.rayon || 'Autre', qty: item.qty, done: false, origin: 'manuel' };
+    const payload = { n: nom, icone, m: marchand, r: item.rayon || 'Autre', qty: item.qty, done: false, origin: 'manuel',
+                      produitId: item.produitId || null };
     try {
       const res = await fetch('/api/courses/items', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
@@ -6388,7 +6389,7 @@ async function _validateScanToCourses() {
       const data = await res.json();
       _cl.unshift({ ...payload, id: String(data.id), n: data.nom || nom,
                     icone: data.icone || icone, r: data.rayon || payload.r,
-                    ingredientId: data.ingredientId || null });
+                    ingredientId: data.ingredientId || null, produitId: data.produitId || null });
       ok += item.qty;
     } catch(e) { err++; }
   }
@@ -7098,7 +7099,7 @@ async function clFetchSuggestions(q) {
   ]);
   const items = [
     ...ings.map(i =>({ type:'ingredient', nom:i.nom, marque:'',           icone:i.icone||'', rayon:i.rayon_nom||'' })),
-    ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'' })),
+    ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'', produitId:p.id })),
   ].slice(0, 10);
   clShowSuggestions(items, q);
 }
@@ -7107,7 +7108,7 @@ function clShowSuggestions(items, q) {
   if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient ni produit trouvé</div>'; list.classList.add('visible'); return; }
   const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // Stocke les données dans _clSuggestData pour éviter les problèmes d'apostrophes dans les onclick inline
-  window._clSuggestData = items.map(it=>({nom:it.nom, marque:it.marque||'', rayon:it.rayon||'', icone:it.icone||'', type:it.type||'ingredient'}));
+  window._clSuggestData = items.map(it=>({nom:it.nom, marque:it.marque||'', rayon:it.rayon||'', icone:it.icone||'', type:it.type||'ingredient', produitId:it.produitId||null}));
   list.innerHTML = items.map((it,idx)=>{
     const hl  = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
     const r   = it.marque || it.rayon || '';
@@ -7130,20 +7131,20 @@ function clPickSuggestionIdx(idx) {
   // (« Eau de repassage Carrefour ») — sauf si le nom la contient déjà.
   let nom = d.nom;
   if (d.type === 'produit' && d.marque && !clNorm(nom).includes(clNorm(d.marque))) nom += ' ' + d.marque;
-  clPickSuggestion(nom, d.rayon, d.icone);
+  clPickSuggestion(nom, d.rayon, d.icone, d.produitId || null);
 }
 function clHideSuggestions(){ document.getElementById('cl-suggest-list')?.classList.remove('visible'); }
-async function clPickSuggestion(nom, rayon, icone) {
+async function clPickSuggestion(nom, rayon, icone, produitId) {
   clHideSuggestions();
   const inp = document.getElementById('cl-search-input'); if(!inp) return;
   const activeTab = document.querySelector('#cl-tabs .cl-tab.on');
   const tabM = activeTab?.dataset.m;
   const defaultM = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
-  const item = {qty:1,done:false,origin:'manuel',n:nom,icone:icone||null,m:defaultM,r:rayon||'Autre'};
+  const item = {qty:1,done:false,origin:'manuel',n:nom,icone:icone||null,m:defaultM,r:rayon||'Autre',produitId:produitId||null};
   try {
     const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
     const data = await res.json();
-    _cl.unshift({...item,id:String(data.id), icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null});
+    _cl.unshift({...item,id:String(data.id), icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null, produitId:data.produitId||null});
     clRender();
     inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
     showToast('✓ '+nom+' ajouté','ok');
@@ -7177,13 +7178,34 @@ function clOpenCtx(e, id) {
   // Sans ingredient_id on ne sait pas quelle fiche ouvrir : on masque l'entree.
   // « Créer comme ingrédient » reste là pour créer le lien qui la fera apparaître.
   const fiche = document.getElementById('cl-ctx-fiche');
-  if (fiche) fiche.style.display = (item && item.ingredientId) ? '' : 'none';
+  if (fiche) fiche.style.display = (item && (item.produitId || item.ingredientId)) ? '' : 'none';
   menu.classList.add('open');
   setTimeout(()=>document.addEventListener('click',clCloseCtx,{once:true}),10);
 }
 function clCloseCtx(){ document.getElementById('cl-ctx-menu')?.classList.remove('open'); _clCtxId=null; }
 function clCtxLink()    { const i=_cl.find(x=>x.id===_clCtxId); if(i) window.open(clSearchURL(i),'_blank'); clCloseCtx(); }
 function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpenMmodal(id),100); }
+// Ouvre la fiche du produit lié à l'article. Même ordre que pour l'ingrédient :
+// #stock-detailPanel est un enfant direct de .frame, on l'ouvre avant switchPage.
+// _stockOpenDetail() lit _stockItems, qu'il faut donc avoir chargé au préalable :
+// l'utilisateur peut n'avoir jamais ouvert la page Stock depuis le démarrage.
+async function _clOpenFicheProduit(item) {
+  try {
+    const charger = (typeof _stockFetchData === 'function') ? _stockFetchData : window._stockFetchData;
+    const ouvrir  = (typeof _stockOpenDetail === 'function') ? _stockOpenDetail : window._stockOpenDetail;
+    if (typeof ouvrir !== 'function') { showToast('Fiche indisponible', 'warn'); return; }
+    if (typeof charger === 'function') await charger();
+    ouvrir(Number(item.produitId));
+    // Produit supprimé depuis : _stockOpenDetail() ne fait rien, on le dit plutôt
+    // que de basculer sur une page vide sans explication.
+    if (!document.getElementById('stock-detailPanel')?.classList.contains('open')) {
+      showToast('Ce produit n\'existe plus', 'warn');
+      return;
+    }
+    switchPage(document.querySelector('.nav-tab[data-page="stock"]'), 'stock', 'Stock Cuisine');
+  } catch(e) { showToast('Fiche indisponible', 'warn'); }
+}
+
 // Ouvre la fiche de l'ingrédient lié à l'article. #ing-detailPanel est un enfant
 // direct de .frame en position:absolute;inset:0 : il recouvre tout l'écran, donc on
 // l'ouvre AVANT switchPage pour que la liste des ingrédients ne clignote pas
@@ -7191,7 +7213,12 @@ function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpen
 async function clCtxFiche() {
   const item = _cl.find(x => x.id === _clCtxId);
   clCloseCtx();
-  if (!item || !item.ingredientId) return;
+  if (!item) return;
+  // Le produit passe avant l'ingredient : un article ajoute par scan ou depuis une
+  // suggestion « produit » peut aussi porter un ingredientId devine par le serveur
+  // sur le nom, mais c'est la fiche du produit que l'utilisateur a designee.
+  if (item.produitId) return _clOpenFicheProduit(item);
+  if (!item.ingredientId) return;
   try {
     if (typeof window.__ingLoadData === 'function') await window.__ingLoadData();
     if (typeof window.ingOpenDetailPanel !== 'function') { showToast('Fiche indisponible', 'warn'); return; }

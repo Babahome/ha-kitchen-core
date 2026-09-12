@@ -224,6 +224,7 @@ db.exec(`
   ['menu',           'position',      'INTEGER DEFAULT 0'],
   ['menu',           'recette_id',    'INTEGER REFERENCES recettes(id)'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
+  ['courses_items',  'produit_id',    'INTEGER REFERENCES produits(id)'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
   ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['rayons',         'icone',         'TEXT'],
@@ -1330,16 +1331,17 @@ app.delete('/api/menu/:id', (req, res) => {
 app.get('/api/courses', (_req, res) => {
   const items = db.prepare(`
     SELECT ci.*, COALESCE(i.nom, ci.nom) AS resolved_nom,
-           COALESCE(i.icone, ci.icone) AS resolved_icone,
+           COALESCE(i.icone, ci.icone, p.icone) AS resolved_icone,
            COALESCE(rv.nom, ci.rayon) AS resolved_rayon
     FROM courses_items ci
     LEFT JOIN ingredients i ON i.id = ci.ingredient_id
+    LEFT JOIN produits    p ON p.id = ci.produit_id
     LEFT JOIN rayons rv ON rv.id = i.rayon_id
     ORDER BY ci.id DESC
   `).all().map(r => ({
     id: r.id, n: r.resolved_nom, icone: r.resolved_icone||null, m: r.marchand, r: r.resolved_rayon||'Autre',
     qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel',
-    recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null
+    recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null, produitId: r.produit_id||null
   }));
   const recipes = db.prepare(`
     SELECT cr.recipe_id, cr.nom, COALESCE(r.photo, cr.photo) AS photo, cr.portions
@@ -1352,7 +1354,7 @@ app.get('/api/courses', (_req, res) => {
 });
 
 app.post('/api/courses/items', (req, res) => {
-  const { n, icone=null, m='drive', r='Autre', qty=1, unit='', done=false, origin='manuel', recipeId=null } = req.body;
+  const { n, icone=null, m='drive', r='Autre', qty=1, unit='', done=false, origin='manuel', recipeId=null, produitId=null } = req.body;
   let { ingredientId=null } = req.body;
   if (!n) return res.status(400).json({ error: 'nom requis' });
   // Saisie libre non sélectionnée dans les suggestions : on tente quand même de
@@ -1361,7 +1363,7 @@ app.post('/api/courses/items', (req, res) => {
     const found = findIngByNameOrAlias(n);
     if (found) ingredientId = found.id;
   }
-  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id) VALUES (?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId);
+  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId, produitId);
   let resolved = { nom: n, icone, rayon: r };
   if (ingredientId) {
     const ing = db.prepare(`
@@ -1371,11 +1373,11 @@ app.post('/api/courses/items', (req, res) => {
     `).get(ingredientId);
     if (ing) resolved = { nom: ing.nom || n, icone: ing.icone || icone, rayon: ing.rayon || r };
   }
-  res.json({ id: result.lastInsertRowid, ingredientId, nom: resolved.nom, icone: resolved.icone, rayon: resolved.rayon });
+  res.json({ id: result.lastInsertRowid, ingredientId, produitId, nom: resolved.nom, icone: resolved.icone, rayon: resolved.rayon });
 });
 
 app.put('/api/courses/items/:id', (req, res) => {
-  const { n, icone, m, r, qty, unit, done, origin, recipeId, ingredientId } = req.body;
+  const { n, icone, m, r, qty, unit, done, origin, recipeId, ingredientId, produitId } = req.body;
   const fields = [], vals = [];
   if (n            !== undefined) { fields.push('nom=?');          vals.push(n); }
   if (icone        !== undefined) { fields.push('icone=?');        vals.push(icone); }
@@ -1387,6 +1389,7 @@ app.put('/api/courses/items/:id', (req, res) => {
   if (origin       !== undefined) { fields.push('origin=?');       vals.push(origin); }
   if (recipeId     !== undefined) { fields.push('recipe_id=?');    vals.push(recipeId); }
   if (ingredientId !== undefined) { fields.push('ingredient_id=?');vals.push(ingredientId); }
+  if (produitId    !== undefined) { fields.push('produit_id=?');   vals.push(produitId); }
   if (!fields.length) return res.json({ ok: true });
   vals.push(req.params.id);
   db.prepare(`UPDATE courses_items SET ${fields.join(',')} WHERE id=?`).run(...vals);
@@ -2060,10 +2063,11 @@ function importMerge(tables) {
 
   rowsOf('courses_items').forEach(ci => {
     const ingredientId = ci.ingredient_id != null ? (idMap.ingredients[ci.ingredient_id] || null) : null;
+    const produitId    = ci.produit_id    != null ? (idMap.produits[ci.produit_id]       || null) : null;
     db.prepare(`INSERT INTO courses_items
-      (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id)
-      VALUES(?,?,?,?,?,?,?,?,?,?)`)
-      .run(ci.nom, ci.icone, ci.marchand, ci.rayon, ci.qty, ci.unite, ci.done, ci.origin, ci.recipe_id, ingredientId);
+      (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(ci.nom, ci.icone, ci.marchand, ci.rayon, ci.qty, ci.unite, ci.done, ci.origin, ci.recipe_id, ingredientId, produitId);
     counts.courses_items++;
   });
 
