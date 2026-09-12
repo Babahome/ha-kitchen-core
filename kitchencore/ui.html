@@ -9791,7 +9791,6 @@ function _ingRender() {
   _ingDragSetup();
   // Trace utile : un re-rendu pendant un geste detache les cards, et le touchend
   // n'atteint alors plus la grille — le drop serait perdu sans aucun signe visible.
-  if (typeof _ingDbg === 'function') _ingDbg('RENDER liste (' + tree.length + ' cards)');
 }
 
 function _ingGetEffectiveImage(ing, visited) {
@@ -9866,58 +9865,16 @@ function _ingRenderCard(ing, i, depth) {
 // ─── Drag & drop pour équivalences (souris + tactile) ───
 let _ingDragSrcId = null, _ingDragOverId = null, _ingDragTimer = null, _ingDragActive = false, _ingJustDragged = false;
 
-// ── Sonde de diagnostic du drag tactile (opt-in) ────────────────────────────
-// Activation : ouvrir l'app avec #debugdrag (ou ?debugdrag) dans l'URL ; l'etat est
-// memorise en localStorage pour survivre a une navigation qui perdrait le hash.
-// Desactivation : #debugdragoff. Sert a savoir ce que le navigateur Android fait
-// reellement du geste (a quel moment exact il coupe le drag avant le drop).
-function _ingDragDebugOn() {
-  const url = (String(location.hash || '') + String(location.search || '')).toLowerCase();
-  try {
-    if (url.includes('debugdragoff')) { localStorage.removeItem('kc_debugdrag'); return false; }
-    if (url.includes('debugdrag'))    { localStorage.setItem('kc_debugdrag', '1'); return true; }
-    return localStorage.getItem('kc_debugdrag') === '1';
-  } catch(_) { return url.includes('debugdrag'); }
-}
-function _ingDbg(msg) {
-  if (!_ingDragDebugOn()) {
-    // Retire le cadre a la desactivation, y compris si #debugdragoff a ete atteint
-    // par simple changement de hash (sans rechargement de page).
-    document.getElementById('ing-dragdbg')?.remove();
-    return;
-  }
-  let box = document.getElementById('ing-dragdbg');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = 'ing-dragdbg';
-    box.style.cssText = 'position:absolute;left:6px;right:6px;top:6px;z-index:9999;'
-      + 'background:rgba(0,0,0,.92);color:#0f0;font:12px/1.45 monospace;padding:10px 12px;'
-      + 'border-radius:8px;max-height:45%;overflow:auto;white-space:pre-wrap;pointer-events:none';
-    (document.querySelector('.frame') || document.body).appendChild(box);
-  }
-  const t = Math.round(performance.now());
-  box.textContent = (box.textContent ? box.textContent + '\n' : '') + t + ' ' + msg;
-  box.scrollTop = box.scrollHeight;
-}
-function _ingDbgReset() {
-  const box = document.getElementById('ing-dragdbg');
-  if (box) box.textContent = '';
-}
-
 function _ingDragSetup() {
   const grid = document.getElementById('ing-ingredientsGrid');
   if (!grid || grid._dragBound) return;
   grid._dragBound = true;
-  // Affiche le cadre des l'arrivee sur la page : sinon il n'apparaissait qu'au
-  // premier appui sur une card, ce qui donnait l'impression que la sonde ne marchait pas.
-  _ingDbg('SONDE ACTIVE — fais le drag qui echoue');
 
   let srcId = null, overId = null, srcCard = null, active = false;
-  let moves = 0, downAt = 0; // diagnostic uniquement
 
   const reset = () => {
     grid.querySelectorAll('.ing-dragging,.ing-drag-over').forEach(c => c.classList.remove('ing-dragging','ing-drag-over'));
-    srcId = null; overId = null; srcCard = null; active = false; moves = 0;
+    srcId = null; overId = null; srcCard = null; active = false;
   };
 
   // Validation du drop, partagee par touchend et touchcancel (voir le commentaire
@@ -9927,7 +9884,6 @@ function _ingDragSetup() {
     const wasActive = active, s = srcId, o = overId;
     reset();
     if (!(wasActive && s && o)) return;
-    _ingDbg('-> LIEN ENVOYE');
     // Le flag doit être posé AVANT l'await : sinon le clic fantôme que certains
     // navigateurs Android synthétisent juste après touchend peut s'exécuter
     // pendant que le fetch est encore en vol et rouvrir la card (ingOnCardClick)
@@ -9969,23 +9925,18 @@ function _ingDragSetup() {
       document.activeElement.blur();
     }
     srcId = card.dataset.ingId; srcCard = card;
-    _ingDbgReset();
-    moves = 0; downAt = Math.round(performance.now());
-    _ingDbg('DOWN sur "' + (card.querySelector('.ing-name')||{}).textContent + '"');
     // Demarrage immediat : la poignee porte touch-action:none et son handler inline
     // appelle preventDefault(), donc le navigateur nous laisse le geste.
     // La recherche reste active pendant le drag : elle sert justement
     // à faire apparaître le parent visé sans avoir à scroller toute la liste.
     active = true;
     card.classList.add('ing-dragging');
-    _ingDbg('POIGNEE -> drag ACTIF immediat');
   }, { passive: true });
 
   grid.addEventListener('touchmove', e => {
     if (!srcId || !active) return;
     const t = e.touches[0];
     e.preventDefault(); // bloquer le scroll pendant le drag
-    moves++;
     autoScroll(t.clientY);
     // elementFromPoint (singulier) peut renvoyer la carte source elle-même (semi-transparente
     // mais toujours au-dessus pour le hit-test sur certains Android) : on utilise la pile complète
@@ -10000,14 +9951,11 @@ function _ingDragSetup() {
     grid.querySelectorAll('.ing-drag-over').forEach(c => c.classList.remove('ing-drag-over'));
     if (target && target.dataset.ingId !== srcId) {
       target.classList.add('ing-drag-over');
-      if (overId !== target.dataset.ingId) _ingDbg('CIBLE = "' + (target.querySelector('.ing-name')||{}).textContent + '"');
       overId = target.dataset.ingId;
     } else { overId = null; }
   }, { passive: false });
 
   grid.addEventListener('touchend', async () => {
-    _ingDbg('UP  actif=' + active + ' moves=' + moves + ' cible=' + (overId || 'AUCUNE')
-      + ' (+' + (Math.round(performance.now()) - downAt) + 'ms)');
     await commitDrop();
   });
 
@@ -10021,8 +9969,6 @@ function _ingDragSetup() {
   // cible etait surlignee sous le doigt, l'intention est explicite (l'utilisateur
   // voit la card entourée d'orange) et on valide ce que l'interface promettait.
   grid.addEventListener('touchcancel', async () => {
-    _ingDbg('!! TOUCHCANCEL actif=' + active + ' moves=' + moves + ' cible=' + (overId || 'AUCUNE')
-      + ' (+' + (Math.round(performance.now()) - downAt) + 'ms)');
     await commitDrop();
   });
 
