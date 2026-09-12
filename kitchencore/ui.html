@@ -2489,6 +2489,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
       <!-- Menu contextuel ••• -->
       <div class="cl-ctx-menu" id="cl-ctx-menu">
+        <div class="cl-ctx-item" id="cl-ctx-fiche" onclick="clCtxFiche()"><span>📄</span> Voir la fiche</div>
         <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
         <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
         <div class="cl-ctx-item" onclick="clCtxEdit()"><span>✏️</span> <span id="cl-ctx-edit-lbl">Modifier qté / unité</span></div>
@@ -7173,12 +7174,37 @@ function clOpenCtx(e, id) {
   const isNote = item && item.origin === 'manuel' && !item.ingredientId;
   const lbl = document.getElementById('cl-ctx-edit-lbl');
   if (lbl) lbl.textContent = isNote ? 'Modifier le nom / qté' : 'Modifier qté / unité';
+  // Sans ingredient_id on ne sait pas quelle fiche ouvrir : on masque l'entree.
+  // « Créer comme ingrédient » reste là pour créer le lien qui la fera apparaître.
+  const fiche = document.getElementById('cl-ctx-fiche');
+  if (fiche) fiche.style.display = (item && item.ingredientId) ? '' : 'none';
   menu.classList.add('open');
   setTimeout(()=>document.addEventListener('click',clCloseCtx,{once:true}),10);
 }
 function clCloseCtx(){ document.getElementById('cl-ctx-menu')?.classList.remove('open'); _clCtxId=null; }
 function clCtxLink()    { const i=_cl.find(x=>x.id===_clCtxId); if(i) window.open(clSearchURL(i),'_blank'); clCloseCtx(); }
 function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpenMmodal(id),100); }
+// Ouvre la fiche de l'ingrédient lié à l'article. #ing-detailPanel est un enfant
+// direct de .frame en position:absolute;inset:0 : il recouvre tout l'écran, donc on
+// l'ouvre AVANT switchPage pour que la liste des ingrédients ne clignote pas
+// (même raison que mOpenDetailFromCard, v0.10.250).
+async function clCtxFiche() {
+  const item = _cl.find(x => x.id === _clCtxId);
+  clCloseCtx();
+  if (!item || !item.ingredientId) return;
+  try {
+    if (typeof window.__ingLoadData === 'function') await window.__ingLoadData();
+    if (typeof window.ingOpenDetailPanel !== 'function') { showToast('Fiche indisponible', 'warn'); return; }
+    window.ingOpenDetailPanel(String(item.ingredientId));
+    // L'ingrédient a pu être supprimé depuis : le panel reste alors fermé, on le dit
+    // plutôt que de basculer sur une page vide sans explication.
+    if (!document.getElementById('ing-detailPanel')?.classList.contains('open')) {
+      showToast('Cet ingrédient n\'existe plus', 'warn');
+      return;
+    }
+    switchPage(null, 'ingredients', 'Ingrédients');
+  } catch(e) { showToast('Fiche indisponible', 'warn'); }
+}
 function clCtxDel()     { const id=_clCtxId; clCloseCtx(); clDel(id); }
 async function clCtxToIngredient() {
   const item=_cl.find(x=>x.id===_clCtxId); clCloseCtx(); if(!item) return;
