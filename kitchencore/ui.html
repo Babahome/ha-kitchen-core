@@ -1101,6 +1101,13 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .chips::-webkit-scrollbar{ display:none; }
 .chip  { display:inline-flex;align-items:center;gap:5px;background:white;border:1.5px solid var(--grey);border-radius:99px;padding:6px 13px;font-size:.8rem;font-weight:700;color:var(--text2);white-space:nowrap;cursor:pointer;flex-shrink:0;transition:all .15s; }
 .chip.on{ background:var(--orange);border-color:var(--orange);color:white; }
+.rv-tagbar { display:flex;align-items:center;background:white;border-bottom:1px solid var(--grey);flex-shrink:0; }
+.rv-tagbar .chips { border-bottom:none;flex:1;min-width:0;padding-left:8px; }
+.rv-tag-search { width:96px;flex-shrink:0;margin-left:14px;border:1.5px solid var(--grey);border-radius:99px;
+                 padding:6px 11px;font-family:inherit;font-size:.8rem;font-weight:700;color:var(--text);background:var(--grey-l);
+                 outline:none;-webkit-appearance:none;appearance:none; }
+.rv-tag-search:focus { border-color:var(--orange);background:white; }
+.chip-mode { border-style:dashed;color:var(--orange);border-color:var(--orange); }
 
 .sec-head{ display:flex;align-items:center;gap:10px;padding:14px 14px 10px; }
 .sec-ico { font-size:1.1rem;color:var(--grey-d); }
@@ -2532,8 +2539,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <!-- ══ PAGE RECETTES ═══════════════════════════════════════════════════ -->
     <div id="page-recettes" class="page" style="background:var(--grey-l)">
 
-      <div id="rv-chips" class="chips">
-        <div class="chip on" onclick="setFilter(this,'tout')">🍽️ Tout</div>
+      <div class="rv-tagbar">
+        <input id="rv-tag-search" class="rv-tag-search" type="search" placeholder="Tag…" autocomplete="off"
+               oninput="rvTagSearch(this.value)" aria-label="Rechercher un tag">
+        <div id="rv-chips" class="chips">
+          <div class="chip on" onclick="setFilter(this)">🍽️ Tout</div>
+        </div>
       </div>
 
       <div class="sec-head">
@@ -4084,8 +4095,10 @@ function _stockRender() {
       byRayon[key].items.push(s);
     });
     const keys = Object.keys(byRayon).sort((a, b) => a === 'Sans rayon' ? 1 : b === 'Sans rayon' ? -1 : a.localeCompare(b, 'fr'));
+    // Pastille de rayon active (retiree par erreur en v0.10.117, retablie v0.10.266)
+    const keysToShow = _stockFilter === 'all' ? keys : keys.filter(k => String(byRayon[k].id) === String(_stockFilter));
     let html = '';
-    keys.forEach(key => {
+    keysToShow.forEach(key => {
       const { emoji, items } = byRayon[key];
       html += `<div class="zone-section">
         <div class="zone-header">
@@ -4108,11 +4121,15 @@ function _stockRender() {
       byZone[z].push(s);
     });
     const allZones = [...STOCK_ZONES.map(z => z.key), ...Object.keys(byZone).filter(k => !STOCK_ZONES.find(z => z.key === k))];
+    // Pastille de zone active (retiree par erreur en v0.10.117, retablie v0.10.266)
+    const zonesToShow = _stockFilter === 'all' ? allZones : allZones.filter(k => k === _stockFilter);
     let html = '';
     let total = 0;
-    allZones.forEach(zoneKey => {
+    let shown = 0;
+    zonesToShow.forEach(zoneKey => {
       const items = byZone[zoneKey] || [];
-      if (items.length === 0) return;
+      if (_stockFilter === 'all' && items.length === 0) return;
+      shown++;
       const zoneMeta = STOCK_ZONES.find(z => z.key === zoneKey) || { emoji: '📦' };
       total += items.length;
       html += `<div class="zone-section">
@@ -4123,7 +4140,7 @@ function _stockRender() {
         <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
       </div>`;
     });
-    el.innerHTML = (total ? html : emptyHtml) + '<div style="height:80px"></div>';
+    el.innerHTML = (total || shown ? html : emptyHtml) + '<div style="height:80px"></div>';
     return;
   }
 
@@ -4702,13 +4719,21 @@ function _stockRebuildFilterPills() {
       if (nom && !seen.has(id)) seen.set(id, { nom, emoji });
     });
     const sorted = [...seen.entries()].sort((a, b) => a[1].nom.localeCompare(b[1].nom, 'fr'));
-    pills = `<div class="filter-pill active" onclick="stockFilterRayon(this,'all')">Tout</div>` +
+    // Un rayon filtre qui n'existe plus (produits deplaces, supprimes) : retour a « Tout »
+    if (_stockFilter !== 'all' && !sorted.some(([id]) => String(id) === String(_stockFilter))) _stockFilter = 'all';
+    const on = v => String(v) === String(_stockFilter) ? ' active' : '';
+    pills = `<div class="filter-pill${on('all')}" onclick="stockFilterRayon(this,'all')">Tout</div>` +
       sorted.map(([id, { nom, emoji }]) =>
-        `<div class="filter-pill" onclick="stockFilterRayon(this,${id})">${emoji} ${nom}</div>`
+        `<div class="filter-pill${on(id)}" onclick="stockFilterRayon(this,${id})">${emoji} ${nom}</div>`
       ).join('');
   } else if (_stockGroupBy === 'zone') {
-    pills = `<div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>` +
-      STOCK_ZONES.map(z => `<div class="filter-pill" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+    if (_stockFilter !== 'all' && !STOCK_ZONES.some(z => z.key === _stockFilter)) _stockFilter = 'all';
+    const on = v => v === _stockFilter ? ' active' : '';
+    pills = `<div class="filter-pill${on('all')}" onclick="stockFilterZone(this,'all')">Tout</div>` +
+      STOCK_ZONES.map(z => `<div class="filter-pill${on(z.key)}" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+  } else {
+    // Liste plate : aucune pastille, donc aucun filtre de zone/rayon ne doit rester actif
+    _stockFilter = 'all';
   }
 
   fp.innerHTML = pills ? pills : '';
@@ -4719,6 +4744,7 @@ function stockSetGroupBy(mode) {
   _stockFilter  = 'all';
   _stockRebuildFilterPills();
   _stockRender();
+  _stockPruneSelection();
 }
 
 
@@ -5463,16 +5489,31 @@ function stockSfReset() {
   stockSfClose();
   _stockRebuildFilterPills();
   _stockOrGpRender();
+  _stockPruneSelection();
 }
 
 function stockSfApply() {
   stockSfClose();
   _stockRebuildFilterPills();
   _stockOrGpRender();
+  _stockPruneSelection();
   // Mettre à jour le badge filtre dans l'onglet
   const count = _stockFZones.size + _stockFRayons.size + _stockFExp.size + (_stockFQtyMin > 0 || _stockFQtyMax < 5 ? 1 : 0) + (_stockFIngLink ? 1 : 0);
   const badge = document.getElementById('stock-sf-filter-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
+}
+
+// Retire de la selection les produits qui ne sont plus affiches apres un
+// changement de filtre. Sinon « Supprimer » ou « Ajouter aux courses » agissait
+// sur des produits hors de l'ecran, sans que l'utilisateur le voie (BL-142).
+// On ne vide pas tout : passer de « Frigo » a « Tout » garde les produits du frigo
+// selectionnes, puisqu'ils sont toujours sous les yeux.
+function _stockPruneSelection() {
+  if (!_stockSelectedIds.size) return;
+  const visibles = new Set([...document.querySelectorAll('#stock-content .prod-card')].map(c => Number(c.dataset.id)));
+  let retires = 0;
+  [..._stockSelectedIds].forEach(id => { if (!visibles.has(Number(id))) { _stockSelectedIds.delete(id); retires++; } });
+  if (retires) _stockUpdateFab();
 }
 
 function stockFilterZone(pill, zone) {
@@ -5480,6 +5521,7 @@ function stockFilterZone(pill, zone) {
   pill.classList.add('active');
   _stockFilter = zone;
   _stockRender();
+  _stockPruneSelection();
 }
 
 function stockFilterRayon(pill, rayonId) {
@@ -5487,6 +5529,7 @@ function stockFilterRayon(pill, rayonId) {
   pill.classList.add('active');
   _stockFilter = rayonId;
   _stockRender();
+  _stockPruneSelection();
 }
 
 function toggleZone(btn) {
@@ -7486,7 +7529,12 @@ let _ctxId     = null;
 let _editId    = null;
 let _eIngr     = [];
 let _eSteps    = [];
-let _filter    = 'tout';
+// Tags actifs du filtre (vide = « Tout »). Mode 'all' : la recette doit porter
+// TOUS les tags choisis (on affine) ; mode 'any' : au moins un (on elargit).
+let _filterTags = new Set();
+let _filterMode = 'all';
+let _tagSearch  = '';
+let _chipsSig   = ''; // selection au dernier rendu des pastilles (voir renderChips)
 let _searchOpen= false;
 
 let _allTags = [];
@@ -7518,6 +7566,7 @@ async function loadRecettes() {
 async function loadTags() {
   try {
     _allTags = await fetch('/api/tags').then(r => r.json());
+    [..._filterTags].forEach(t => { if (!_allTags.some(x => x.nom === t)) _filterTags.delete(t); });
     renderChips();
     if (document.getElementById('panel-edit')?.classList.contains('open')) ev3RenderTags();
   } catch(e) {}
@@ -7526,9 +7575,32 @@ async function loadTags() {
 function renderChips() {
   const el = document.getElementById('rv-chips');
   if (!el) return;
+  const scroll = el.scrollLeft;
+  const q = norm(_tagSearch.trim());
+  // Les tags coches passent toujours en tete, recherche ou non : dans une longue
+  // rangee, un tag coche loin a droite restait hors de vue et la liste semblait
+  // filtree sans raison. En recherche, ils restent aussi affiches meme s'ils ne
+  // correspondent pas, sinon impossible de les decocher sans effacer la recherche.
+  const visibles = [
+    ..._allTags.filter(t => _filterTags.has(t.nom)),
+    ..._allTags.filter(t => !_filterTags.has(t.nom) && (!q || norm(t.nom).includes(q))),
+  ];
+  // Le nom passe par un data-attribut plutot que dans le onclick : un tag avec
+  // une apostrophe (« l'ete ») cassait l'ancien setFilter(this,'...').
+  const chip = t => `<div class="chip${_filterTags.has(t.nom)?' on':''}" data-tag="${ev3Esc(t.nom)}" onclick="setFilter(this)">${ev3Esc(t.nom)}</div>`;
+  const mode = _filterTags.size >= 2
+    ? `<div class="chip chip-mode" onclick="rvTagModeToggle()" title="Changer la règle de combinaison">${_filterMode === 'all' ? 'Tous ces tags' : 'Un de ces tags'} ⇄</div>`
+    : '';
   el.innerHTML =
-    `<div class="chip${_filter==='tout'?' on':''}" onclick="setFilter(this,'tout')">🍽️ Tout</div>` +
-    _allTags.map(t => `<div class="chip${_filter===t.nom?' on':''}" onclick="setFilter(this,'${ev3Esc(t.nom)}')">${t.nom}</div>`).join('');
+    `<div class="chip${_filterTags.size ? '' : ' on'}" onclick="setFilter(this)">🍽️ Tout</div>` +
+    mode +
+    visibles.map(chip).join('') +
+    (q && !visibles.some(t => norm(t.nom).includes(q)) ? `<div class="chip" style="cursor:default;opacity:.6">Aucun tag</div>` : '');
+  // Selection modifiee : on revient au debut pour la montrer. Sinon (simple
+  // re-rendu) la rangee garde sa position.
+  const sig = [..._filterTags].sort().join('');
+  el.scrollLeft = (q || sig !== _chipsSig) ? 0 : scroll;
+  _chipsSig = sig;
 }
 function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
@@ -7600,7 +7672,10 @@ function renderList() {
   const el = document.getElementById('rv-list');
   const q  = norm(document.getElementById('search-input')?.value.trim()||'');
   const filtered = _rv.filter(r=>{
-    const matchTag = _filter==='tout' || (r.tags||[]).includes(_filter);
+    const tags = r.tags || [];
+    const matchTag = !_filterTags.size || (_filterMode === 'all'
+      ? [..._filterTags].every(t => tags.includes(t))
+      : tags.some(t => _filterTags.has(t)));
     const matchQ   = !q || norm(r.nom).includes(q) || norm(r.ingredients_text).includes(q);
     return matchTag && matchQ;
   });
@@ -7634,10 +7709,28 @@ function renderList() {
   }).join('');
 }
 
-function setFilter(chip, tag) {
-  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
-  chip.classList.add('on');
-  _filter = tag;
+function setFilter(chip) {
+  const tag = chip && chip.dataset ? chip.dataset.tag : undefined;
+  if (tag === undefined) {
+    _filterTags.clear();
+    _tagSearch = '';
+    const inp = document.getElementById('rv-tag-search');
+    if (inp) inp.value = '';
+  } else if (_filterTags.has(tag)) {
+    _filterTags.delete(tag);
+  } else {
+    _filterTags.add(tag);
+  }
+  renderChips();
+  renderList();
+}
+function rvTagSearch(v) {
+  _tagSearch = v || '';
+  renderChips();
+}
+function rvTagModeToggle() {
+  _filterMode = _filterMode === 'all' ? 'any' : 'all';
+  renderChips();
   renderList();
 }
 
@@ -8652,8 +8745,12 @@ async function rvJsonImport() {
       etapes:      (d.etapes || []).map(e => ({ titre: e.titre, texte: e.texte, timer: e.timer })),
     });
     save(); renderList();
-    rvImportFeedback('"' + d.nom + '" importée !', 'ok');
     document.getElementById('rv-json-ta').value = '';
+    // Succes : on ferme la modale et on l'annonce en toast. Le message inline
+    // restait dans une modale ouverte, qu'il fallait fermer a la main (BL-134).
+    rvImportFeedback('', '');
+    rvImportClose();
+    showToast('« ' + d.nom + ' » importée', 'ok');
   } catch(e) {
     rvImportFeedback(e.message, 'err');
   } finally {
@@ -8697,7 +8794,19 @@ function _pantrySave(){ localStorage.setItem('kc_pantry',JSON.stringify([..._pan
 
 function mdk(d){ return d.toISOString().split('T')[0]; }
 
+// Place la timeline sur aujourd'hui, sans animation. Sans effet si la page Menu
+// est masquee (scrollIntoView ignore un element invisible).
+function _mScrollToday(){
+  const n = new Date(); n.setHours(0,0,0,0);
+  document.getElementById('mday-'+mdk(n))?.scrollIntoView({behavior:'instant', block:'start'});
+}
+
 async function _mLoad(){
+  // Recaler tout de suite la timeline deja construite : elle l'a ete au demarrage,
+  // page masquee, donc jamais positionnee, et switchPage() vient de remonter
+  // #content en haut. Sans ca, la date d'il y a 30 jours restait affichee le temps
+  // des chargements ci-dessous (BL-141).
+  _mScrollToday();
   // Les cards du menu resolvent leur recette dans _rv (vignette + ouverture du
   // detail) : sans ce chargement, ouvrir la page Menu en premier laissait _rv vide.
   const _rvReady = (typeof _rvEnsureLoaded === 'function') ? _rvEnsureLoaded() : Promise.resolve();
