@@ -1363,7 +1363,6 @@ app.post('/api/courses/items', (req, res) => {
     const found = findIngByNameOrAlias(n);
     if (found) ingredientId = found.id;
   }
-  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId, produitId);
   let resolved = { nom: n, icone, rayon: r };
   if (ingredientId) {
     const ing = db.prepare(`
@@ -1373,7 +1372,38 @@ app.post('/api/courses/items', (req, res) => {
     `).get(ingredientId);
     if (ing) resolved = { nom: ing.nom || n, icone: ing.icone || icone, rayon: ing.rayon || r };
   }
-  res.json({ id: result.lastInsertRowid, ingredientId, produitId, nom: resolved.nom, icone: resolved.icone, rayon: resolved.rayon });
+
+  // BL-143 : le meme article ajoute deux fois incremente la ligne existante au
+  // lieu d'en creer une seconde. Une ligne de recette est liee a sa recette et
+  // disparait avec elle : on n'y fusionne rien, et un ajout venant d'une recette
+  // garde sa propre ligne. Une ligne deja cochee non plus : elle appartient aux
+  // courses en cours de validation. L'unite doit correspondre, sinon on
+  // additionnerait 1 kg avec 2 pieces.
+  const nomFusion = resolved.nom || n;
+  if (origin !== 'recette' && !recipeId && !done) {
+    const exist = db.prepare(`
+      SELECT * FROM courses_items
+      WHERE done = 0 AND origin <> 'recette' AND recipe_id IS NULL
+        AND marchand = ?
+        AND NORM(COALESCE(unite,'')) = NORM(?)
+        AND ( (? IS NOT NULL AND produit_id    = ?)
+           OR (? IS NOT NULL AND ingredient_id = ?)
+           OR NORM(nom) = NORM(?) )
+      ORDER BY id DESC LIMIT 1
+    `).get(String(m), unit || '', produitId, produitId, ingredientId, ingredientId, nomFusion);
+    if (exist) {
+      const cumul = (Number(exist.qty) || 1) + (Number(qty) || 1);
+      db.prepare('UPDATE courses_items SET qty=? WHERE id=?').run(cumul, exist.id);
+      return res.json({
+        id: exist.id, merged: true, qty: cumul,
+        ingredientId: exist.ingredient_id, produitId: exist.produit_id,
+        nom: exist.nom, icone: exist.icone, rayon: exist.rayon,
+      });
+    }
+  }
+
+  const result = db.prepare('INSERT INTO courses_items (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(n, icone, m, r, qty, unit, done?1:0, origin, recipeId, ingredientId, produitId);
+  res.json({ id: result.lastInsertRowid, merged: false, qty, ingredientId, produitId, nom: resolved.nom, icone: resolved.icone, rayon: resolved.rayon });
 });
 
 app.put('/api/courses/items/:id', (req, res) => {

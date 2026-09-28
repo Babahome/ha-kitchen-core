@@ -4305,10 +4305,8 @@ async function stockAddSelectedToCourses() {
   const defaultM = (_clMarchands && _clMarchands[0]) ? String(_clMarchands[0].id) : '0';
   const items = _stockItems.filter(s => ids.includes(s.produit_id));
   try {
-    await Promise.all(items.map(s => fetch('/api/courses/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    for (const s of items) {
+      await clAddOrBump({
         n: s.produit_nom || s.ingredient_nom || '?',
         icone: s.icone || null,
         m: defaultM,
@@ -4316,9 +4314,11 @@ async function stockAddSelectedToCourses() {
         qty: 1,
         unit: '',
         done: false,
-        origin: 'stock'
-      })
-    })));
+        origin: 'stock',
+        produitId: s.produit_id || null,
+        ingredientId: s.ingredient_id || null,
+      });
+    }
     _stockSelectedIds.clear();
     document.querySelectorAll('.prod-card.selected').forEach(c => c.classList.remove('selected'));
     document.querySelectorAll('.stock-checkbox.checked').forEach(cb => { cb.classList.remove('checked'); cb.textContent = ''; });
@@ -6425,14 +6425,7 @@ async function _validateScanToCourses() {
     const payload = { n: nom, icone, m: marchand, r: item.rayon || 'Autre', qty: item.qty, done: false, origin: 'manuel',
                       produitId: item.produitId || null };
     try {
-      const res = await fetch('/api/courses/items', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-      });
-      if (!res.ok) { err++; continue; }
-      const data = await res.json();
-      _cl.unshift({ ...payload, id: String(data.id), n: data.nom || nom,
-                    icone: data.icone || icone, r: data.rayon || payload.r,
-                    ingredientId: data.ingredientId || null, produitId: data.produitId || null });
+      await clAddOrBump(payload);
       ok += item.qty;
     } catch(e) { err++; }
   }
@@ -7083,6 +7076,40 @@ async function clQty(id,d) { const i=_cl.find(x=>x.id===id); if(i){const q=Math.
 function clToggleRayon(mKey, rayon){ const items=_cl.filter(i=>String(i.m)===String(mKey)&&i.r===rayon); const allDone=items.every(i=>i.done); items.forEach(i=>{i.done=!allDone;fetch('/api/courses/items/'+i.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});}); clRender(); }
 
 // ── Ajout depuis recherche (saisie libre) ─────────────────────────────────────
+// ── Ajout d'un article : point d'entree unique (BL-143) ─────────────────
+// Tous les chemins d'ajout passent par ici : saisie libre, autocompletion,
+// scanner, page Stock, page Menu. C'est le serveur qui decide de creer une
+// ligne ou d'incrementer celle qui existe (voir POST /api/courses/items) ;
+// cette fonction ne fait que refleter sa decision dans _cl.
+// Renvoie { item, merged } ; leve si la requete echoue.
+async function clAddOrBump(item) {
+  const payload = { qty: 1, done: false, origin: 'manuel', ...item };
+  const res = await fetch('/api/courses/items', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  const id = String(data.id);
+  const ligne = _cl.find(i => String(i.id) === id);
+  if (ligne) {
+    ligne.qty = data.qty != null ? data.qty : ligne.qty;
+    return { item: ligne, merged: !!data.merged };
+  }
+  // Fusion sur une ligne que cette copie de la liste n'avait pas (autre appareil,
+  // liste chargee avant) : on l'ajoute telle que le serveur la renvoie.
+  const creee = {
+    ...payload, id,
+    n:     data.nom   || payload.n,
+    icone: data.icone || payload.icone || null,
+    r:     data.rayon || payload.r || 'Autre',
+    qty:   data.qty != null ? data.qty : payload.qty,
+    ingredientId: data.ingredientId || payload.ingredientId || null,
+    produitId:    data.produitId    || payload.produitId    || null,
+  };
+  _cl.unshift(creee);
+  return { item: creee, merged: !!data.merged };
+}
+
 async function clAddItem() {
   const inp = document.getElementById('cl-search-input');
   const v   = inp?.value.trim(); if(!v) return;
@@ -7093,13 +7120,11 @@ async function clAddItem() {
   const defaultM = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
   const item = {qty:1, done:false, origin:'manuel', n:found?found.n:v, icone:null, m:defaultM, r:found?found.r:'Autre'};
   try {
-    const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
-    const data = await res.json();
-    _cl.unshift({...item, id:String(data.id), n:data.nom||item.n, icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null});
+    const { item: ligne, merged } = await clAddOrBump(item);
     clRender();
     if(inp){ inp.value=''; inp.classList.remove('expanded'); }
     _clSearchOpen=false;
-    showToast('✓ Ajouté à la liste','ok');
+    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ Ajouté à la liste','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
@@ -7185,12 +7210,10 @@ async function clPickSuggestion(nom, rayon, icone, produitId) {
   const defaultM = (tabM && tabM !== 'all') ? tabM : (_clMarchands[0] ? String(_clMarchands[0].id) : '0');
   const item = {qty:1,done:false,origin:'manuel',n:nom,icone:icone||null,m:defaultM,r:rayon||'Autre',produitId:produitId||null};
   try {
-    const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
-    const data = await res.json();
-    _cl.unshift({...item,id:String(data.id), icone:data.icone||item.icone, r:data.rayon||item.r, ingredientId:data.ingredientId||null, produitId:data.produitId||null});
+    const { item: ligne, merged } = await clAddOrBump(item);
     clRender();
     inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
-    showToast('✓ '+nom+' ajouté','ok');
+    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ '+nom+' ajouté','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
@@ -9540,9 +9563,7 @@ async function mFreeIngConfirm(){
   for(const [nom, it] of _mFreeSelected){
     const item = {n:nom, icone:it.icone||null, m:defaultM, r:it.rayon||'Autre', qty:1, done:false, origin:'manuel'};
     try{
-      const res = await fetch('/api/courses/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
-      const {id} = await res.json();
-      if(typeof _cl !== 'undefined') _cl.push({...item, id:String(id)});
+      await clAddOrBump(item);
       nbAdded++;
     }catch(e){}
   }
