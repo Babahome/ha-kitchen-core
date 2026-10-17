@@ -2218,11 +2218,48 @@ app.listen(PORT, '0.0.0.0', () => console.log(`[KitchenCore] v0.10.37 démarré 
 const HTTPS_PORT = 8443;
 const CERT_PATH  = '/ssl/fullchain.pem';
 const KEY_PATH   = '/ssl/privkey.pem';
+// Date d'expiration du certificat, pour les logs. X509Certificate existe depuis
+// Node 15 ; si jamais il manque, on s'en passe plutot que de faire echouer le
+// rechargement pour une ligne de log.
+function certExpireLe(pem) {
+  try { return new (require('crypto').X509Certificate)(pem).validTo; }
+  catch(_) { return 'date inconnue'; }
+}
+
 if (fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH)) {
   try {
     const https = require('https');
-    https.createServer({ cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) }, app)
-      .listen(HTTPS_PORT, '0.0.0.0', () => console.log(`[KitchenCore] HTTPS démarré sur https://0.0.0.0:${HTTPS_PORT}`));
+    const lireCert = () => ({ cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) });
+
+    let certCourant = lireCert();
+    const serveurHttps = https.createServer(certCourant, app);
+    serveurHttps.listen(HTTPS_PORT, '0.0.0.0', () =>
+      console.log(`[KitchenCore] HTTPS démarré sur https://0.0.0.0:${HTTPS_PORT} — certificat valide jusqu'au ${certExpireLe(certCourant.cert)}`));
+
+    // L'add-on DuckDNS renouvelle le certificat sur le disque ; sans ce
+    // rechargement, on continuait de servir celui garde en memoire au demarrage.
+    // setSecureContext() remplace le certificat a chaud, sans couper le serveur
+    // ni les connexions en cours.
+    function rechargerCert(raison) {
+      try {
+        const nouveau = lireCert();
+        // Rien n'a change : on ne log pas et on ne touche a rien.
+        if (nouveau.cert.equals(certCourant.cert) && nouveau.key.equals(certCourant.key)) return;
+        serveurHttps.setSecureContext(nouveau);
+        certCourant = nouveau;
+        console.log(`[KitchenCore] Certificat HTTPS rechargé (${raison}) — valide jusqu'au ${certExpireLe(nouveau.cert)}`);
+      } catch(e) {
+        // Lecture impossible (fichier en cours d'ecriture, droits…) : on garde
+        // le certificat actuel, le serveur continue de repondre.
+        console.warn('[KitchenCore] Rechargement du certificat impossible, l\'actuel est conservé :', e.message);
+      }
+    }
+
+    // Deux declencheurs : la surveillance reagit en quelques minutes au
+    // renouvellement, le minuteur sert de filet si la surveillance ne voit rien
+    // (fichier remplace par un lien, montage reseau…).
+    fs.watchFile(CERT_PATH, { interval: 5 * 60 * 1000 }, () => rechargerCert('fichier modifié'));
+    setInterval(() => rechargerCert('vérification périodique'), 12 * 60 * 60 * 1000);
   } catch(e) { console.warn('[KitchenCore] HTTPS non disponible:', e.message); }
 } else {
   console.log('[KitchenCore] Pas de certificat SSL — HTTPS désactivé');

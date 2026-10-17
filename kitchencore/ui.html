@@ -931,12 +931,16 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   cursor:pointer;border-bottom:1px solid var(--grey-l);transition:background .12s; }
 .cl-suggest-item:last-child{ border-bottom:none; }
 .cl-suggest-item:active{ background:var(--orange-l); }
-.cl-suggest-name{ font-size:.88rem;font-weight:700;flex:1;min-width:0; }
+.cl-suggest-txt { flex:1;min-width:0;display:flex;flex-direction:column;gap:2px; }
+.cl-suggest-name{ font-size:.88rem;font-weight:700;min-width:0;overflow-wrap:anywhere; }
 .cl-suggest-name b{ color:var(--orange);font-weight:900; }
 .cl-suggest-tag { margin-left:6px; font-size:.62rem; font-weight:800; text-transform:uppercase;
                   letter-spacing:.04em; color:var(--orange); background:var(--orange-l);
                   border-radius:5px; padding:1px 5px; vertical-align:middle; }
-.cl-suggest-rayon{ font-size:.68rem;color:var(--grey-d);font-weight:700;flex-shrink:0;white-space:nowrap; }
+/* Le rayon vit sous le nom : il peut donc se reduire et se couper proprement
+   au lieu de voler sa largeur au nom (BL-176). */
+.cl-suggest-rayon{ font-size:.68rem;color:var(--grey-d);font-weight:700;min-width:0;
+                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .cl-suggest-empty{ padding:12px 14px;font-size:.82rem;color:var(--grey-d);font-weight:600;font-style:italic; }
 /* Edit sheet quantité / unité */
 .cl-edit-modal{ position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:150;
@@ -7203,8 +7207,10 @@ function clShowSuggestions(items, q) {
       : `<span style="font-size:.6rem;font-weight:800;color:var(--grey-d)">${ini}</span>`;
     return `<div class="cl-suggest-item" onclick="clPickSuggestionIdx(${idx})">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--grey-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${avatar}</div>
-      <div class="cl-suggest-name">${hl}${it.type==='produit'?'<span class="cl-suggest-tag">produit</span>':''}</div>
-      ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
+      <div class="cl-suggest-txt">
+        <div class="cl-suggest-name">${hl}${it.type==='produit'?'<span class="cl-suggest-tag">produit</span>':''}</div>
+        ${r?`<div class="cl-suggest-rayon">${r}</div>`:''}
+      </div>
     </div>`;
   }).join('');
   list.classList.add('visible');
