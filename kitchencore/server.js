@@ -37,7 +37,35 @@ function photoToFile(photo, prefix) {
 const db = new Database(path.join(DATA_DIR, 'kitchencore.db'));
 // œ et æ sont des LIGATURES, pas des lettres accentuees : NFD ne les decompose
 // pas, donc « oeuf » et « œuf » ne se rencontraient jamais. On les deplie avant.
-db.function('NORM', s => s ? String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : '');
+function norm(s) { return s ? String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() : ''; }
+db.function('NORM', norm);
+
+// Pertinence d'un resultat de recherche : score BAS = plus pertinent (BL-175).
+// Cherchant « oeuf », on veut « Oeufs » avant « jaune d'oeuf », lui-meme avant
+// « boeuf hache » — qui ne ressort que parce que NORM(« boeuf ») contient la
+// sous-chaine « oeuf ». Apres NORM il ne reste que des minuscules sans accents,
+// donc tout ce qui n'est ni lettre ni chiffre separe les mots : l'apostrophe de
+// « jaune d'oeuf » compte comme une separation.
+function searchRank(texte, q) {
+  const n = norm(texte), t = norm(q).trim();
+  if (!t) return 9;
+  if (n === t) return 0;                                              // identique
+  if (n.startsWith(t)) return 1;                                      // commence par
+  const mots   = n.split(/[^a-z0-9]+/).filter(Boolean);
+  const termes = t.split(/[^a-z0-9]+/).filter(Boolean);
+  if (termes.every(x => mots.includes(x))) return 2;                  // chaque terme = un mot entier
+  if (termes.every(x => mots.some(m => m.startsWith(x)))) return 3;   // chaque terme commence un mot
+  return 4;                                                          // sous-chaine quelconque
+}
+
+// Trie par pertinence, puis le nom le plus court (le plus specifique), puis l'alphabet.
+function sortByRank(rows, q, texteDe) {
+  return rows
+    .map(r => ({ ...r, rank: searchRank(texteDe(r), q) }))
+    .sort((a, b) => a.rank - b.rank
+      || texteDe(a).length - texteDe(b).length
+      || String(a.nom).localeCompare(String(b.nom), 'fr'));
+}
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -643,12 +671,15 @@ app.post('/api/ingredients/merge', (req, res) => {
 app.get('/api/ingredients/search', (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);
-  res.json(db.prepare(
+  // LIMIT large puis classement : avec un LIMIT 8 alphabetique, le resultat le
+  // plus pertinent pouvait etre coupe avant d'arriver au navigateur.
+  const rows = db.prepare(
     `SELECT i.id, i.nom, i.categorie, i.icone, r.nom AS rayon_nom
      FROM ingredients i
      LEFT JOIN rayons r ON r.id = i.rayon_id
-     WHERE NORM(i.nom) LIKE NORM(?) ORDER BY i.nom LIMIT 8`
-  ).all(`%${q}%`));
+     WHERE NORM(i.nom) LIKE NORM(?) ORDER BY i.nom LIMIT 60`
+  ).all(`%${q}%`);
+  res.json(sortByRank(rows, q, r => r.nom).slice(0, 8));
 });
 
 // Recherche dans les produits deja scannes, pour les ajouter a la liste de courses.
@@ -661,7 +692,7 @@ app.get('/api/produits/search', (req, res) => {
   const mots = q.split(/\s+/).filter(Boolean).slice(0, 6);
   const cond = mots.map(() => "NORM(COALESCE(p.nom,'') || ' ' || COALESCE(p.marque,'')) LIKE NORM(?)").join(' AND ');
   try {
-    res.json(db.prepare(
+    const rows = db.prepare(
       `SELECT p.id, p.nom, p.marque, p.ingredient_id,
               COALESCE(p.icone, a.icone)        AS icone,
               COALESCE(rp.nom, ra.nom)          AS rayon_nom
@@ -670,8 +701,10 @@ app.get('/api/produits/search', (req, res) => {
        LEFT JOIN rayons      rp ON rp.id = p.rayon_id
        LEFT JOIN rayons      ra ON ra.id = a.rayon_id
        WHERE ${cond}
-       ORDER BY p.nom LIMIT 8`
-    ).all(...mots.map(m => `%${m}%`)));
+       ORDER BY p.nom LIMIT 60`
+    ).all(...mots.map(m => `%${m}%`));
+    // La marque fait partie de ce qu'on cherche (« eau de repassage carrefour »)
+    res.json(sortByRank(rows, q, r => `${r.nom} ${r.marque || ''}`.trim()).slice(0, 8));
   } catch (e) {
     console.error('[/api/produits/search]', e.message);
     res.status(500).json({ error: e.message });

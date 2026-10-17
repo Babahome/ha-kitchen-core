@@ -7165,20 +7165,36 @@ async function clFetchSuggestions(q) {
     fetch('/api/ingredients/search?q='+e).then(r=>r.ok?r.json():[]).catch(()=>[]),
     fetch('/api/produits/search?q='+e).then(r=>r.ok?r.json():[]).catch(()=>[]),
   ]);
+  // Les deux routes renvoient un `rank` (0 = le plus pertinent, voir searchRank
+  // dans server.js). On les fusionne sur ce critere commun au lieu de coller
+  // bout a bout ingredients puis produits.
   const items = [
-    ...ings.map(i =>({ type:'ingredient', nom:i.nom, marque:'',           icone:i.icone||'', rayon:i.rayon_nom||'' })),
-    ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'', produitId:p.id })),
-  ].slice(0, 10);
+    ...ings.map(i =>({ type:'ingredient', nom:i.nom, marque:'',           icone:i.icone||'', rayon:i.rayon_nom||'', rank:i.rank ?? 4 })),
+    ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'', produitId:p.id, rank:p.rank ?? 4 })),
+  ].sort((a,b) => a.rank - b.rank || a.nom.length - b.nom.length || a.nom.localeCompare(b.nom,'fr'))
+   .slice(0, 8);
   clShowSuggestions(items, q);
 }
 function clShowSuggestions(items, q) {
   const list = document.getElementById('cl-suggest-list'); if(!list) return;
   if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient ni produit trouvé</div>'; list.classList.add('visible'); return; }
   const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  // Le surlignage comparait le texte BRUT : en cherchant « oeuf », « Œuf » et
+  // « œufs de caille » n'étaient pas surlignés alors que ce sont les meilleurs
+  // résultats, et l'orange n'apparaissait que sur des réponses moins pertinentes.
+  // On fait donc accepter les deux écritures des ligatures au motif (cf. NORM).
+  const motif = safe.replace(/oe|œ/gi, '(?:oe|œ)').replace(/ae|æ/gi, '(?:ae|æ)');
+  let rxHl = null;
+  try { rxHl = new RegExp(motif, 'gi'); } catch(_) {}
+  // `.cl-suggest-list` est ancree par le bas et s'ouvre vers le HAUT : le dernier
+  // element du DOM est celui qui touche le champ de saisie, donc celui que l'oeil
+  // voit en premier. On inverse l'ordre pour y mettre le plus pertinent (BL-175).
+  const affichage = [...items].reverse();
   // Stocke les données dans _clSuggestData pour éviter les problèmes d'apostrophes dans les onclick inline
-  window._clSuggestData = items.map(it=>({nom:it.nom, marque:it.marque||'', rayon:it.rayon||'', icone:it.icone||'', type:it.type||'ingredient', produitId:it.produitId||null}));
-  list.innerHTML = items.map((it,idx)=>{
-    const hl  = it.nom.replace(new RegExp(safe,'gi'),m=>`<b>${m}</b>`);
+  // (meme ordre que l'affichage, les index des onclick doivent correspondre)
+  window._clSuggestData = affichage.map(it=>({nom:it.nom, marque:it.marque||'', rayon:it.rayon||'', icone:it.icone||'', type:it.type||'ingredient', produitId:it.produitId||null}));
+  list.innerHTML = affichage.map((it,idx)=>{
+    const hl  = rxHl ? it.nom.replace(rxHl, m=>`<b>${m}</b>`) : it.nom;
     const r   = it.marque || it.rayon || '';
     const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
     const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
