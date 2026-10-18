@@ -5606,6 +5606,52 @@ function _pzLoad() {
 }
 
 // ── Navigation (FAB + fab-search selon page) ─────────────────────────────────
+// Effets de bord du changement de page, en UN SEUL endroit (BL-89).
+// Avant, quatre modules ajoutaient chacun leur propre ecouteur sur .nav-tab en
+// plus de ce que faisait deja switchPage : la reponse a « on change de page »
+// vivait a cinq endroits, et deux d'entre eux faisaient deux fois le travail.
+// Les ecouteurs ne se declenchaient qu'au clic sur un onglet du bas ; ici les
+// effets s'appliquent AUSSI aux navigations declenchees par le code (ouvrir une
+// recette depuis le Menu, par exemple), ce qui est le comportement voulu.
+
+// Ce qu'on fait en ARRIVANT sur une page. Une seule entree par page.
+const PAGE_ENTREE = {
+  stock:                () => _stockLoad(),
+  courses:              () => _clLoad(),
+  recettes:             () => { loadRecettes(); loadTags(); },
+  menu:                 () => _mLoad(),
+  ingredients:          () => window.__ingLoadData(),
+  produits:             () => _gpLoad(),
+  rayons:               () => _ryLoad(),
+  marchands:            () => _mchLoad(),
+  'suggestion-config':  () => _sgcLoad(),
+  'zones-stock':        () => _zsLoad(),
+  tags:                 () => _tagLoad(),
+  personnalisation:     () => _pzLoad(),
+};
+
+// Ce qu'on range des qu'on n'est PLUS sur une page : modes selection, menus
+// ouverts, etats temporaires. Attention au sens : chaque entree s'execute a
+// chaque changement de page ou `page` n'est pas la sienne — pas seulement en
+// quittant la page. C'est exactement ce que faisaient les anciens tests
+// `if (page !== 'tags')`.
+const PAGE_RANGEMENT = {
+  stock:    () => { _stockSelectMode = false; _stockSelectedIds.clear(); stockHideHdmenu(); },
+  courses:  () => clExitSelMode(),
+  recettes: () => rvFabDialClose(),
+  menu:     () => { if (_mSelMode) mSelExit(); mHideHdmenu(); },
+  tags:     () => { _tagExitSelectMode(); tagCloseMergeSheet(); },
+  backup:   () => _bkReset(),
+};
+
+// Un module absent ou en erreur ne doit jamais casser la navigation : on
+// remplace les anciens gardes `typeof X === 'function'` par un try/catch, qui
+// couvre en plus les erreurs survenant DANS l'effet.
+function _effetPage(fn) {
+  try { if (typeof fn === 'function') fn(); }
+  catch (e) { console.warn('[switchPage] effet de page ignore :', e.message); }
+}
+
 function switchPage(tab, page, title) {
   // pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -5680,34 +5726,17 @@ function switchPage(tab, page, title) {
     if (page === 'stock') stScanBtn.classList.add('visible');
     else stScanBtn.classList.remove('visible');
   }
-  // Build menu timeline
-  if (page === 'menu' && typeof _mLoad === 'function') _mLoad();
-  // Charger les recettes depuis l'API
-  if (page === 'recettes' && typeof loadRecettes === 'function') { loadRecettes(); loadTags(); }
-  // Page ingrédients : visibilité fab-search/merge-bar + rendu
+  // Visibilité fab-search / merge-bar de la page Ingrédients : dépend de TOUTE
+  // page affichée, donc hors des tables d'effets.
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
-  if (page === 'ingredients' && typeof window.__ingLoadData === 'function') window.__ingLoadData();
-  if (page === 'rayons'             && typeof _ryLoad     === 'function') _ryLoad();
-  if (page === 'marchands'          && typeof _mchLoad    === 'function') _mchLoad();
-  if (page === 'suggestion-config'  && typeof _sgcLoad    === 'function') _sgcLoad();
-  if (page === 'zones-stock'        && typeof _zsLoad     === 'function') _zsLoad();
-  if (page === 'produits'           && typeof _gpLoad     === 'function') _gpLoad();
-  if (page === 'tags'               && typeof _tagLoad    === 'function') _tagLoad();
-  // Tags page header visibility
+  // Header de la page Tags
   const tagHA = document.getElementById('tag-headerActions');
   if (tagHA) tagHA.classList.toggle('visible', page === 'tags');
-  if (page !== 'tags' && typeof _tagExitSelectMode === 'function') _tagExitSelectMode();
-  if (page !== 'tags' && typeof tagCloseMergeSheet === 'function') tagCloseMergeSheet();
-  if (page === 'stock'              && typeof _stockLoad  === 'function') _stockLoad();
-  if (page !== 'stock') {
-    _stockSelectMode = false;
-    _stockSelectedIds.clear();
-    stockHideHdmenu();
-  }
-  if (page !== 'courses' && typeof clExitSelMode === 'function') clExitSelMode();
-  if (page !== 'backup' && typeof _bkReset === 'function') _bkReset();
-  if (page === 'personnalisation' && typeof _pzLoad === 'function') _pzLoad();
-  if (page !== 'recettes' && typeof rvFabDialClose === 'function') rvFabDialClose();
+
+  // Effets de page : on range d'abord ce que les autres pages ont laissé
+  // ouvert, puis on charge celle où l'on arrive.
+  for (const p in PAGE_RANGEMENT) { if (p !== page) _effetPage(PAGE_RANGEMENT[p]); }
+  _effetPage(PAGE_ENTREE[page]);
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -7583,13 +7612,6 @@ function clCopyFourche() {
 document.addEventListener('DOMContentLoaded', function() {
   _clLoad();
   // Rafraîchir depuis l'API à chaque fois qu'on ouvre l'onglet courses
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      if(tab.querySelector('.nav-label')?.textContent === 'Courses') {
-        setTimeout(_clLoad, 50);
-      }
-    });
-  });
   // Ferme les suggestions si clic en dehors du pill ou du dropdown
   document.addEventListener('click', e=>{
     const pill = document.getElementById('cl-fab-search');
@@ -8086,7 +8108,20 @@ document.addEventListener('visibilitychange', ()=>{
   if(_cookMode && document.visibilityState === 'visible' && !_wakeLock) _cookWakeRequest();
 });
 
-function closeDetail() { detailMenuClose(); cookModeOff(true); document.getElementById('panel-detail').classList.remove('open'); _currentId=null; }
+function closeDetail() {
+  detailMenuClose(); cookModeOff(true);
+  document.getElementById('panel-detail').classList.remove('open');
+  _currentId = null;
+  // Revenir d'où l'on venait quand le détail a été ouvert depuis une autre page
+  // (Menu, Courses…). C'était un enveloppement de closeDetail par l'extérieur,
+  // le motif même que BL-89 reprochait à fabAction : c'est maintenant ici.
+  if (_mReturnPage && _mReturnPage !== 'recettes') {
+    const retour = _mReturnPage;
+    switchPage(document.querySelector(`.nav-tab[data-page="${retour}"]`),
+               retour, (PAGE_CONFIG[retour] || {}).title || retour);
+  }
+  _mReturnPage = null;
+}
 function detailMenuToggle(e) {
   e.stopPropagation();
   const m = document.getElementById('detail-ctx');
@@ -8845,11 +8880,6 @@ async function rvJsonImport() {
 
 // ── Hooks recettes ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.nav-tab').forEach(function(t) {
-    t.addEventListener('click', function() {
-      if(t.querySelector('.nav-label')?.textContent==='Recettes') setTimeout(renderList,50);
-    });
-  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -9369,33 +9399,13 @@ async function mOpenDetailFromCard(k,x){
     // des recettes ne s'affiche jamais en transit. Avant : switchPage puis openDetail
     // 80 ms plus tard → la liste complète clignotait le temps du fetch.
     await openDetail(r.id);
-    const recTab = Array.from(document.querySelectorAll('.nav-tab'))
-      .find(t=>t.querySelector('.nav-label')?.textContent==='Recettes');
-    if(typeof switchPage==='function') switchPage(recTab, 'recettes', 'Recettes');
+    // data-page et non le libellé affiché : renommer « Recettes » en « Mes
+    // recettes » cassait la navigation (BL-89).
+    switchPage(document.querySelector('.nav-tab[data-page="recettes"]'), 'recettes', 'Recettes');
   } else {
     showToast('Recette non enregistrée — utilisez ✏️ pour modifier','warn');
   }
 }
-// Hook closeDetail : si on venait du menu, y revenir
-(function(){
-  if(typeof window.closeDetail !== 'function') return;
-  const _origCloseDetail = window.closeDetail;
-  window.closeDetail = function(){
-    _origCloseDetail();
-    if(_mReturnPage && _mReturnPage !== 'recettes'){
-      const tab = Array.from(document.querySelectorAll('.nav-tab'))
-        .find(t=>{
-          const lbl = t.querySelector('.nav-label')?.textContent;
-          // Mapping label → page id
-          const map = {'Cuisine':'stock','Courses':'courses','Recettes':'recettes','Menu':'menu'};
-          return map[lbl] === _mReturnPage;
-        });
-      const titles = {stock:'Stock Cuisine',courses:'Courses',recettes:'Recettes',menu:'Menu'};
-      if(typeof switchPage==='function') switchPage(tab||null, _mReturnPage, titles[_mReturnPage]||_mReturnPage);
-    }
-    _mReturnPage = null;
-  };
-})();
 
 // Ajouter à la liste de courses les ingrédients des recettes sélectionnées
 let _mIngData = [], _mIngChecked = new Set();
@@ -9737,12 +9747,6 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   // Quitter le mode sélection quand on change de page
-  document.querySelectorAll('.nav-tab').forEach(t=>{
-    t.addEventListener('click', function(){
-      if(_mSelMode) mSelExit();
-      mHideHdmenu();
-    });
-  });
 
   // Fermer le menu header en cliquant ailleurs
   document.addEventListener('click', function(e){
@@ -11633,16 +11637,6 @@ document.addEventListener('DOMContentLoaded', function() {
   _ingApplyPageVisibility(page);
 
   // Écouter les clics sur les onglets nav-tab pour appliquer la visibilité
-  document.querySelectorAll('.nav-tab').forEach(t => {
-    t.addEventListener('click', function() {
-      setTimeout(() => {
-        const a = document.querySelector('.page.active');
-        const p = a?.id.replace('page-', '');
-        _ingApplyPageVisibility(p);
-        if (p === 'ingredients') _ingRender();
-      }, 30);
-    });
-  });
 
   // Écouter aussi les clics dans le drawer (entrée "Gérer les ingrédients")
   document.querySelectorAll('.drawer-item').forEach(d => {
