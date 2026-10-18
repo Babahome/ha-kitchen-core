@@ -2,7 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- interactive-widget=resizes-content : a l'ouverture du clavier, le navigateur
+     redimensionne le viewport de mise en page au lieu de faire defiler toute la page.
+     `.frame` etant en position:fixed;inset:0, elle suit ce viewport et le header reste
+     visible au-dessus du clavier (BL-181). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>KitchenCore</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23E8671A'/><text x='16' y='22' font-family='Arial,sans-serif' font-size='16' font-weight='900' text-anchor='middle' fill='white'>KC</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -489,6 +493,16 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 }
 .fab-search-input.expanded { width: 160px; }
 .fab-search-input::placeholder { color: var(--grey-d); }
+/* type="search" sur les champs de recherche (BL-23) : on neutralise le style
+   natif et la croix d'effacement pour que l'apparence reste identique. */
+.fab-search-input, .cl-fab-search-input, .st-fab-search-input,
+.ing-fab-search-input, .m-free-ing-input, .rv-tag-search { -webkit-appearance:none; appearance:none; }
+.fab-search-input::-webkit-search-cancel-button,
+.cl-fab-search-input::-webkit-search-cancel-button,
+.st-fab-search-input::-webkit-search-cancel-button,
+.ing-fab-search-input::-webkit-search-cancel-button,
+.m-free-ing-input::-webkit-search-cancel-button,
+.rv-tag-search::-webkit-search-cancel-button { -webkit-appearance:none; display:none; }
 /* Bouton ✕ effacer — commun aux 3 barres de recherche pill */
 .fab-clear-btn {
   display: none; align-items: center; justify-content: center;
@@ -2531,8 +2545,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <!-- fab-search courses -->
       <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
         <span>🔍</span>
-        <input class="cl-fab-search-input" id="cl-search-input" placeholder="Ajouter un article…"
-          autocomplete="off"
+        <input class="cl-fab-search-input" id="cl-search-input" type="search" placeholder="Ajouter un article…"
+          autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
           onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
           onkeydown="if(event.key==='Escape')clToggleSearch();else if(event.key==='Enter'){event.preventDefault();clAddItem();}">
         <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
@@ -2544,7 +2558,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div id="page-recettes" class="page" style="background:var(--grey-l)">
 
       <div class="rv-tagbar">
-        <input id="rv-tag-search" class="rv-tag-search" type="search" placeholder="Tag…" autocomplete="off"
+        <input id="rv-tag-search" class="rv-tag-search" type="search" placeholder="Tag…" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
                oninput="rvTagSearch(this.value)" aria-label="Rechercher un tag">
         <div id="rv-chips" class="chips">
           <div class="chip on" onclick="setFilter(this)">🍽️ Tout</div>
@@ -2944,7 +2958,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <div class="fab-search" id="fab-search" onclick="toggleSearch()">
     <span>🔍</span>
-    <input class="fab-search-input" id="search-input" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
+    <input class="fab-search-input" id="search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
     <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer">✕</button>
   </div>
 
@@ -2962,7 +2976,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- fab-search stock -->
   <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
     <span class="st-fab-search-icon">🔍</span>
-    <input class="st-fab-search-input" id="st-search-input" placeholder="Nom, marque, code-barres…"
+    <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockOrGpRender()">
     <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer">✕</button>
@@ -3105,6 +3119,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
             <div class="stock-sf-opt" data-fetat="sans-rayon" onclick="ingSfToggleFetat(this,'sans-rayon')"><span class="sf-check">✓</span> ⚠️ Sans rayon</div>
             <div class="stock-sf-opt" data-fetat="sans-image" onclick="ingSfToggleFetat(this,'sans-image')"><span class="sf-check">✓</span> 🖼 Sans image</div>
             <div class="stock-sf-opt" data-fetat="sans-recette" onclick="ingSfToggleFetat(this,'sans-recette')"><span class="sf-check">✓</span> 📋 Sans recette</div>
+            <div class="stock-sf-opt" data-fetat="avec-recette" onclick="ingSfToggleFetat(this,'avec-recette')"><span class="sf-check">✓</span> 🍽️ Avec recette</div>
             <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><span class="sf-check">✓</span> 🌿 Sans saison</div>
           </div>
         </div>
@@ -3190,7 +3205,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="m-ing-head">
         <div class="m-ing-title">Ajouter des ingrédients</div>
         <div class="m-free-ing-search-wrap">
-          <input id="m-free-ing-input" class="m-free-ing-input" type="text" placeholder="Rechercher un ingrédient…" oninput="mFreeIngSearch(this.value)" onkeydown="if(event.key==='Enter')mFreeIngPickFirst()">
+          <input id="m-free-ing-input" class="m-free-ing-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Rechercher un ingrédient…" oninput="mFreeIngSearch(this.value)" onkeydown="if(event.key==='Enter')mFreeIngPickFirst()">
         </div>
       </div>
       <div class="m-ing-list" id="m-free-ing-list"></div>
@@ -3414,7 +3429,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <div class="ing-fab-search" id="ing-fabSearch" onclick="ingOpenSearch()">
     <span class="icon">🔍</span>
     <span class="fab-label">Rechercher</span>
-    <input class="ing-fab-search-input" id="ing-searchInput" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
+    <input class="ing-fab-search-input" id="ing-searchInput" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
     <button class="ing-fab-search-add" onclick="ingCreateFromSearch()" title="Créer cet ingrédient">+</button>
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)">✕</button>
   </div>
@@ -3667,7 +3682,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <!-- Nom (saisie libre uniquement) -->
       <div id="cl-edit-nom-wrap" style="display:none;margin-bottom:22px">
         <div class="edit-field-label">Nom</div>
-        <input id="cl-edit-nom" type="text" placeholder="Nom de l'article…" autocomplete="off"
+        <input id="cl-edit-nom" type="text" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom de l'article…" autocomplete="off"
           style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
                  font-size:.95rem;font-weight:700;font-family:var(--font);
                  outline:none;color:var(--text);background:var(--grey-l);box-sizing:border-box;"
@@ -3679,7 +3694,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="edit-field-label">Quantité</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
         <button class="cl-edit-pm" onclick="clEditQtyStep(-1)">−</button>
-        <input id="cl-edit-qty" type="number" min="0.1" step="0.1" autocomplete="off"
+        <input id="cl-edit-qty" type="number" min="0.1" step="0.1" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
           style="border:2px solid var(--grey);border-radius:10px;padding:10px 12px;
                  font-size:1.4rem;font-weight:900;font-family:var(--font);text-align:center;
                  outline:none;color:var(--text);background:var(--grey-l);display:block;"
@@ -3691,7 +3706,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
       <!-- Unité -->
       <div class="edit-field-label">Unité <span style="font-weight:600;text-transform:none;letter-spacing:0">(optionnelle)</span></div>
-      <input id="cl-edit-unit" type="text" placeholder="ex: kg, L, pièce…" autocomplete="off"
+      <input id="cl-edit-unit" type="text" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="ex: kg, L, pièce…" autocomplete="off"
         style="width:100%;border:2px solid var(--grey);border-radius:10px;padding:10px 14px;
                font-size:.95rem;font-weight:700;font-family:var(--font);
                outline:none;color:var(--text);background:var(--grey-l);margin-bottom:10px;"
@@ -10269,6 +10284,9 @@ async function _ingSetParent(childId, parentId) {
     return node && node.parent_id ? (node.parent_id === targetId || isDesc(node.parent_id, targetId, visited)) : false;
   };
   if (isDesc(parentId, childId)) { _ingToast('Impossible : créerait une boucle'); return; }
+  // Un glissement mal assuré suffisait à créer un lien, sans retour en arrière
+  // possible autre que le bouton Dissocier du panneau d'édition (BL-182).
+  if (!confirm(`Rattacher « ${child.name} » à « ${parent.name} » ?`)) return;
   try {
     const r = await fetch('/api/ingredients/' + child._dbId, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -10414,6 +10432,7 @@ function _ingGetFilteredItems() {
   if (_ingFEtat.has('sans-rayon'))   items = items.filter(i => !_ingEffectiveRayonId(i));
   if (_ingFEtat.has('sans-image'))   items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingFEtat.has('sans-recette')) items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
+  if (_ingFEtat.has('avec-recette')) items = items.filter(i => i.usedIn && i.usedIn.length > 0);
   if (_ingFEtat.has('sans-saison'))  items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
   items.sort((a, b) => {
     let cmp;
