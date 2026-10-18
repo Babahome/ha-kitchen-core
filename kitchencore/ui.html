@@ -802,14 +802,6 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 /* ══ COURSES v2 ════════════════════════════════════════════════════════════ */
 .cl-header    { background:white;border-bottom:1px solid var(--grey);position:sticky;top:0;z-index:10; }
-.cl-top       { display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0; }
-.cl-title     { font-size:1rem;font-weight:800; }
-.cl-count     { font-size:.75rem;color:var(--grey-d);font-weight:700; }
-.cl-top-right { display:flex;align-items:center;gap:10px; }
-.cl-scan-btn  { width:32px;height:32px;border-radius:50%;border:none;background:var(--orange-l);color:var(--orange);
-                display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
-                padding:0;transition:transform .15s; }
-.cl-scan-btn:active { transform:scale(.9); }
 .scan-item-rename { flex:1;min-width:0;border:1.5px solid var(--orange);border-radius:8px;padding:5px 8px;
                     font-family:inherit;font-size:.85rem;font-weight:700;background:#fff;color:#222; }
 .cl-tabs      { display:flex;overflow-x:auto;scrollbar-width:none;padding:8px 14px 0; }
@@ -2497,13 +2489,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div id="page-courses" class="page" style="background:var(--grey-l)">
 
       <div class="cl-header">
-        <div class="cl-top">
-          <div class="cl-title">Ma Liste</div>
-          <div class="cl-top-right">
-            <div class="cl-count" id="cl-count">0 article</div>
-            <button class="cl-scan-btn" id="cl-scan-btn" onclick="clOpenScan()" title="Scanner un code-barres" aria-label="Scanner un code-barres"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/></svg></button>
-          </div>
-        </div>
         <div class="cl-tabs" id="cl-tabs">
           <div class="cl-tab on"  data-m="all"     onclick="clTab(this,'all')">Tout</div>
         </div>
@@ -2547,7 +2532,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <span>🔍</span>
         <input class="cl-fab-search-input" id="cl-search-input" type="search" placeholder="Ajouter un article…"
           autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
-          onclick="event.stopPropagation()" oninput="clSearchFilter(this.value)"
+          onclick="event.stopPropagation()" oninput="clSearchFilter(this.value);clFabUpdate()"
           onkeydown="if(event.key==='Escape')clToggleSearch();else if(event.key==='Enter'){event.preventDefault();clAddItem();}">
         <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
       </div>
@@ -4278,6 +4263,7 @@ function stockHideMainHdmenu() {
 }
 
 const _SVG_FAB_PLUS = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+const _SVG_FAB_SCAN = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/></svg>`;
 const _SVG_FAB_CART = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/><line x1="12" y1="13" x2="12" y2="19"/><polyline points="9 16 12 19 15 16"/></svg>`;
 
 function _stockUpdateFab() {
@@ -5631,8 +5617,12 @@ function _pzLoad() {
 
 // Ce qu'on fait en ARRIVANT sur une page. Une seule entree par page.
 const PAGE_ENTREE = {
-  stock:                () => _stockLoad(),
-  courses:              () => _clLoad(),
+  // _stockUpdateFab remet l'icone du FAB (+ ou panier selon la selection) :
+  // switchPage ne la reinitialise volontairement pas sur la page Stock, donc
+  // sans cet appel on heritait de l'icone de la page precedente — visible
+  // depuis que le FAB des Courses porte l'icone scan (BL-110).
+  stock:                () => { _stockLoad(); _stockUpdateFab(); },
+  courses:              () => { _clLoad(); clFabUpdate(); },
   recettes:             () => { loadRecettes(); loadTags(); },
   menu:                 () => _mLoad(),
   ingredients:          () => window.__ingLoadData(),
@@ -6978,7 +6968,7 @@ function clBuildMarchandTabs() {
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 function clRender() {
   const total = _cl.filter(i=>!i.done).length;
-  document.getElementById('cl-count').textContent = total + ' article' + (total>1?'s':'');
+  // Le compteur a disparu avec le bandeau (BL-110) : plus rien a mettre a jour ici.
   const byM = {};
   _clMarchands.forEach(m => { byM[String(m.id)] = []; });
   _cl.forEach(i => { const k = String(i.m); if (byM[k]) byM[k].push(i); });
@@ -7209,6 +7199,7 @@ async function clAddItem() {
     clRender();
     if(inp){ inp.value=''; inp.classList.remove('expanded'); }
     _clSearchOpen=false;
+    clFabUpdate();   // champ vide : le FAB redevient le scan (BL-110)
     showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ Ajouté à la liste','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
@@ -7221,6 +7212,7 @@ function clToggleSearch() {
   _clSearchOpen = !_clSearchOpen;
   if(_clSearchOpen){ inp.classList.add('expanded'); setTimeout(()=>inp.focus(),50); }
   else { inp.classList.remove('expanded'); inp.value=''; clSearchFilter(''); clHideSuggestions(); inp.blur(); }
+  clFabUpdate();
 }
 // Ligatures depliees avant NFD (voir NORM dans server.js)
 function clNorm(s){ return String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
@@ -7316,15 +7308,32 @@ async function clPickSuggestion(nom, rayon, icone, produitId) {
     const { item: ligne, merged } = await clAddOrBump(item);
     clRender();
     inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
+    clFabUpdate();   // champ vide : le FAB redevient le scan (BL-110)
     showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ '+nom+' ajouté','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
 // ── FAB courses ───────────────────────────────────────────────────────────────
+// Le bouton scan a ete fusionne dans le FAB principal (BL-110) : champ d'ajout
+// vide, le FAB scanne ; des qu'on y tape quelque chose, il redevient le « + »
+// qui ajoute ce texte. La barre de recherche s'ouvre toujours par la pastille
+// loupe en bas a gauche, le FAB n'a donc plus a s'en charger.
 function clFabAction() {
   const v = document.getElementById('cl-search-input')?.value.trim();
-  if(v) { clAddItem(); }
-  else  { clToggleSearch(); }
+  if (v) clAddItem();
+  else   clOpenScan();
+}
+
+// Met l'icone du FAB en accord avec l'action qu'il declenchera. Appele a la
+// frappe, a l'ouverture/fermeture de la recherche, et a l'arrivee sur la page
+// (switchPage remet le « + » par defaut sur toute page autre que Stock).
+function clFabUpdate() {
+  if (document.querySelector('.page.active')?.id !== 'page-courses') return;
+  const fab = document.getElementById('main-fab');
+  if (!fab) return;
+  const v = document.getElementById('cl-search-input')?.value.trim();
+  fab.innerHTML = v ? (_SVG_FAB_PLUS || '+') : (_SVG_FAB_SCAN || '+');
+  fab.title = v ? 'Ajouter \u00e0 la liste' : 'Scanner un code-barres';
 }
 
 // ── Menu contextuel ••• ───────────────────────────────────────────────────────
