@@ -7623,6 +7623,48 @@ function clCopyFourche() {
   navigator.clipboard.writeText(txt).then(()=>showToast('✓ Liste copiée','ok')).catch(()=>alert(txt));
 }
 
+// ── Clavier virtuel : garder .frame au-dessus du clavier (BL-181) ───────────
+// `interactive-widget=resizes-content` suffit sur Chrome Android : le viewport
+// de mise en page retrecit, `.frame` (position:fixed; inset:0) le suit, rien a
+// faire en JS. Safari ne le supporte PAS : le viewport de mise en page garde sa
+// taille et le navigateur fait defiler la page pour montrer le champ, ce qui
+// pousse le header hors de l'ecran.
+//
+// On ne choisit PAS sur le nom du navigateur mais sur ce qu'on mesure : si le
+// viewport visible est nettement plus court que le viewport de mise en page,
+// c'est qu'un clavier occupe la place sans que la page ait ete redimensionnee —
+// le cas Safari. On donne alors a `.frame` la hauteur reellement visible.
+//
+// Ce n'est PAS un retour au `height:100dvh` proscrit (v0.10.255) : on ecrit une
+// hauteur en pixels mesuree a l'instant T, pas une unite que le navigateur
+// resout mal, et uniquement le temps que le clavier soit ouvert. Hors clavier,
+// les styles sont retires et `inset:0` reprend seul la main.
+function _kcAjusterClavier() {
+  const vv = window.visualViewport;
+  const frame = document.querySelector('.frame');
+  if (!vv || !frame) return;
+  // Seuil : les barres d'outils du navigateur font varier la hauteur de
+  // quelques dizaines de pixels, un clavier en prend bien davantage.
+  const manque = document.documentElement.clientHeight - vv.height;
+  if (manque > 60) {
+    frame.style.height = vv.height + 'px';
+    frame.style.top    = vv.offsetTop + 'px';
+  } else {
+    frame.style.height = '';
+    frame.style.top    = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const vv = window.visualViewport;
+  if (!vv) return;                      // navigateur trop ancien : rien a faire
+  vv.addEventListener('resize', _kcAjusterClavier);
+  // Safari fait defiler le viewport VISIBLE pour montrer le champ focalise :
+  // sans ce second ecouteur, `.frame` garderait la bonne hauteur mais au
+  // mauvais endroit.
+  vv.addEventListener('scroll', _kcAjusterClavier);
+});
+
 // ── Init courses ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   _clLoad();
