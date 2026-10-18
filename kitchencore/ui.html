@@ -4175,6 +4175,14 @@ function _stockPctBar(pct) {
   <div style="font-size:.62rem;color:${color};font-weight:700;text-align:right;line-height:1.2">${label}</div>`;
 }
 
+// Arrondi d'affichage a 2 decimales, sans zeros inutiles (1.50 -> 1.5, 2.00 -> 2).
+// Les contenances sont des decimaux : 3 x 0,56 donne 1.6800000000000002 en
+// virgule flottante, ce qui s'affichait tel quel et cassait la carte (BL-180).
+function _arrondi2(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : '0';
+}
+
 function _stockCard(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   const statusClass = qty === 0 ? 'empty' : qty <= 1 ? 'warn' : 'ok';
@@ -4189,7 +4197,7 @@ function _stockCard(s) {
   const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
   // Ligne de masse/volume sous la qty (ex: "1000g" pour 2×500g)
   const showUnit = s.unite && s.unite !== 'unité' && s.contenance > 0;
-  const totalMasse = showUnit ? `${qty * s.contenance}${s.unite}` : '';
+  const totalMasse = showUnit ? `${_arrondi2(qty * s.contenance)}${s.unite}` : '';
   // Bouton gauche : % si qty<=1, sinon −
   const leftBtn = qty <= 1
     ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};border-color:${pctColor}">%</div>`
@@ -6325,6 +6333,57 @@ function _scanRemove(idx) {
   _renderScanList();
 }
 
+// Cree en catalogue le produit d'une ligne de scan et renseigne item.produitId.
+// Point d'entree unique des deux parcours de scan (stock et courses) : le
+// catalogue doit etre alimente de la meme facon, peu importe d'ou vient le scan.
+// `zone` sert a la ligne de stocks ouverte par POST /api/produits ; a 0 unite le
+// produit reste invisible sur la page Stock, mais visible en Gestion des produits.
+async function _scanCreerProduit(item, zone) {
+  await _ensurePnpIngredients();
+  const ing = _findIngForNom(item.nom || '');
+  const rp = await fetch('/api/produits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nom: item.nom !== item.code ? item.nom : `Produit ${item.code}`,
+      marque: item.marque || null,
+      code_barres: item.code,
+      zone: zone || 'À définir',
+      contenance: item.contenance || 1,
+      unite: item.unite || 'unité',
+      ingredient_id: ing ? ing.id : null,
+      icone: item.photoOFF || null
+    })
+  });
+  let produit;
+  if (rp.ok) {
+    produit = await rp.json();
+  } else if (rp.status === 409) {
+    // Code-barres deja pris : le produit existe, on le reprend au lieu
+    // d'echouer (deux scans du meme code, ou creation depuis un autre appareil).
+    const r = await fetch(`/api/produits/barcode/${encodeURIComponent(item.code)}`);
+    if (!r.ok) throw new Error('produit existant introuvable');
+    produit = await r.json();
+  } else {
+    throw new Error('creation produit HTTP ' + rp.status);
+  }
+  item.produitId = produit.id;
+  item.status = 'known';
+  // Photo prise par la camera, seulement si OpenFoodFacts n'en avait pas
+  if (!item.photoOFF && item.photo && item.photo.startsWith('data:')) {
+    try {
+      const [header, b64] = item.photo.split(',');
+      const mime = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+      await fetch(`/api/produits/${produit.id}/photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: b64, mime })
+      });
+    } catch(_) {}
+  }
+  return produit;
+}
+
 async function validateScanList() {
   if (_scanTarget === 'courses') return _validateScanToCourses();
   const items = _scanList.filter(i => i.status !== 'loading');
@@ -6339,38 +6398,8 @@ async function validateScanList() {
     try {
       // Produits inconnus/nouveaux : créer d'abord automatiquement
       if (item.status !== 'known') {
-        await _ensurePnpIngredients();
-        const _autoIng = _findIngForNom(item.nom || '');
-        const rp = await fetch('/api/produits', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nom: item.nom !== item.code ? item.nom : `Produit ${item.code}`,
-            marque: item.marque || null,
-            code_barres: item.code,
-            zone: _scanTargetZone || 'À définir',
-            contenance: item.contenance || 1,
-            unite: item.unite || 'unité',
-            ingredient_id: _autoIng ? _autoIng.id : null,
-            icone: item.photoOFF || null
-          })
-        });
-        if (!rp.ok) { err++; continue; }
-        const produit = await rp.json();
-        item.produitId = produit.id;
-        item.status = 'known';
-        // Upload photo caméra si pas de photo OFF (produit vraiment inconnu)
-        if (!item.photoOFF && item.photo && item.photo.startsWith('data:')) {
-          try {
-            const [header, b64] = item.photo.split(',');
-            const mime = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
-            await fetch(`/api/produits/${produit.id}/photo`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ base64: b64, mime })
-            });
-          } catch(_) {}
-        }
+        try { await _scanCreerProduit(item, _scanTargetZone); }
+        catch(e) { err++; continue; }
       }
       // Mettre à jour la zone si une zone cible est sélectionnée
       if (_scanTargetZone) {
@@ -6421,6 +6450,14 @@ async function _validateScanToCourses() {
 
   let ok = 0, err = 0;
   for (const item of items) {
+    // Produit inconnu du catalogue : on l'y crée, même si on ne l'ajoute pas au
+    // stock. Sans ça il n'apparaissait pas en Gestion des produits et n'était
+    // pas retrouvable par l'autocomplétion au prochain achat (BL-179). La ligne
+    // de stocks ouverte reste à 0, donc invisible sur la page Stock.
+    if (item.status !== 'known') {
+      try { await _scanCreerProduit(item, 'À définir'); }
+      catch(e) { /* le catalogue n'a pas voulu : on ajoute quand même aux courses */ }
+    }
     // La marque aide à retrouver le produit en rayon, sauf si le nom la contient déjà
     let nom = item.nom;
     if (item.marque && !clNorm(nom).includes(clNorm(item.marque))) nom += ' ' + item.marque;
@@ -6587,7 +6624,7 @@ function _parseQtyOFF(str) {
   if (multi) {
     const count = parseFloat(multi[1]);
     const unit_qty = parseFloat(multi[2].replace(',', '.'));
-    return { contenance: count * unit_qty, unite: multi[3].toLowerCase() };
+    return { contenance: Math.round(count * unit_qty * 100) / 100, unite: multi[3].toLowerCase() };
   }
   // "500 g", "1.5 L", "250ml"
   const simple = str.match(/^([\d.,]+)\s*([a-zA-Zµμéèêëàâùûôîïœ°]+)/i);
