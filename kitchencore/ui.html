@@ -4213,6 +4213,16 @@ async function _stockTileRemove(id) {
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
+// Arrondi d'affichage a 2 decimales, sans zeros inutiles (1.50 -> 1.5, 2.00 -> 2).
+// Les contenances sont des decimaux : 3 x 0,56 donne 1.6800000000000002 en
+// virgule flottante, ce qui s'affichait tel quel et cassait la carte (BL-180).
+// /!\ Utilisee par _stockCard ci-dessous : supprimee par erreur en v0.10.275,
+// la page Stock se vidait des qu'un produit avait une unite reelle (kg, L).
+function _arrondi2(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : '0';
+}
+
 function _stockCard(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   const statusClass = qty === 0 ? 'empty' : qty <= 1 ? 'warn' : 'ok';
