@@ -730,7 +730,10 @@ app.post('/api/ingredients/auto-add', (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/produits', (_req, res) => {
   res.json(db.prepare(`
-    SELECT p.*, a.nom AS ingredient_nom, a.icone, a.seuil_alerte,
+    -- a.icone ecrasait p.icone venu de p.* : la route annoncait la photo de
+    -- l'ingredient (souvent nulle) a la place de celle du produit. Meme
+    -- resolution que /api/stocks et /api/produits/barcode (BL-184).
+    SELECT p.*, a.nom AS ingredient_nom, COALESCE(p.icone, a.icone) AS icone, a.seuil_alerte,
            s.packs_pleins, s.unites_ouvert, s.zone,
            ((COALESCE(s.packs_pleins,0)*p.contenance)+COALESCE(s.unites_ouvert,0)) AS total_unites
     FROM produits p LEFT JOIN ingredients a ON a.id=p.ingredient_id
@@ -1364,7 +1367,10 @@ app.delete('/api/menu/:id', (req, res) => {
 app.get('/api/courses', (_req, res) => {
   const items = db.prepare(`
     SELECT ci.*, COALESCE(i.nom, ci.nom) AS resolved_nom,
-           COALESCE(i.icone, ci.icone, p.icone) AS resolved_icone,
+           -- ci.icone est une COPIE prise a l'ajout : elle masquait la photo
+           -- actuelle du produit quand on la changeait ensuite (BL-184). Elle
+           -- passe en dernier, pour les articles libres sans lien.
+           COALESCE(i.icone, p.icone, ci.icone) AS resolved_icone,
            COALESCE(rv.nom, ci.rayon) AS resolved_rayon
     FROM courses_items ci
     LEFT JOIN ingredients i ON i.id = ci.ingredient_id

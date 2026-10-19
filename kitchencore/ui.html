@@ -309,6 +309,20 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   line-height: 1;
 }
 .qty-btn:active { background: var(--orange); border-color: var(--orange); color: white; }
+/* Derniere unite : le « − » devient une corbeille (BL-185) */
+.qty-btn-del { color:#e74c3c; border-color:#e74c3c; }
+.qty-btn-del:active { background:#e74c3c; border-color:#e74c3c; color:#fff; }
+/* La barre de niveau EST le curseur, et reste toujours visible (BL-185).
+   touch-action:pan-y laisse le defilement vertical de la liste passer : seul un
+   geste horizontal deplace le curseur. */
+.prod-pct-range { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px;
+                  margin:5px 0 0; background:var(--grey); outline:none; cursor:pointer;
+                  touch-action:pan-y; display:block; }
+.prod-pct-range::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+                  background:#fff; border:2px solid currentColor; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+.prod-pct-range::-moz-range-thumb { width:13px; height:13px; border-radius:50%; background:#fff;
+                  border:2px solid currentColor; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+.prod-pct-label { font-size:.62rem; font-weight:700; text-align:right; line-height:1.3; }
 .qty-val {
   font-size: .85rem; font-weight: 900; color: var(--text);
   min-width: 14px; text-align: center; line-height: 1;
@@ -3873,26 +3887,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
   <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
 
-  <!-- ══ POPUP POURCENTAGE (appui long) ══════════════════════════════════════ -->
-  <div id="stock-pctPopup" style="display:none;position:absolute;z-index:600;background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:14px 10px 10px;flex-direction:column;align-items:center;gap:6px;min-width:60px;touch-action:none">
-    <div id="stock-pctPopupLabel" style="font-size:.8rem;font-weight:800;color:#E8671A;min-width:32px;text-align:center"></div>
-    <div style="position:relative;height:150px;width:36px;display:flex;align-items:center;justify-content:center">
-      <!-- ticks -->
-      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;margin:auto;display:flex;flex-direction:column;justify-content:space-between;align-items:center;pointer-events:none">
-        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
-        <div style="width:6px;height:2px;background:#ddd;border-radius:1px"></div>
-        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
-        <div style="width:6px;height:2px;background:#ddd;border-radius:1px"></div>
-        <div style="width:8px;height:2px;background:#ddd;border-radius:1px"></div>
-      </div>
-      <input type="range" id="stock-pctSlider" min="0" max="100" step="25"
-        style="width:150px;height:36px;transform:rotate(-90deg);cursor:pointer;accent-color:#E8671A;position:absolute;margin:0;padding:0"
-        oninput="_stockPctSliderInput(this.value)"
-        onchange="_stockPctSliderSave()">
-    </div>
-    <div style="font-size:.62rem;color:#aaa;letter-spacing:.02em">NIVEAU</div>
-  </div>
-  <!-- ══ /POPUP POURCENTAGE ══════════════════════════════════════════════════ -->
 
 </div><!-- /frame -->
 
@@ -4004,7 +3998,12 @@ async function _stockFetchData() {
 
 async function _stockLoad() {
   await _stockFetchData();
-  _stockRender();
+  // _stockOrGpRender et non _stockRender : le panneau d'edition d'un produit est
+  // partage entre la page Stock et la page Gestion des produits. En redessinant
+  // toujours #stock-content, une modification faite depuis la Gestion des
+  // produits rechargeait bien les donnees mais ne rafraichissait jamais la liste
+  // affichee (BL-184).
+  _stockOrGpRender();
 }
 
 function _stockOrGpRender() {
@@ -4163,24 +4162,55 @@ function _dlcBadge(dlc) {
   return `<div style="position:absolute;top:4px;right:4px;background:${color};color:#fff;font-size:.62rem;font-weight:700;padding:2px 5px;border-radius:10px;line-height:1.3;z-index:2">${label}</div>`;
 }
 
-function _stockPctBar(pct) {
-  if (pct === null || pct === undefined) return '';
-  if (pct === 0) return `<div style="margin:4px 0 0;height:4px;border-radius:2px;background:#e0e0e0;overflow:hidden"><div style="height:100%;width:0%;background:#e74c3c;border-radius:2px"></div></div><div style="font-size:.62rem;color:#e74c3c;font-weight:700;text-align:right;line-height:1.2">Vide</div>`;
-
-  const color = pct >= 50 ? '#27ae60' : pct >= 25 ? '#e67e22' : '#e74c3c';
-  const label = pct === 100 ? 'Plein' : pct === 75 ? '¾' : pct === 50 ? '½' : pct === 25 ? '¼' : 'Vide';
-  return `<div style="margin:4px 0 0;height:4px;border-radius:2px;background:#e0e0e0;overflow:hidden">
-    <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .3s"></div>
-  </div>
-  <div style="font-size:.62rem;color:${color};font-weight:700;text-align:right;line-height:1.2">${label}</div>`;
+// La barre de niveau est elle-meme le curseur, et elle est TOUJOURS affichee —
+// avant, elle n'apparaissait que si un pourcentage avait deja ete saisi, et le
+// reglage passait par un bouton « % » et un popup separe (BL-185).
+// Pourcentage jamais renseigne = produit suppose plein : on l'affiche a 100 sans
+// rien ecrire en base tant que l'utilisateur n'a pas bouge le curseur.
+function _stockPctSlider(s) {
+  const pct = (s.pourcentage === null || s.pourcentage === undefined) ? 100 : s.pourcentage;
+  const c = _pctLabelColor(pct);
+  // stopPropagation partout : la card entiere ouvre la fiche produit au clic,
+  // regler le niveau ne doit pas l'ouvrir.
+  return `<input type="range" class="prod-pct-range" min="0" max="100" step="25" value="${pct}"
+      style="color:${c};background:linear-gradient(to right,${c} ${pct}%,var(--grey) ${pct}%)"
+      onclick="event.stopPropagation()"
+      oninput="event.stopPropagation();_stockTilePctInput(${s.produit_id},this)"
+      onchange="event.stopPropagation();_stockPctSave(${s.produit_id},parseInt(this.value))">
+    <div class="prod-pct-label" data-pct-lbl="${s.produit_id}" style="color:${c}">${_pctLabel(pct)}</div>`;
 }
 
-// Arrondi d'affichage a 2 decimales, sans zeros inutiles (1.50 -> 1.5, 2.00 -> 2).
-// Les contenances sont des decimaux : 3 x 0,56 donne 1.6800000000000002 en
-// virgule flottante, ce qui s'affichait tel quel et cassait la carte (BL-180).
-function _arrondi2(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : '0';
+// Mise a jour visuelle pendant le glissement. Surtout PAS de _stockRender() ici :
+// reconstruire la grille sous le doigt ferait perdre le curseur en cours de geste.
+function _stockTilePctInput(id, el) {
+  const v = parseInt(el.value);
+  const c = _pctLabelColor(v);
+  el.style.color = c;
+  el.style.background = `linear-gradient(to right,${c} ${v}%,var(--grey) ${v}%)`;
+  const lbl = document.querySelector(`[data-pct-lbl="${id}"]`);
+  if (lbl) { lbl.textContent = _pctLabel(v); lbl.style.color = c; }
+  const item = _stockItems.find(i => i.produit_id === id);
+  if (item) item.pourcentage = v;
+}
+
+// Retire le produit du stock sans demande de confirmation (choix de Baptiste).
+// « Retirer du stock » et non « supprimer » : /corriger remet les quantites a
+// zero, la fiche du catalogue et l'historique du produit restent intacts.
+async function _stockTileRemove(id) {
+  const item = _stockItems.find(i => i.produit_id === id);
+  const nom  = item ? (item.produit_nom || item.ingredient_nom || 'Produit') : 'Produit';
+  try {
+    const r = await fetch(`/api/stocks/${id}/corriger`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packs_pleins: 0, unites_ouvert: 0 })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (item) { item.packs_pleins = 0; item.unites_ouvert = 0; }
+    _stockSelectedIds.delete(id);
+    _stockUpdateFab();
+    _stockOrGpRender();
+    showToast(`${nom} retiré du stock`, 'ok');
+  } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
 function _stockCard(s) {
@@ -4193,14 +4223,13 @@ function _stockCard(s) {
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#bbb">${initiales}</div>`;
   const sel = _stockSelectedIds.has(s.produit_id);
   const cbHtml = `<div class="stock-checkbox${sel ? ' checked' : ''}" data-cb-id="${s.produit_id}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? '✓' : ''}</div>`;
-  const hasPct = s.pourcentage !== null && s.pourcentage !== undefined;
-  const pctColor = hasPct ? _pctLabelColor(s.pourcentage) : '#ccc';
+
   // Ligne de masse/volume sous la qty (ex: "1000g" pour 2×500g)
   const showUnit = s.unite && s.unite !== 'unité' && s.contenance > 0;
   const totalMasse = showUnit ? `${_arrondi2(qty * s.contenance)}${s.unite}` : '';
-  // Bouton gauche : % si qty<=1, sinon −
+  // Bouton gauche : − pour retirer une unite, corbeille sur la derniere (BL-185)
   const leftBtn = qty <= 1
-    ? `<div class="qty-btn pct-open-btn" onclick="event.stopPropagation();_stockPctOpenPopup(${s.produit_id},this)" style="font-size:.6rem;font-weight:800;color:${pctColor};border-color:${pctColor}">%</div>`
+    ? `<div class="qty-btn qty-btn-del" onclick="event.stopPropagation();_stockTileRemove(${s.produit_id})" title="Retirer du stock">${_SVG_TILE_TRASH}</div>`
     : `<div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
     ${cbHtml}
@@ -4210,7 +4239,7 @@ function _stockCard(s) {
     <div class="prod-info">
       <div class="prod-name">${s.produit_nom || s.ingredient_nom || '—'}</div>
       ${(s.rayon_nom || s.ingredient_rayon_nom) ? `<div style="font-size:.6rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.rayon_emoji || s.ingredient_rayon_emoji || '📦'} ${s.rayon_nom || s.ingredient_rayon_nom}</div>` : ''}
-      ${(qty >= 1 || (s.pourcentage !== null && s.pourcentage !== undefined)) ? _stockPctBar(s.pourcentage) : ''}
+      ${_stockPctSlider(s)}
       <div class="prod-controls" style="justify-content:center">
         <div class="prod-qty">
           ${leftBtn}
@@ -4263,6 +4292,7 @@ function stockHideMainHdmenu() {
 }
 
 const _SVG_FAB_PLUS = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+const _SVG_TILE_TRASH = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 const _SVG_FAB_SCAN = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/></svg>`;
 const _SVG_FAB_CART = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/><line x1="12" y1="13" x2="12" y2="19"/><polyline points="9 16 12 19 15 16"/></svg>`;
 
@@ -4761,10 +4791,7 @@ function stockSetGroupBy(mode) {
 }
 
 
-// ── Popup pourcentage ────────────────────────────────────────────────────────
-let _pctPopupProdId = null;
-let _pctPopupOpen   = false;
-
+// ── Niveau de remplissage ───────────────────────────────────────────────────
 function _pctLabel(v) {
   return v === 100 ? 'Plein' : v === 75 ? '¾' : v === 50 ? '½' : v === 25 ? '¼' : 'Vide';
 }
@@ -4772,18 +4799,7 @@ function _pctLabelColor(v) {
   return v >= 50 ? '#27ae60' : v >= 25 ? '#e67e22' : '#e74c3c';
 }
 
-function _stockPctSliderInput(val) {
-  const v = parseInt(val);
-  const lbl = document.getElementById('stock-pctPopupLabel');
-  lbl.textContent = _pctLabel(v);
-  lbl.style.color = _pctLabelColor(v);
-  const item = _stockItems.find(i => i.produit_id === _pctPopupProdId);
-  if (item) { item.pourcentage = v; _stockRender(); }
-}
-
-async function _stockPctSliderSave() {
-  const id  = _pctPopupProdId;
-  const val = parseInt(document.getElementById('stock-pctSlider').value);
+async function _stockPctSave(id, val) {
   if (!id) return;
   try {
     await fetch(`/api/produits/${id}`, {
@@ -4792,70 +4808,22 @@ async function _stockPctSliderSave() {
     });
     const item = _stockItems.find(i => i.produit_id === id);
     const qty = item ? (item.packs_pleins || 0) + (item.unites_ouvert || 0) : 0;
+    // Mettre le niveau a zero vide le stock, et le remonter au-dessus de zero
+    // remet une unite : le niveau et la quantite doivent rester coherents.
     if (val === 0 && qty > 0) {
       for (let i = 0; i < qty; i++) {
         await fetch(`/api/stocks/${id}/consommer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
       }
       if (item) { item.packs_pleins = 0; item.unites_ouvert = 0; }
       showToast('Stock vide', 'warn');
-      _stockRender();
+      _stockOrGpRender();
     } else if (val > 0 && qty === 0) {
       await fetch(`/api/stocks/${id}/ajouter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unites: 1 }) });
       if (item) item.unites_ouvert = 1;
-      _stockRender();
+      _stockOrGpRender();
     }
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
-
-function _stockPctOpenPopup(prodId, btnEl) {
-  // Si déjà ouvert sur ce produit, fermer
-  if (_pctPopupOpen && _pctPopupProdId === prodId) { _stockPctClosePopup(); return; }
-
-  _pctPopupProdId = prodId;
-  _pctPopupOpen   = true;
-
-  const item = _stockItems.find(i => i.produit_id === prodId);
-  const pct  = (item && item.pourcentage !== null && item.pourcentage !== undefined) ? item.pourcentage : 50;
-
-  const slider = document.getElementById('stock-pctSlider');
-  slider.value = pct;
-  const lbl = document.getElementById('stock-pctPopupLabel');
-  lbl.textContent = _pctLabel(pct);
-  lbl.style.color = _pctLabelColor(pct);
-
-  // Position : centré sur le bouton, au-dessus (ou en dessous si pas de place)
-  const popup = document.getElementById('stock-pctPopup');
-  const frame = document.querySelector('.frame');
-  popup.style.display = 'flex';
-  const fRect = frame.getBoundingClientRect();
-  const bRect = btnEl.getBoundingClientRect();
-  const pw = popup.offsetWidth  || 62;
-  const ph = popup.offsetHeight || 210;
-
-  let left = bRect.left - fRect.left + bRect.width / 2 - pw / 2;
-  let top  = bRect.top  - fRect.top  - ph - 8;
-  if (top < 8) top = bRect.top - fRect.top + bRect.height + 8;
-  left = Math.max(8, Math.min(left, fRect.width - pw - 8));
-
-  popup.style.left = left + 'px';
-  popup.style.top  = top  + 'px';
-}
-
-function _stockPctClosePopup() {
-  if (!_pctPopupOpen) return;
-  _pctPopupOpen = false;
-  document.getElementById('stock-pctPopup').style.display = 'none';
-  _pctPopupProdId = null;
-}
-
-// Fermer sur clic en dehors du popup et des boutons %
-document.addEventListener('click', e => {
-  if (!_pctPopupOpen) return;
-  if (!e.target.closest('#stock-pctPopup') && !e.target.closest('.pct-open-btn')) {
-    e.stopPropagation();
-    _stockPctClosePopup();
-  }
-}, true);
 
 async function stockSearchIng(q) {
   const box = document.getElementById('stock-editIngSuggest');
