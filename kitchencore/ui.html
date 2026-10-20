@@ -251,6 +251,17 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   background: var(--grey-l);
   position: relative; overflow: hidden;
 }
+/* Fond blanc derriere les photos de produit : beaucoup de PNG ont un fond
+   transparent et prenaient la couleur grise du conteneur, ce qui les rendait
+   delavees (BL-187). Pose sur l'IMAGE et non sur le conteneur, qui garde son
+   gris pour le placeholder a initiales quand il n'y a pas de photo. */
+.prod-img-placeholder img,
+.cl-emoji img,
+.cl-suggest-item img,
+.scan-item-photo img,
+.gp-thumb img,
+.ing-panel-hero img { background: #fff; }
+
 .prod-img-placeholder {
   width: 100%; aspect-ratio: 1;
   background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
@@ -4523,7 +4534,14 @@ function _stockOpenDetail(id) {
   // Code-barres
   const bcSection = document.getElementById('stock-detailBarcodeSection');
   if (s.code_barres) {
-    document.getElementById('stock-detailBarcode').innerHTML = `<a href="https://www.google.com/search?q=${encodeURIComponent(s.code_barres)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
+    // Chercher « Carrefour Ketchup Bio » donne de bien meilleurs resultats que
+    // le numero du code-barres, que Google ne reconnait presque jamais (BL-186).
+    // Repli sur le numero si le produit n'a ni nom ni marque. Le libelle affiche
+    // reste le code-barres : c'est lui qu'on vient lire sur la fiche.
+    const _bcNom    = (s.produit_nom || s.ingredient_nom || '').trim();
+    const _bcMarque = (s.marque || '').trim();
+    const _bcQuery  = [_bcMarque, _bcNom].filter(Boolean).join(' ') || s.code_barres;
+    document.getElementById('stock-detailBarcode').innerHTML = `<a href="https://www.google.com/search?q=${encodeURIComponent(_bcQuery)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
     bcSection.style.display = '';
   } else {
     bcSection.style.display = 'none';
@@ -5019,7 +5037,7 @@ function _gpRender() {
       ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`
       : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#bbb">${initiales}</div>`;
     return `<div onclick="_stockOpenDetail(${s.produit_id})" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l);cursor:pointer">
-      <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--grey-l);flex-shrink:0">${imgHtml}</div>
+      <div class="gp-thumb" style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--grey-l);flex-shrink:0">${imgHtml}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.produit_nom || s.ingredient_nom || '—'}</div>
         <div style="font-size:.75rem;color:#999">${s.marque ? s.marque + ' · ' : ''}${s.zone || ''}</div>
