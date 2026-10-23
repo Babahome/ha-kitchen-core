@@ -4510,6 +4510,7 @@ let _stockEditIngredients = [];
 let _stockPendingPhotoFile = null;
 
 function _stockOpenDetail(id) {
+  _navPanneauOuvert();
   const s = _stockItems.find(i => i.produit_id === id);
   if (!s) return;
   _stockDetailId = id;
@@ -5739,6 +5740,89 @@ function _effetPage(fn) {
   catch (e) { console.warn('[switchPage] effet de page ignore :', e.message); }
 }
 
+// ── Bouton retour du telephone (BL-188) ────────────────────────────────────
+// Sans historique, le navigateur ne voit qu'une seule page et le retour quitte
+// l'app. On empile donc une entree par changement de page, en y rangeant la
+// page elle-meme : au retour, event.state.kcPage dit ou aller, sans pile
+// parallele a tenir a jour.
+let _navRetourEnCours = false;   // true pendant une navigation declenchee par le retour
+
+// Panneaux et modales, du plus « profond » au plus superficiel : le retour
+// ferme le premier trouve ouvert. Une fermeture deja faite est sans effet, donc
+// l'ordre suffit, pas besoin de suivre l'ordre d'ouverture reel.
+const NAV_PANNEAUX = [
+  ['#scanner-modal.open',      () => closeScanner()],
+  ['#rv-import-overlay.open',  () => rvImportClose()],
+  ['#m-modal.on',              () => mClose()],
+  ['#m-ing-modal.on',          () => mIngClose()],
+  ['#m-free-ing-modal.on',     () => mFreeIngClose()],
+  ['#cl-mmodal.on',            () => clCloseMmodal()],
+  ['#mch-modal.open',          () => document.getElementById('mch-modal').classList.remove('open')],
+  ['#panel-edit.open',         () => closeEdit()],
+  ['#panel-detail.open',       () => closeDetail()],
+  ['#ing-editPanel.open',      () => ingCloseEditPanel()],
+  ['#ing-detailPanel.open',    () => ingCloseDetailPanel()],
+  ['#stock-editPanel.open',    () => stockCloseEdit()],
+  ['#stock-detailPanel.open',  () => stockCloseDetail()],
+];
+
+// Ferme le panneau ouvert le plus profond. Renvoie true si quelque chose a ete
+// ferme, donc si le retour ne doit pas changer de page.
+function _navFermerPanneau() {
+  for (const [sel, fermer] of NAV_PANNEAUX) {
+    if (document.querySelector(sel)) {
+      try { fermer(); } catch(e) { console.warn('[retour] fermeture :', e.message); }
+      return true;
+    }
+  }
+  return false;
+}
+
+// A appeler a l'OUVERTURE d'un panneau ou d'une modale : sans entree dediee, un
+// panneau ouvert depuis la page de depart ne pouvait pas etre ferme par le
+// retour (il n'y avait rien a consommer, popstate ne se declenchait meme pas).
+function _navPanneauOuvert() {
+  try {
+    const page = document.querySelector('.page.active')?.id.replace('page-', '') || '';
+    history.pushState({ kcPanneau: true, kcPage: page }, '');
+  } catch(e) {}
+}
+
+// Appele a la fin de switchPage. Rien n'est empile quand la navigation vient
+// elle-meme du bouton retour, sinon on ne remonterait jamais.
+function _navEmpiler(page) {
+  if (_navRetourEnCours) return;
+  try {
+    if (history.state && history.state.kcPage === page) return;  // deja dessus
+    history.pushState({ kcPage: page }, '');
+  } catch(e) { /* historique indisponible : le retour quittera l'app, comme avant */ }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    const depart = document.querySelector('.page.active')?.id.replace('page-', '') || 'stock';
+    // L'entree de depart ne doit PAS etre poussee : depuis elle, le retour
+    // quitte l'app — c'est le comportement demande, sans confirmation.
+    history.replaceState({ kcPage: depart }, '');
+  } catch(e) {}
+
+  window.addEventListener('popstate', function(e) {
+    // popstate donne l'etat de l'entree sur laquelle on ARRIVE, pas de celle
+    // qu'on quitte : on ne peut donc pas savoir par l'etat qu'on quittait un
+    // panneau. On regarde l'ecran. Si un panneau est ouvert, l'entree qui vient
+    // d'etre consommee est celle posee a son ouverture : on le ferme, et il n'y
+    // a rien a remettre dans l'historique.
+    if (_navFermerPanneau()) return;
+    const page = (e.state || {}).kcPage;
+    if (!page || !document.getElementById('page-' + page)) return;  // rien de connu : on laisse quitter
+    _navRetourEnCours = true;
+    try {
+      switchPage(document.querySelector(`.nav-tab[data-page="${page}"]`), page,
+                 (PAGE_CONFIG[page] || {}).title || page);
+    } finally { _navRetourEnCours = false; }
+  });
+});
+
 function switchPage(tab, page, title) {
   // pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -5824,6 +5908,10 @@ function switchPage(tab, page, title) {
   // ouvert, puis on charge celle où l'on arrive.
   for (const p in PAGE_RANGEMENT) { if (p !== page) _effetPage(PAGE_RANGEMENT[p]); }
   _effetPage(PAGE_ENTREE[page]);
+
+  // Historique du bouton retour (BL-188) — ajoute ici, en place : switchPage
+  // doit garder une seule définition, on ne l'enveloppe pas depuis l'extérieur.
+  _navEmpiler(page);
 }
 
 // ── FAB action selon page active ─────────────────────────────────────────────
@@ -5928,6 +6016,7 @@ function toggleScannerMode() {
 }
 
 async function openScanner() {
+  _navPanneauOuvert();
   document.getElementById('scanner-modal').classList.add('open');
   _scanList = [];
   _scanCooldown = {};
@@ -8099,6 +8188,7 @@ function fmtGrammesApprox(n) {
 
 // ── DETAIL ────────────────────────────────────────────────────────────────────
 async function openDetail(id) {
+  _navPanneauOuvert();
   let r = _rv.find(x=>String(x.id)===String(id)); if(!r) return;
   _currentId = id;
   try {
@@ -8812,6 +8902,7 @@ async function copyEditJson() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function rvImportOpen() {
+  _navPanneauOuvert();
   document.getElementById('rv-import-overlay').classList.add('open');
   document.body.setAttribute('data-import-open', '1');
   if (typeof rvFabDialClose === 'function') rvFabDialClose();
@@ -10735,6 +10826,7 @@ function _ingSaisonRefreshSummary(summaryId, active) {
 document.addEventListener('touchend', () => { _ingSaisonDragging = false; _ingSaisonDragMode = null; });
 
 function _ingOpenDetailPanel(id) {
+  _navPanneauOuvert();
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
   _ingDetailId = id;
@@ -11007,6 +11099,7 @@ function _ingOpenEditFromDetail() {
 
 // ─── Edit Panel ───
 function _ingOpenEditPanel(id, e) {
+  _navPanneauOuvert();
   if (e) e.stopPropagation();
   const ing = _ingAll.find(i => i.id === id);
   if (!ing) return;
