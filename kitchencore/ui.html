@@ -824,6 +824,11 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .toast.ok   { background: #2E7D32; }
 .toast.warn { background: #E65100; }
 @keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+/* Bouton « Annuler » dans un toast (BL-190) */
+.toast-action { margin-left:12px; background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.55);
+                color:#fff; font-family:inherit; font-size:.78rem; font-weight:800; border-radius:8px;
+                padding:3px 10px; cursor:pointer; vertical-align:middle; }
+.toast-action:active { background:rgba(255,255,255,.4); }
 
 /* ══ COURSES v2 ════════════════════════════════════════════════════════════ */
 .cl-header    { background:white;border-bottom:1px solid var(--grey);position:sticky;top:0;z-index:10; }
@@ -4186,9 +4191,44 @@ function _stockPctSlider(s) {
   return `<input type="range" class="prod-pct-range" min="0" max="100" step="25" value="${pct}"
       style="color:${c};background:linear-gradient(to right,${c} ${pct}%,var(--grey) ${pct}%)"
       onclick="event.stopPropagation()"
+      onpointerdown="_stockPctGrab(this,event)"
+      onpointermove="_stockPctMove(this,event)"
+      onpointerup="_stockPctRelease(this)" onpointercancel="_stockPctRelease(this)"
+      onkeydown="this._pctPointeur=false"
       oninput="event.stopPropagation();_stockTilePctInput(${s.produit_id},this)"
-      onchange="event.stopPropagation();_stockPctSave(${s.produit_id},parseInt(this.value))">
+      onchange="event.stopPropagation();_stockTilePctChange(${s.produit_id},this)">
     <div class="prod-pct-label" data-pct-lbl="${s.produit_id}" style="color:${c}">${_pctLabel(pct)}</div>`;
+}
+
+// Un input type=range saute a la valeur touchee au simple APPUI. La barre fait
+// toute la largeur de la tuile : en faisant defiler la grille, le doigt s'y
+// posait et changeait le niveau — pres du bord gauche, a 0, ce qui vide le
+// stock (BL-190). On ne retient donc une nouvelle valeur qu'apres un vrai
+// glissement horizontal ; un appui sans mouvement revient a la valeur d'avant.
+function _stockPctGrab(el, e) {
+  el._pctAvant   = el.value;
+  el._pctX       = e.clientX;
+  el._pctGlisse  = false;
+  el._pctPointeur = true;
+}
+function _stockPctMove(el, e) {
+  if (el._pctPointeur && Math.abs(e.clientX - el._pctX) > 6) el._pctGlisse = true;
+}
+function _stockPctRelease(el) { /* le flag est lu par _stockTilePctChange, puis remis a zero */ }
+
+function _stockTilePctChange(id, el) {
+  // Appui sans glissement : c'est un defilement qui a effleure la barre.
+  if (el._pctPointeur && !el._pctGlisse && el._pctAvant !== undefined) {
+    el.value = el._pctAvant;
+    _stockTilePctInput(id, el);
+    el._pctPointeur = false;
+    return;
+  }
+  el._pctPointeur = false;
+  // On passe la valeur d'avant : c'est la seule trace du niveau precedent,
+  // _stockTilePctInput ayant deja ecrase item.pourcentage pendant le glissement.
+  const avant = el._pctAvant !== undefined ? parseInt(el._pctAvant) : null;
+  _stockPctSave(id, parseInt(el.value), avant);
 }
 
 // Mise a jour visuelle pendant le glissement. Surtout PAS de _stockRender() ici :
@@ -4207,9 +4247,36 @@ function _stockTilePctInput(id, el) {
 // Retire le produit du stock sans demande de confirmation (choix de Baptiste).
 // « Retirer du stock » et non « supprimer » : /corriger remet les quantites a
 // zero, la fiche du catalogue et l'historique du produit restent intacts.
+// Remet un produit dans le stock tel qu'il etait : sert au bouton « Annuler »
+// des deux actions qui peuvent le vider (corbeille, niveau mis a 0).
+async function _stockRestaurer(id, avant) {
+  try {
+    const r = await fetch(`/api/stocks/${id}/corriger`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packs_pleins: avant.packs, unites_ouvert: avant.unites })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const item = _stockItems.find(i => i.produit_id === id);
+    if (item) {
+      item.packs_pleins = avant.packs;
+      item.unites_ouvert = avant.unites;
+      if (avant.pourcentage !== undefined) item.pourcentage = avant.pourcentage;
+    }
+    if (avant.pourcentage !== undefined && avant.pourcentage !== null) {
+      await fetch(`/api/produits/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pourcentage: avant.pourcentage })
+      });
+    }
+    _stockOrGpRender();
+    showToast('Remis dans le stock', 'ok');
+  } catch(e) { showToast('Erreur réseau', 'error'); }
+}
+
 async function _stockTileRemove(id) {
   const item = _stockItems.find(i => i.produit_id === id);
   const nom  = item ? (item.produit_nom || item.ingredient_nom || 'Produit') : 'Produit';
+  const avant = { packs: item ? (item.packs_pleins || 0) : 0, unites: item ? (item.unites_ouvert || 0) : 0 };
   try {
     const r = await fetch(`/api/stocks/${id}/corriger`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -4220,7 +4287,7 @@ async function _stockTileRemove(id) {
     _stockSelectedIds.delete(id);
     _stockUpdateFab();
     _stockOrGpRender();
-    showToast(`${nom} retiré du stock`, 'ok');
+    showToast(`${nom} retiré du stock`, 'ok', { label: 'Annuler', onClick: () => _stockRestaurer(id, avant) });
   } catch(e) { showToast('Erreur réseau', 'error'); }
 }
 
@@ -4827,7 +4894,7 @@ function _pctLabelColor(v) {
   return v >= 50 ? '#27ae60' : v >= 25 ? '#e67e22' : '#e74c3c';
 }
 
-async function _stockPctSave(id, val) {
+async function _stockPctSave(id, val, pctAvant = null) {
   if (!id) return;
   try {
     await fetch(`/api/produits/${id}`, {
@@ -4839,11 +4906,16 @@ async function _stockPctSave(id, val) {
     // Mettre le niveau a zero vide le stock, et le remonter au-dessus de zero
     // remet une unite : le niveau et la quantite doivent rester coherents.
     if (val === 0 && qty > 0) {
+      // Mettre le niveau a zero vide tout le stock du produit : c'est destructif,
+      // donc annulable (BL-190).
+      const avant = { packs: item ? (item.packs_pleins || 0) : 0,
+                      unites: item ? (item.unites_ouvert || 0) : 0,
+                      pourcentage: pctAvant };
       for (let i = 0; i < qty; i++) {
         await fetch(`/api/stocks/${id}/consommer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
       }
       if (item) { item.packs_pleins = 0; item.unites_ouvert = 0; }
-      showToast('Stock vide', 'warn');
+      showToast('Stock vide', 'warn', { label: 'Annuler', onClick: () => _stockRestaurer(id, avant) });
       _stockOrGpRender();
     } else if (val > 0 && qty === 0) {
       await fetch(`/api/stocks/${id}/ajouter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unites: 1 }) });
@@ -5550,13 +5622,27 @@ function toggleZone(btn) {
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
-function showToast(msg, type = 'ok') {
+// `action` (optionnel) = { label, onClick } : ajoute un bouton dans le toast,
+// qui reste alors affiche plus longtemps. Sert de filet de securite apres une
+// action destructive, sans imposer une confirmation avant chaque geste
+// volontaire (BL-190).
+function showToast(msg, type = 'ok', action = null) {
   const t = document.createElement('div');
   t.className = 'toast ' + type;
   t.textContent = (type === 'ok' ? '✓ ' : '⚠ ') + msg;
+  const avecAction = !!(action && typeof action.onClick === 'function');
+  if (avecAction) {
+    const b = document.createElement('button');
+    b.className = 'toast-action';
+    b.textContent = action.label || 'Annuler';
+    b.onclick = e => { e.stopPropagation(); t.remove(); action.onClick(); };
+    t.appendChild(b);
+  }
   const wrap = document.getElementById('toasts');
   wrap.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 2800);
+  // Un toast qu'on doit avoir le temps de lire ET de toucher reste plus longtemps
+  const duree = avecAction ? 6000 : 2800;
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, duree);
 }
 
 // ── Init zones max-height ────────────────────────────────────────────────────
