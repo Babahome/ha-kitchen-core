@@ -56,6 +56,11 @@ Bloc à copier tel quel en tête du style de chaque appli. Seule la couleur prim
   /* Fond d'une infobulle sombre */
   --c-scrim-dark:       rgba(30,30,30,.82);
 
+  /* Types de repas (spécifique KitchenCore) */
+  --c-meal-breakfast: #66BB6A;
+  --c-meal-lunch:     #42A5F5;
+  --c-meal-snack:     #AB47BC;
+
   /* Gabarits */
   --header-h: 60px; --bottom-h: 68px; --tap: 44px;
   --icon-sm: 18px; --icon-md: 22px; --icon-lg: 28px;
@@ -76,7 +81,9 @@ Bloc à copier tel quel en tête du style de chaque appli. Seule la couleur prim
 
 Limites : 6 tailles de texte, 3 graisses, 4 rayons (+ cercle 50 %), 3 ombres. Pas d'exception.
 
-Journal des ajouts : `--shadow-primary` / `--shadow-primary-sm` et `--c-scrim-dark` ont été ajoutés pendant l'étape 2/6 (page Recettes). La lueur orange du FAB est une ombre **colorée**, signature de l'app sur toutes les pages : la replier sur `--shadow-1` (gris neutre) la ferait disparaître partout, ce n'est pas une « différence mineure ». `--c-scrim-dark` sert au fond d'une infobulle : `--c-overlay` (45 %) laisserait transparaître le formulaire dessous et le texte blanc deviendrait illisible.
+Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 2/6 (page Menu). Vert, bleu et violet distinguent petit-déjeuner, déjeuner et goûter dans la timeline : ici **la couleur est l'information**, les fondre sur `--c-success` / `--c-info` ferait perdre la lecture d'un coup d'œil. Spécifique à KitchenCore, comme le jeu d'icônes de la section 2.
+
+`--shadow-primary` / `--shadow-primary-sm` et `--c-scrim-dark` ont été ajoutés pendant l'étape 2/6 (page Recettes). La lueur orange du FAB est une ombre **colorée**, signature de l'app sur toutes les pages : la replier sur `--shadow-1` (gris neutre) la ferait disparaître partout, ce n'est pas une « différence mineure ». `--c-scrim-dark` sert au fond d'une infobulle : `--c-overlay` (45 %) laisserait transparaître le formulaire dessous et le texte blanc deviendrait illisible.
 
 `--shadow-0` et les deux `--c-scrim-light*` ont été ajoutés à la v0.1 pendant l'étape 2/6 (page Stock). `--shadow-1` et ses 12 px de flou faisaient un halo sur les pastilles de 22 px et sur le curseur de niveau ; et un badge posé sur une photo doit rester blanc quelle que soit l'image dessous, donc il ne peut pas suivre `--c-surface`.
 
