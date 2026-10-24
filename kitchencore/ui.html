@@ -12,26 +12,91 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ── VARIABLES ─────────────────────────────────────────────────────────────── */
+/* ── TOKENS ────────────────────────────────────────────────────────────────
+   Source unique : DESIGN.md a la racine du depot (charte commune aux applis
+   Babahome). Ne jamais ecrire une couleur, une taille, un rayon ou une ombre
+   ailleurs qu'ici : tout passe par un token. Seule la couleur primaire change
+   d'une appli a l'autre. (v0.10.281, BL-196 — etape 1/6 du chantier UX)        */
 :root {
-  --orange:     #E8671A;
-  --orange-d:   #C5560F;
-  --orange-l:   #FDF0E8;
-  --green:      #4CAF50;
-  --amber:      #FF9800;
-  --red:        #F44336;
-  --grey-l:     #F5F5F5;
-  --grey:       #E0E0E0;
-  --grey-d:     #9E9E9E;
-  --text:       #1A1A1A;
-  --text2:      #666;
-  --white:      #FFFFFF;
-  --shadow:     0 2px 12px rgba(0,0,0,.10);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,.15);
-  --radius:     14px;
-  --radius-sm:  10px;
-  --header-h:   60px;
-  --bottom-h:   68px;
-  --font:       'Nunito', sans-serif;
+  /* Couleur d'identité de l'appli (KitchenCore = orange) */
+  --c-primary:        #E8671A;
+  --c-primary-strong: #C5560F;
+  --c-primary-soft:   #FDF0E8;
+  --c-on-primary:     #FFFFFF;
+
+  /* Sémantique — identique dans toutes les applis */
+  --c-success: #2E9D57;  --c-success-soft: #E6F4EA;
+  --c-warning: #E08A00;  --c-warning-soft: #FEF3DC;
+  --c-danger:  #D93A30;  --c-danger-soft:  #FCE8E6;
+  --c-info:    #2F7BD8;  --c-info-soft:    #E3EEFB;
+
+  /* Neutres */
+  --c-bg:      #F5F5F5;
+  --c-surface: #FFFFFF;
+  --c-border:  #E0E0E0;
+  --c-text:    #1A1A1A;
+  --c-text-2:  #666666;
+  --c-text-3:  #9E9E9E;
+  --c-overlay: rgba(0,0,0,.45);
+
+  /* Typographie */
+  --font: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-xs: .75rem; --fs-sm: .875rem; --fs-md: 1rem;
+  --fs-lg: 1.125rem; --fs-xl: 1.25rem; --fs-2xl: 1.5rem;
+  --fw-regular: 600; --fw-bold: 700; --fw-heavy: 800;
+
+  /* Espacements (pas de 4 px) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+
+  /* Rayons */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-pill: 999px;
+
+  /* Ombres */
+  --shadow-1: 0 2px 12px rgba(0,0,0,.10);
+  --shadow-2: 0 8px 32px rgba(0,0,0,.15);
+
+  /* Gabarits */
+  --header-h: 60px; --bottom-h: 68px; --tap: 44px;
+  --icon-sm: 18px; --icon-md: 22px; --icon-lg: 28px;
+
+  /* ── Alias des anciennes variables ──────────────────────────────────────
+     Les ~13 000 lignes existantes les utilisent partout : on les garde le
+     temps de l'etape 2/6, qui remplacera les usages un par un. A supprimer
+     seulement quand plus aucune ne sera referencee.                          */
+  --orange:     var(--c-primary);
+  --orange-d:   var(--c-primary-strong);
+  --orange-l:   var(--c-primary-soft);
+  --green:      var(--c-success);
+  --amber:      var(--c-warning);
+  --red:        var(--c-danger);
+  --grey-l:     var(--c-bg);
+  --grey:       var(--c-border);
+  --grey-d:     var(--c-text-3);
+  --text:       var(--c-text);
+  --text2:      var(--c-text-2);
+  --white:      var(--c-surface);
+  --shadow:     var(--shadow-1);
+  --shadow-lg:  var(--shadow-2);
+  --radius:     var(--r-md);
+  --radius-sm:  var(--r-sm);
+}
+
+/* Mode sombre : les tokens existent des maintenant, mais ils ne s'appliquent
+   QUE si la page porte data-theme="dark". Tant que l'etape 6/6 n'a pas revu
+   chaque ecran, les ~74 couleurs encore ecrites en dur (background:#fff,
+   color:#333…) ne suivraient pas : on obtiendrait du texte clair sur des
+   fonds restes blancs, donc illisible. Le jour ou 6/6 est faite, remplacer
+   le selecteur par :root et le mode sombre s'active tout seul.                */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="dark"] {
+    --c-primary-soft: #3A2414;
+    --c-bg: #121212; --c-surface: #1E1E1E; --c-border: #333333;
+    --c-text: #EDEDED; --c-text-2: #A8A8A8; --c-text-3: #707070;
+    --c-success-soft: #16301F; --c-warning-soft: #33280F;
+    --c-danger-soft: #3A1715;  --c-info-soft: #14253A;
+    --shadow-1: 0 2px 12px rgba(0,0,0,.40);
+    --shadow-2: 0 8px 32px rgba(0,0,0,.55);
+  }
 }
 
 /* ── RESET ─────────────────────────────────────────────────────────────────── */
