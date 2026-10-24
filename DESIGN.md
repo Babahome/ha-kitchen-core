@@ -44,8 +44,13 @@ Bloc à copier tel quel en tête du style de chaque appli. Seule la couleur prim
   --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-pill: 999px;
 
   /* Ombres */
+  --shadow-0: 0 1px 4px rgba(0,0,0,.20);
   --shadow-1: 0 2px 12px rgba(0,0,0,.10);
   --shadow-2: 0 8px 32px rgba(0,0,0,.15);
+
+  /* Voiles clairs posés SUR une photo (badges, cases à cocher d'une vignette) */
+  --c-scrim-light:      rgba(255,255,255,.90);
+  --c-scrim-light-soft: rgba(255,255,255,.30);
 
   /* Gabarits */
   --header-h: 60px; --bottom-h: 68px; --tap: 44px;
@@ -65,7 +70,9 @@ Bloc à copier tel quel en tête du style de chaque appli. Seule la couleur prim
 }
 ```
 
-Limites : 6 tailles de texte, 3 graisses, 4 rayons (+ cercle 50 %), 2 ombres. Pas d'exception.
+Limites : 6 tailles de texte, 3 graisses, 4 rayons (+ cercle 50 %), 3 ombres. Pas d'exception.
+
+Journal des ajouts : `--shadow-0` et les deux `--c-scrim-*` ont été ajoutés à la v0.1 pendant l'étape 2/6 (page Stock). `--shadow-1` et ses 12 px de flou faisaient un halo sur les pastilles de 22 px et sur le curseur de niveau ; et un badge posé sur une photo doit rester blanc quelle que soit l'image dessous, donc il ne peut pas suivre `--c-surface`.
 
 ## 2. Icônes
 

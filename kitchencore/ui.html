@@ -51,9 +51,17 @@
   /* Rayons */
   --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-pill: 999px;
 
-  /* Ombres */
+  /* Ombres — --shadow-0 pour les petits elements (pastilles de 22 px, curseur
+     de niveau) : --shadow-1 et ses 12 px de flou y font un halo. */
+  --shadow-0: 0 1px 4px rgba(0,0,0,.20);
   --shadow-1: 0 2px 12px rgba(0,0,0,.10);
   --shadow-2: 0 8px 32px rgba(0,0,0,.15);
+
+  /* Voiles clairs poses SUR une photo (badges, cases a cocher d'une vignette) :
+     ils doivent rester blancs quelle que soit l'image dessous, donc ils ne
+     suivent pas --c-surface. */
+  --c-scrim-light:      rgba(255,255,255,.90);
+  --c-scrim-light-soft: rgba(255,255,255,.30);
 
   /* Gabarits */
   --header-h: 60px; --bottom-h: 68px; --tap: 44px;
@@ -240,7 +248,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .stock-filters {
   display: flex; gap: 8px; align-items: center;
   padding: 12px 14px 8px;
-  background: white;
+  background: var(--c-surface);
   border-bottom: 1px solid var(--grey);
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -249,21 +257,21 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .filter-pill {
   display: flex; align-items: center; gap: 5px;
   background: var(--grey-l); border: 1.5px solid var(--grey);
-  border-radius: 99px; padding: 6px 12px;
-  font-size: .8rem; font-weight: 700; color: var(--text2);
+  border-radius: var(--r-pill); padding: 6px 12px;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--text2);
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
   transition: all .15s;
 }
 .filter-pill.active { background: var(--orange-l); border-color: var(--orange); color: var(--orange); }
 .sort-btn {
   margin-left: auto; display: flex; align-items: center; gap: 4px;
-  font-size: .78rem; font-weight: 700; color: var(--text2);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--text2);
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
 }
 .view-toggle {
   width: 34px; height: 34px; display: grid; place-items: center;
-  border: 1.5px solid var(--grey); border-radius: 8px;
-  cursor: pointer; flex-shrink: 0; font-size: 1rem; color: var(--text2);
+  border: 1.5px solid var(--grey); border-radius: var(--r-sm);
+  cursor: pointer; flex-shrink: 0; font-size: var(--fs-md); color: var(--text2);
 }
 
 /* Zone section */
@@ -272,13 +280,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   display: flex; align-items: center; justify-content: space-between;
   padding: 6px 0 10px;
 }
-.zone-title { font-size: 1.05rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px; }
-.zone-title span { font-size: 1.1rem; }
-.zone-count { font-size: .72rem; font-weight: 700; color: var(--grey-d); background: var(--grey-l); padding: 2px 8px; border-radius: 99px; }
+.zone-title { font-size: var(--fs-lg); font-weight: var(--fw-heavy); color: var(--text); display: flex; align-items: center; gap: 6px; }
+.zone-title span { font-size: var(--fs-lg); }
+.zone-count { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--grey-d); background: var(--grey-l); padding: 2px 8px; border-radius: var(--r-pill); }
 .zone-collapse {
   width: 30px; height: 30px; border-radius: 50%;
   border: 1.5px solid var(--grey); display: grid; place-items: center;
-  cursor: pointer; font-size: .9rem; color: var(--grey-d);
+  cursor: pointer; font-size: var(--fs-sm); color: var(--grey-d);
   transition: all .2s; flex-shrink: 0;
 }
 .zone-collapse:active { background: var(--grey-l); }
@@ -291,10 +299,12 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   transition: max-height .3s ease, opacity .3s ease;
 }
 .product-grid.collapsed { max-height: 0 !important; opacity: 0; }
+/* Liste a plat : pas de .zone-section pour porter la marge, la grille la prend. */
+.product-grid--flat { padding: var(--sp-3) var(--sp-4); }
 
 /* Product card */
 .prod-card {
-  background: white; border-radius: var(--radius-sm);
+  background: var(--c-surface); border-radius: var(--radius-sm);
   box-shadow: var(--shadow); overflow: hidden;
   position: relative;
   transition: transform .15s;
@@ -304,9 +314,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .stock-checkbox {
   position: absolute; top: 6px; left: 6px; z-index: 2;
   width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid #ccc; background: white;
+  border: 2px solid var(--c-border); background: var(--c-surface);
   display: flex; align-items: center; justify-content: center;
-  font-size: .85rem; font-weight: 700; color: white;
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--c-on-primary);
 }
 .stock-checkbox.checked { background: var(--orange); border-color: var(--orange); }
 
@@ -325,44 +335,44 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-suggest-item img,
 .scan-item-photo img,
 .gp-thumb img,
-.ing-panel-hero img { background: #fff; }
+.ing-panel-hero img { background: var(--c-surface); }
 
 .prod-img-placeholder {
   width: 100%; aspect-ratio: 1;
-  background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+  background: linear-gradient(135deg, var(--c-bg), var(--c-border));
   display: flex; align-items: center; justify-content: center;
-  font-size: 2rem;
+  font-size: var(--fs-2xl);
 }
 
 .prod-status {
   position: absolute; top: 6px; left: 6px;
   width: 22px; height: 22px; border-radius: 50%;
   display: grid; place-items: center;
-  font-size: .65rem; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  font-size: var(--fs-xs); box-shadow: var(--shadow-0);
 }
 .prod-status.ok     { background: var(--green); }
 .prod-status.warn   { background: var(--amber); }
 .prod-status.empty  { background: var(--red); }
-.prod-status.unknwn { background: #9E9E9E; }
+.prod-status.unknwn { background: var(--c-text-3); }
 
 .prod-recipe {
   position: absolute; top: 6px; right: 6px;
   width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(255,255,255,.9); display: grid; place-items: center;
-  font-size: .65rem; color: var(--grey-d); box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  background: var(--c-scrim-light); display: grid; place-items: center;
+  font-size: var(--fs-xs); color: var(--grey-d); box-shadow: var(--shadow-0);
 }
 
 .prod-check {
   position: absolute; top: 4px; right: 4px;
-  width: 20px; height: 20px; border-radius: 5px;
-  border: 2px solid rgba(255,255,255,.8); background: rgba(255,255,255,.3);
+  width: 20px; height: 20px; border-radius: var(--r-sm);
+  border: 2px solid var(--c-scrim-light); background: var(--c-scrim-light-soft);
   cursor: pointer;
 }
 .prod-check.checked { background: var(--orange); border-color: var(--orange); }
 
 .prod-info { padding: 7px 7px 6px; }
 .prod-name {
-  font-size: .73rem; font-weight: 700; color: var(--text);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--text);
   line-height: 1.25; max-height: 2.5em;
   overflow: hidden; text-overflow: ellipsis;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -372,38 +382,72 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   display: flex; align-items: center; justify-content: space-between;
   gap: 2px;
 }
-.prod-del { font-size: .85rem; color: var(--grey-d); cursor: pointer; padding: 2px; }
+.prod-del { font-size: var(--fs-sm); color: var(--grey-d); cursor: pointer; padding: 2px; }
 .prod-qty {
   display: flex; align-items: center; gap: 3px;
 }
 .qty-btn {
   width: 20px; height: 20px; border-radius: 50%;
-  border: 1.5px solid var(--grey); background: white;
+  border: 1.5px solid var(--grey); background: var(--c-surface);
   display: grid; place-items: center; cursor: pointer;
-  font-size: .9rem; color: var(--text2); font-weight: 700;
+  font-size: var(--fs-sm); color: var(--text2); font-weight: var(--fw-bold);
   transition: all .1s; flex-shrink: 0;
   line-height: 1;
 }
-.qty-btn:active { background: var(--orange); border-color: var(--orange); color: white; }
+.qty-btn:active { background: var(--orange); border-color: var(--orange); color: var(--c-on-primary); }
 /* Derniere unite : le « − » devient une corbeille (BL-185) */
-.qty-btn-del { color:#e74c3c; border-color:#e74c3c; }
-.qty-btn-del:active { background:#e74c3c; border-color:#e74c3c; color:#fff; }
+.qty-btn-del { color:var(--c-danger); border-color:var(--c-danger); }
+.qty-btn-del:active { background:var(--c-danger); border-color:var(--c-danger); color:var(--c-on-primary); }
 /* La barre de niveau EST le curseur, et reste toujours visible (BL-185).
    touch-action:pan-y laisse le defilement vertical de la liste passer : seul un
    geste horizontal deplace le curseur. */
-.prod-pct-range { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px;
+.prod-pct-range { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:var(--r-pill);
                   margin:5px 0 0; background:var(--grey); outline:none; cursor:pointer;
                   touch-action:pan-y; display:block; }
 .prod-pct-range::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
-                  background:#fff; border:2px solid currentColor; box-shadow:0 1px 3px rgba(0,0,0,.35); }
-.prod-pct-range::-moz-range-thumb { width:13px; height:13px; border-radius:50%; background:#fff;
-                  border:2px solid currentColor; box-shadow:0 1px 3px rgba(0,0,0,.35); }
-.prod-pct-label { font-size:.62rem; font-weight:700; text-align:right; line-height:1.3; }
+                  background:var(--c-surface); border:2px solid currentColor; box-shadow:var(--shadow-0); }
+.prod-pct-range::-moz-range-thumb { width:13px; height:13px; border-radius:50%; background:var(--c-surface);
+                  border:2px solid currentColor; box-shadow:var(--shadow-0); }
+.prod-pct-label { font-size:var(--fs-xs); font-weight:var(--fw-bold); text-align:right; line-height:1.3; }
 .qty-val {
-  font-size: .85rem; font-weight: 900; color: var(--text);
+  font-size: var(--fs-sm); font-weight: var(--fw-heavy); color: var(--text);
   min-width: 14px; text-align: center; line-height: 1;
 }
-.qty-unit { font-size: .6rem; color: var(--grey-d); font-weight: 600; text-align:center; margin-top: 1px; }
+.qty-unit { font-size: var(--fs-xs); color: var(--grey-d); font-weight: var(--fw-regular); text-align:center; margin-top: 1px; }
+
+/* Etat vide et badge de DLC : sortis des attributs style en ligne (BL-197). */
+.stock-empty { padding: var(--sp-6) var(--sp-5); text-align: center; color: var(--c-text-3); }
+.stock-empty-icon { font-size: var(--icon-lg); margin-bottom: var(--sp-3); }
+.stock-empty-title { font-weight: var(--fw-bold); margin-bottom: 6px; }
+.stock-empty-hint { font-size: var(--fs-sm); }
+/* Reserve la place du FAB sous la derniere carte. */
+.stock-bottom-spacer { height: 80px; }
+.prod-dlc {
+  position: absolute; top: 4px; right: 4px;
+  color: var(--c-on-primary); font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  padding: 2px 5px; border-radius: var(--r-sm); line-height: 1.3; z-index: 2;
+}
+/* Panneau d'edition produit : rangees et commandes (BL-197). */
+.prod-row { display: flex; gap: var(--sp-2); }
+.prod-row-ing { display: flex; align-items: center; gap: var(--sp-2); }
+.prod-row > .ing-panel-input { flex: 1; }
+.prod-ing-img { width: 36px; height: 36px; object-fit: cover; border-radius: var(--r-sm); flex-shrink: 0; }
+.prod-ing-search { flex: 1; min-width: 0; }
+.prod-ing-add {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--orange); border: none; color: var(--c-on-primary);
+  font-size: var(--fs-lg); line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.prod-ing-suggest { margin-top: var(--sp-1); }
+
+/* FAB d'enregistrement du panneau d'edition produit. */
+.prod-save-fab {
+  position: absolute; bottom: 24px; right: 20px; z-index: 10;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--orange); border: none; box-shadow: var(--shadow-1);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════════
    PAGE COURSES
@@ -3970,19 +4014,19 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Contenance & Unité</label>
-        <div style="display:flex;gap:8px">
-          <input class="ing-panel-input" id="stock-editContenance" type="number" min="0" step="any" placeholder="ex: 500" style="flex:1">
-          <input class="ing-panel-input" id="stock-editUnite" placeholder="ex: g, mL, unité" style="flex:1">
+        <div class="prod-row">
+          <input class="ing-panel-input" id="stock-editContenance" type="number" min="0" step="any" placeholder="ex: 500">
+          <input class="ing-panel-input" id="stock-editUnite" placeholder="ex: g, mL, unité">
         </div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Ingrédient associé (optionnel)</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <img id="stock-editIngImg" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0;display:none" onerror="this.style.display='none'">
-          <input class="ing-panel-input" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)" style="flex:1;min-width:0">
-          <button onclick="pnpCreateIng('edit')" title="Créer cet ingrédient" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--orange);border:none;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        <div class="prod-row-ing">
+          <img id="stock-editIngImg" class="prod-ing-img" style="display:none" onerror="this.style.display='none'">
+          <input class="ing-panel-input prod-ing-search" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
+          <button class="prod-ing-add" onclick="pnpCreateIng('edit')" title="Créer cet ingrédient">+</button>
         </div>
-        <div class="pnp-suggest" id="stock-editIngSuggest" style="display:none;margin-top:4px"></div>
+        <div class="pnp-suggest prod-ing-suggest" id="stock-editIngSuggest" style="display:none"></div>
         <input type="hidden" id="stock-editIngId">
       </div>
       <div class="ing-panel-section">
@@ -3991,7 +4035,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
       <button class="ing-panel-btn-del" onclick="stockDeleteFromEdit()">🗑 Supprimer ce produit</button>
     </div>
-    <button class="fab" onclick="stockSaveEdit()" style="position:absolute;bottom:24px;right:20px;z-index:10;width:52px;height:52px;border-radius:50%;background:var(--orange);border:none;box-shadow:0 3px 10px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="fab prod-save-fab" onclick="stockSaveEdit()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
   </div>
   <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
 
@@ -4193,7 +4237,7 @@ function _stockRender() {
   if (!el) return;
 
   const baseItems = _stockSortItems(_stockFilterItems(_stockItems));
-  const emptyHtml = `<div style="padding:40px 20px;text-align:center;color:#aaa"><div style="font-size:2.5rem;margin-bottom:12px">📦</div><div style="font-weight:700;margin-bottom:6px">Stock vide</div><div style="font-size:.85rem">Scanne un produit avec le bouton + pour commencer</div></div>`;
+  const emptyHtml = `<div class="stock-empty"><div class="stock-empty-icon">📦</div><div class="stock-empty-title">Stock vide</div><div class="stock-empty-hint">Scanne un produit avec le bouton + pour commencer</div></div>`;
 
   // Tri rayon → groupement par rayon
   if (_stockGroupBy === 'rayon') {
@@ -4219,7 +4263,7 @@ function _stockRender() {
         <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
       </div>`;
     });
-    el.innerHTML = (html || emptyHtml) + '<div style="height:80px"></div>';
+    el.innerHTML = (html || emptyHtml) + '<div class="stock-bottom-spacer"></div>';
     return;
   }
 
@@ -4251,13 +4295,13 @@ function _stockRender() {
         <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
       </div>`;
     });
-    el.innerHTML = (total || shown ? html : emptyHtml) + '<div style="height:80px"></div>';
+    el.innerHTML = (total || shown ? html : emptyHtml) + '<div class="stock-bottom-spacer"></div>';
     return;
   }
 
   // Tous les autres tris → liste plate
-  if (!baseItems.length) { el.innerHTML = emptyHtml + '<div style="height:80px"></div>'; return; }
-  el.innerHTML = `<div class="product-grid" style="padding:12px 16px">${baseItems.map(s => _stockCard(s)).join('')}</div><div style="height:80px"></div>`;
+  if (!baseItems.length) { el.innerHTML = emptyHtml + '<div class="stock-bottom-spacer"></div>'; return; }
+  el.innerHTML = `<div class="product-grid product-grid--flat">${baseItems.map(s => _stockCard(s)).join('')}</div><div class="stock-bottom-spacer"></div>`;
 }
 
 function _dlcBadge(dlc) {
@@ -4266,8 +4310,8 @@ function _dlcBadge(dlc) {
   const d = new Date(dlc); d.setHours(0,0,0,0);
   const diff = Math.round((d - today) / 86400000);
   const label = diff < 0 ? `Expiré` : diff === 0 ? `Auj.` : diff <= 7 ? `J-${diff}` : d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-  const color = diff < 0 ? '#c0392b' : diff <= 3 ? '#e67e22' : diff <= 7 ? '#f39c12' : '#27ae60';
-  return `<div style="position:absolute;top:4px;right:4px;background:${color};color:#fff;font-size:.62rem;font-weight:700;padding:2px 5px;border-radius:10px;line-height:1.3;z-index:2">${label}</div>`;
+  const color = diff < 0 ? 'var(--c-danger)' : diff <= 7 ? 'var(--c-warning)' : 'var(--c-success)';
+  return `<div class="prod-dlc" style="background:${color}">${label}</div>`;
 }
 
 // La barre de niveau est elle-meme le curseur, et elle est TOUJOURS affichee —
