@@ -304,6 +304,7 @@ try { db.exec(`ALTER TABLE produits ADD COLUMN icone TEXT`); } catch(_) {}
 try { db.exec(`ALTER TABLE produits ADD COLUMN pourcentage INTEGER`); } catch(_) {}
 try { db.exec(`ALTER TABLE stocks ADD COLUMN dlc TEXT`); } catch(_) {}
 try { db.exec(`ALTER TABLE ingredients ADD COLUMN duree_conservation_jours INTEGER`); } catch(_) {}
+try { db.exec(`ALTER TABLE ingredients ADD COLUMN toujours_dispo INTEGER DEFAULT 0`); } catch(_) {}
 const HAS_ALIMENT_ID = db.prepare("SELECT COUNT(*) as n FROM pragma_table_info('produits') WHERE name='aliment_id'").get().n > 0;
 
 // Migration : ancienne table marchands_rayons → rayons + marchand_rayons (jonction)
@@ -501,7 +502,7 @@ app.patch('/api/ingredients/:id', (req, res) => {
       return res.status(400).json({ error: 'Cycle détecté' });
   }
   const f=[], v=[];
-  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel','parent_id','duree_conservation_jours'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
+  ['nom','categorie','rayon_id','seuil_alerte','icone','saison','nom_pluriel','parent_id','duree_conservation_jours','toujours_dispo'].forEach(k => { if (req.body[k] !== undefined) { f.push(k+'=?'); v.push(req.body[k]); } });
   if (!f.length) return res.status(400).json({ error: 'Rien à modifier' });
   v.push(req.params.id);
   db.prepare(`UPDATE ingredients SET ${f.join(',')} WHERE id=?`).run(...v);
@@ -968,7 +969,7 @@ function getRecette(id) {
            COALESCE(i1.nom_pluriel, i2.nom_pluriel) as nom_pluriel
     FROM recette_ingredients ri
     LEFT JOIN ingredients i1 ON i1.id = ri.ingredient_id
-    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
+    LEFT JOIN ingredients i2 ON NORM(i2.nom) = NORM(ri.nom) AND ri.ingredient_id IS NULL
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(id);
   // Conversion unité → grammes (informatif dans le détail recette)
@@ -984,11 +985,13 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
   if (depth > 3) return [];
   const ingredients = db.prepare(`
     SELECT ri.*, COALESCE(i1.icone, i2.icone) as ingredient_icone,
-           COALESCE(r1.nom, r2.nom) as rayon_nom
+           COALESCE(r1.nom, r2.nom) as rayon_nom,
+           COALESCE(i1.id, i2.id) as ing_id,
+           COALESCE(i1.toujours_dispo, i2.toujours_dispo, 0) as toujours_dispo
     FROM recette_ingredients ri
     LEFT JOIN ingredients i1 ON i1.id = ri.ingredient_id
     LEFT JOIN rayons r1 ON r1.id = i1.rayon_id
-    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
+    LEFT JOIN ingredients i2 ON NORM(i2.nom) = NORM(ri.nom) AND ri.ingredient_id IS NULL
     LEFT JOIN rayons r2 ON r2.id = i2.rayon_id
     WHERE ri.recette_id=? ORDER BY ri.position
   `).all(recetteId);
@@ -1237,7 +1240,7 @@ app.get('/api/ingredients/usedIn', (_req, res) => {
   const rows = db.prepare(`
     SELECT COALESCE(ri.ingredient_id, i2.id) as ing_id, ri.recette_id
     FROM recette_ingredients ri
-    LEFT JOIN ingredients i2 ON LOWER(TRIM(i2.nom)) = LOWER(TRIM(ri.nom)) AND ri.ingredient_id IS NULL
+    LEFT JOIN ingredients i2 ON NORM(i2.nom) = NORM(ri.nom) AND ri.ingredient_id IS NULL
     WHERE ri.nom IS NOT NULL AND ri.nom != '' AND ri.type != 'sous_recette'
       AND COALESCE(ri.ingredient_id, i2.id) IS NOT NULL
   `).all();
@@ -2026,9 +2029,9 @@ function importMerge(tables) {
     if (existing) { idMap.ingredients[i.id] = existing.id; return; }
     const rayonId = i.rayon_id != null ? (idMap.rayons[i.rayon_id] || null) : null;
     const info = db.prepare(`INSERT INTO ingredients
-      (nom,categorie,seuil_alerte,icone,created_at,rayon_id,saison,nom_pluriel,parent_id,duree_conservation_jours)
-      VALUES(?,?,?,?,?,?,?,?,NULL,?)`)
-      .run(i.nom, i.categorie, i.seuil_alerte, i.icone, i.created_at, rayonId, i.saison, i.nom_pluriel, i.duree_conservation_jours);
+      (nom,categorie,seuil_alerte,icone,created_at,rayon_id,saison,nom_pluriel,parent_id,duree_conservation_jours,toujours_dispo)
+      VALUES(?,?,?,?,?,?,?,?,NULL,?,?)`)
+      .run(i.nom, i.categorie, i.seuil_alerte, i.icone, i.created_at, rayonId, i.saison, i.nom_pluriel, i.duree_conservation_jours, i.toujours_dispo ? 1 : 0);
     idMap.ingredients[i.id] = info.lastInsertRowid;
     counts.ingredients++;
   });

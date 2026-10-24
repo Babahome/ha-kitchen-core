@@ -1746,6 +1746,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   .ing-badge.rayon { background: var(--orange-l); color: var(--orange); }
   .ing-badge.recipes { background: #e8f4fd; color: #2980b9; }
   .ing-badge.warning { background: #fef3cd; color: #856404; }
+  .ing-badge.pantry { background: #e8f8ef; color: #1e8449; }
 
   .ing-actions {
     display: flex; gap: 6px; flex-shrink: 0;
@@ -2057,6 +2058,24 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     font-size: 14px; font-weight: 600;
   }
   .ing-panel-recipe-emoji { font-size: 18px; }
+
+  /* Recherche d'image (BL-194) */
+  .ing-img-search-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; padding: 10px 16px;
+    border: 2px solid var(--grey); border-radius: 12px; background: white;
+    font-family: var(--font); font-size: .9rem; font-weight: 800;
+    color: var(--text2); cursor: pointer;
+  }
+  .ing-img-search-btn:active { background: var(--grey-l); }
+  .ing-img-search-hint { color: var(--grey-d); font-size: 12px; font-weight: 600; margin-top: 6px; }
+
+  /* Recettes liees repliables (BL-195) */
+  .ing-panel-recipes-more {
+    align-self: flex-start; margin-top: 2px; padding: 6px 2px;
+    border: none; background: none; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 800; color: var(--orange);
+  }
 
   /* Bouton supprimer */
   .ing-panel-btn-del {
@@ -3136,6 +3155,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
             <div class="stock-sf-opt" data-fetat="sans-recette" onclick="ingSfToggleFetat(this,'sans-recette')"><span class="sf-check">✓</span> 📋 Sans recette</div>
             <div class="stock-sf-opt" data-fetat="avec-recette" onclick="ingSfToggleFetat(this,'avec-recette')"><span class="sf-check">✓</span> 🍽️ Avec recette</div>
             <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><span class="sf-check">✓</span> 🌿 Sans saison</div>
+            <div class="stock-sf-opt" data-fetat="toujours-dispo" onclick="ingSfToggleFetat(this,'toujours-dispo')"><span class="sf-check">✓</span> 🏠 Toujours en cuisine</div>
           </div>
         </div>
         <div class="stock-sf-section">
@@ -3498,6 +3518,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div class="m-hdmenu-item danger" id="ing-hd-delete" onclick="ingDeleteSelected();ingHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
     <div class="m-hdmenu-item" id="ing-hd-rayon" onclick="ingOpenRayonSheet();ingHideHdmenu()"><span>🛒</span><span>Changer le rayon</span></div>
     <div class="m-hdmenu-item" id="ing-hd-saison" onclick="ingOpenSaisonSheet();ingHideHdmenu()"><span>🌿</span><span>Changer la saison</span></div>
+    <div class="m-hdmenu-item" id="ing-hd-pantry-on" onclick="ingSetPantrySelected(1);ingHideHdmenu()"><span>🏠</span><span>Toujours en cuisine</span></div>
+    <div class="m-hdmenu-item" id="ing-hd-pantry-off" onclick="ingSetPantrySelected(0);ingHideHdmenu()"><span>🏠</span><span>Plus toujours en cuisine</span></div>
     <div class="m-hdmenu-item" id="ing-hd-merge" onclick="ingOpenMergeSheet();ingHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
   </div>
 
@@ -3545,7 +3567,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div id="ing-detailConvList"></div>
       </div>
       <div class="ing-panel-section">
-        <span class="ing-panel-label">Utilisé dans</span>
+        <span class="ing-panel-label" id="ing-detailRecipesLabel">Utilisé dans</span>
         <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
       </div>
     </div>
@@ -3573,6 +3595,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom</label>
         <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomate cerise" oninput="ingAutoFillPluriel(this.value)">
+      </div>
+      <div class="ing-panel-section" id="ing-editSearchSection" style="display:none">
+        <label class="ing-panel-label">Trouver une image</label>
+        <button class="ing-img-search-btn" onclick="ingSearchImage()">🔍 Chercher sur Google Images</button>
+        <div class="ing-img-search-hint">Copier l'adresse de l'image, puis la coller ici (Ctrl+V)</div>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom au pluriel <span style="font-weight:400;color:var(--grey-d);font-size:12px">(affiché si quantité > 1)</span></label>
@@ -3615,7 +3642,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <input class="ing-panel-input" id="ing-editConservation" type="number" min="1" step="1" placeholder="ex: 7">
       </div>
       <div class="ing-panel-section">
-        <label class="ing-panel-label">Recettes liées</label>
+        <label class="ing-panel-label" id="ing-editRecipesLabel">Recettes liées</label>
         <div class="ing-panel-recipes" id="ing-editRecipesList"></div>
       </div>
       <div class="ing-panel-section" id="ing-editParentSection" style="display:none">
@@ -4609,7 +4636,7 @@ function _stockOpenDetail(id) {
     const _bcNom    = (s.produit_nom || s.ingredient_nom || '').trim();
     const _bcMarque = (s.marque || '').trim();
     const _bcQuery  = [_bcMarque, _bcNom].filter(Boolean).join(' ') || s.code_barres;
-    document.getElementById('stock-detailBarcode').innerHTML = `<a href="https://www.google.com/search?q=${encodeURIComponent(_bcQuery)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
+    document.getElementById('stock-detailBarcode').innerHTML = `<a href="${_googleSearchUrl(_bcQuery, false)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
     bcSection.style.display = '';
   } else {
     bcSection.style.display = 'none';
@@ -7386,6 +7413,12 @@ function clToggleSearch() {
   clFabUpdate();
 }
 // Ligatures depliees avant NFD (voir NORM dans server.js)
+// Construit une URL de recherche Google. images:true cible Google Images
+// (tbm=isch), le but etant de trouver une photo (BL-194).
+function _googleSearchUrl(q, images){
+  return 'https://www.google.com/search?' + (images ? 'tbm=isch&' : '') + 'q=' + encodeURIComponent(q);
+}
+
 function clNorm(s){ return String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
 function clSearchFilter(val) {
   const q = clNorm(val.trim());
@@ -9140,8 +9173,50 @@ const MM=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov',
 
 let _md   = {};
 let _mKey = null, _mT = 'n', _mP = null, _mEditIdx = null, _mPortions = 2;
-let _pantry = new Set(JSON.parse(localStorage.getItem('kc_pantry')||'[]'));
-function _pantrySave(){ localStorage.setItem('kc_pantry',JSON.stringify([..._pantry])); }
+// « Toujours en cuisine » vit desormais dans ingredients.toujours_dispo (BL-193).
+// Le localStorage kc_pantry n'est plus lu que pour une reprise unique au
+// demarrage : il etait propre a un navigateur ET a une origine (ingress HA vs
+// HTTPS 8443), et indexe par nom, donc le marquage ne suivait ni l'appareil ni
+// les libelles de recette. On le vide une fois recopie en base.
+async function _pantryMigrerLocalStorage(){
+  let noms = [];
+  try { noms = JSON.parse(localStorage.getItem('kc_pantry') || '[]'); } catch(e) {}
+  if (!Array.isArray(noms) || !noms.length) return;
+  try {
+    const res = await fetch('/api/ingredients');
+    if (!res.ok) return;                       // on retentera au prochain demarrage
+    const cat = await res.json();
+    if (!Array.isArray(cat)) return;
+    const cherche = new Set(noms.map(n => clNorm(String(n))));
+    const cibles  = cat.filter(a => cherche.has(clNorm(a.nom || '')) && !a.toujours_dispo);
+    for (const a of cibles) {
+      await fetch('/api/ingredients/' + a.id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toujours_dispo: 1 })
+      });
+    }
+    localStorage.removeItem('kc_pantry');      // seulement apres succes
+    if (cibles.length) console.info('[KitchenCore] ' + cibles.length + ' ingredient(s) « toujours en cuisine » repris en base');
+  } catch(e) { /* reseau : on laisse la cle en place pour une prochaine fois */ }
+}
+document.addEventListener('DOMContentLoaded', _pantryMigrerLocalStorage);
+
+// Ecrit l'attribut en base. Rien d'autre : cette fonction vit dans la portee
+// globale, alors que le catalogue _ingAll appartient a la portee du module
+// Ingredients — elle ne peut donc pas le mettre a jour, et un garde
+// « typeof _ingAll » y serait toujours faux (silencieusement). Chaque appelant
+// rafraichit son propre etat.
+async function _pantrySet(ingId, valeur){
+  if (!ingId) return false;
+  try {
+    const r = await fetch('/api/ingredients/' + ingId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toujours_dispo: valeur ? 1 : 0 })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch(e) { return false; }
+  return true;
+}
 
 function mdk(d){ return d.toISOString().split('T')[0]; }
 
@@ -9694,7 +9769,9 @@ function mIngOpen(){
     html += `<div class="m-ing-recipe">${recipe.recipeName}</div>`;
     recipe.ingredients.forEach((ing,i)=>{
       const key = recipe.recipeId+'|'+i;
-      const isPantry = _pantry.has(ing.nom);
+      // L'attribut vient de la base, resolu cote serveur sur l'id reel de
+      // l'ingredient : le libelle de la ligne de recette n'entre plus en jeu.
+      const isPantry = !!ing.toujours_dispo;
       if(!isPantry) _mIngChecked.add(key);
       const qtyNum = parseFloat(ing.qty);
       const qtyStr = [isNaN(qtyNum)?null:qtyNum, ing.unite].filter(Boolean).join(' ');
@@ -9705,7 +9782,7 @@ function mIngOpen(){
           <span class="m-ing-nom">${ing.nom}</span>
           ${qtyStr?`<span class="m-ing-qty">${qtyStr}</span>`:''}
         </div>
-        <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}','${nomEsc}')" title="Toujours dans ma cuisine">🏠</div>
+        <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}',${ing.ing_id||'null'},'${nomEsc}')" title="Toujours dans ma cuisine">🏠</div>
       </div>`;
     });
   });
@@ -9721,19 +9798,27 @@ function mIngRowToggle(el, key){
   mIngUpdateCount();
 }
 
-function mIngPantryToggle(el, key, nom){
+async function mIngPantryToggle(el, key, ingId, nom){
+  // Sans ingredient au catalogue, il n'y a rien sur quoi enregistrer le choix :
+  // on le dit plutot que de laisser croire a un reglage memorise.
+  if(!ingId){ showToast('\u00AB '+nom+' \u00BB n\'est pas au catalogue des ingr\u00e9dients', 'warn'); return; }
   const now = el.classList.toggle('on');
+  const check = el.parentElement.querySelector('.m-ing-check');
   if(now){
-    _pantry.add(nom);
-    const check = el.parentElement.querySelector('.m-ing-check');
     if(check && check.classList.contains('on')){ check.classList.remove('on'); _mIngChecked.delete(key); mIngUpdateCount(); }
   } else {
-    _pantry.delete(nom);
-    const check = el.parentElement.querySelector('.m-ing-check');
     if(check && !check.classList.contains('on')){ check.classList.add('on'); _mIngChecked.add(key); mIngUpdateCount(); }
   }
-  _pantrySave();
-  if(typeof window.__ingPantryRefreshPanel==='function') window.__ingPantryRefreshPanel(nom, now);
+  // L'etat visuel suit le doigt, mais s'annule si la base refuse.
+  const ok = await _pantrySet(ingId, now);
+  if(!ok){
+    el.classList.toggle('on', !now);
+    showToast('Erreur r\u00e9seau \u2014 choix non enregistr\u00e9', 'error');
+    return;
+  }
+  // Toutes les lignes du meme ingredient, y compris dans d'autres recettes.
+  _mIngData.forEach(r => r.ingredients.forEach(x => { if(String(x.ing_id)===String(ingId)) x.toujours_dispo = now ? 1 : 0; }));
+  if(typeof window.__ingPantryRefreshPanel==='function') window.__ingPantryRefreshPanel(ingId, now);
 }
 
 function mIngToggleAll(){
@@ -10158,6 +10243,7 @@ async function _ingLoadData() {
         saison:     a.saison || '[]',
         parent_id:  a.parent_id ? String(a.parent_id) : null,
         usedIn:     [],
+        toujours_dispo: !!a.toujours_dispo,
         _dbId:      a.id,
       };
     });
@@ -10338,6 +10424,7 @@ function _ingRenderCard(ing, i, depth) {
       <div class="ing-meta">
         ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${_rayonIcon(effRayon.rayon)} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
         ${recipeCount > 0 ? `<span class="ing-badge recipes">🍳 ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
+        ${ing.toujours_dispo ? `<span class="ing-badge pantry">🏠 Toujours en cuisine</span>` : ''}
       </div>
     </div>
     <div class="ing-actions">
@@ -10657,6 +10744,7 @@ function _ingGetFilteredItems() {
   if (_ingFEtat.has('sans-image'))   items = items.filter(i => !i.imageUrl && (!i.emoji || i.emoji === '🥫'));
   if (_ingFEtat.has('sans-recette')) items = items.filter(i => !i.usedIn || i.usedIn.length === 0);
   if (_ingFEtat.has('avec-recette')) items = items.filter(i => i.usedIn && i.usedIn.length > 0);
+  if (_ingFEtat.has('toujours-dispo')) items = items.filter(i => i.toujours_dispo);
   if (_ingFEtat.has('sans-saison'))  items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
   items.sort((a, b) => {
     let cmp;
@@ -10683,6 +10771,32 @@ function _ingUpdateSelectModeUI() {
   if (mergeItem) mergeItem.style.display = n >= 2 ? '' : 'none';
   const deselectItem = document.getElementById('ing-hd-deselect');
   if (deselectItem) deselectItem.style.display = n > 0 ? '' : 'none';
+  // Les deux sens sont proposes separement : sur une selection mixte, un
+  // simple « inverser » serait imprevisible.
+  const pOn  = document.getElementById('ing-hd-pantry-on');
+  const pOff = document.getElementById('ing-hd-pantry-off');
+  if (pOn)  pOn.style.display  = n > 0 ? '' : 'none';
+  if (pOff) pOff.style.display = n > 0 ? '' : 'none';
+}
+
+// Action groupee « toujours en cuisine ». Meme motif que le changement de rayon
+// en lot : un PATCH par ingredient, en sequentiel, puis rechargement.
+async function _ingSetPantrySelected(valeur) {
+  const ids = [..._ingSelectedIds];
+  if (!ids.length) return;
+  let ok = 0;
+  for (const id of ids) {
+    const ing = _ingAll.find(i => i.id === id);
+    if (!ing) continue;
+    if (await _pantrySet(ing._dbId, valeur)) ok++;
+  }
+  await _ingLoadData();
+  _ingRender();
+  _ingSelectedIds.clear();
+  _ingUpdateSelectModeUI();
+  _ingToast(valeur
+    ? ok + ' ingrédient(s) marqué(s) « toujours en cuisine »'
+    : ok + ' ingrédient(s) retiré(s) de « toujours en cuisine »');
 }
 
 function _ingDeselectAll() {
@@ -10851,14 +10965,11 @@ function _ingOpenDetailPanel(id) {
   const linked = (ing.usedIn || []).map(id =>
     _rvSrc.find(r => String(r.id).replace(/^d_/, '') === String(id))
   ).filter(Boolean);
-  const recDiv = document.getElementById('ing-detailRecipes');
-  recDiv.innerHTML = linked.length
-    ? linked.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
-    : `<span style="color:var(--grey-d);font-size:14px;font-weight:600">Aucune recette liée</span>`;
+  _ingRenderRecipeList('ing-detailRecipes', 'ing-detailRecipesLabel', linked, false);
 
   const pantryBtn = document.getElementById('ing-detailPantryBtn');
   if(pantryBtn){
-    const inPantry = (typeof _pantry !== 'undefined') && _pantry.has(ing.name);
+    const inPantry = !!ing.toujours_dispo;
     pantryBtn.textContent = inPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
     pantryBtn.classList.toggle('on', inPantry);
   }
@@ -10895,26 +11006,90 @@ function _ingOpenDetailPanel(id) {
   document.getElementById('ing-detailPanel').classList.add('open');
 }
 
+// Echappe le texte avant injection HTML. Les noms de recette venaient d'un
+// template non echappe : un nom contenant < ou & cassait la liste (BL-195).
+function _escHtml(t) {
+  return String(t == null ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Liste des recettes liees, repliee par defaut (BL-195). Partagee par la fiche
+// et le panneau d'edition, qui affichaient le meme rendu duplique.
+// L'etat n'est jamais memorise d'une fiche a l'autre : on repart replie a
+// chaque remplissage, l'element est reconstruit a neuf.
+const _ING_RECIPES_REPLI = 3;
+
+function _ingRenderRecipeList(containerId, labelId, linked, deplie) {
+  const div = document.getElementById(containerId);
+  if (!div) return;
+  const label = labelId ? document.getElementById(labelId) : null;
+  if (label) {
+    // Le total reste visible meme replie : c'est l'information utile.
+    const base = label.dataset.baseLabel || (label.dataset.baseLabel = label.textContent.trim());
+    label.textContent = linked.length ? base + ' (' + linked.length + ')' : base;
+  }
+  if (!linked.length) {
+    div.innerHTML = '<span style="color:var(--grey-d);font-size:14px;font-weight:600">Aucune recette liée</span>';
+    return;
+  }
+  const visibles = deplie ? linked : linked.slice(0, _ING_RECIPES_REPLI);
+  let html = visibles.map(r =>
+    '<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">' +
+    _escHtml(r.emoji || '🍽') + '</span>' + _escHtml(r.nom || r.name || '?') + '</div>'
+  ).join('');
+  const reste = linked.length - visibles.length;
+  if (reste > 0) {
+    html += '<button class="ing-panel-recipes-more" onclick="ingToggleRecipeList(\'' + containerId +
+            '\',\'' + (labelId || '') + '\',true)">Voir les ' + reste + ' autre' + (reste > 1 ? 's' : '') + '</button>';
+  } else if (deplie && linked.length > _ING_RECIPES_REPLI) {
+    html += '<button class="ing-panel-recipes-more" onclick="ingToggleRecipeList(\'' + containerId +
+            '\',\'' + (labelId || '') + '\',false)">Réduire</button>';
+  }
+  div.innerHTML = html;
+  div._linked = linked;   // garde la liste pour le replier/deplier
+}
+
+function _ingToggleRecipeList(containerId, labelId, deplie) {
+  const div = document.getElementById(containerId);
+  if (!div || !div._linked) return;
+  _ingRenderRecipeList(containerId, labelId || null, div._linked, deplie);
+}
+
 function _ingCloseDetailPanel() {
   document.getElementById('ing-detailPanel').classList.remove('open');
 }
 
-function _ingPantryToggleDetail(){
+async function _ingPantryToggleDetail(){
   const ing = _ingAll.find(i=>i.id===_ingDetailId); if(!ing) return;
-  const wasPantry = (typeof _pantry!=='undefined') && _pantry.has(ing.name);
-  if(wasPantry) _pantry.delete(ing.name);
-  else _pantry.add(ing.name);
-  if(typeof _pantrySave==='function') _pantrySave();
-  const btn = document.getElementById('ing-detailPantryBtn');
+  const veut = !ing.toujours_dispo;
+  const btn  = document.getElementById('ing-detailPantryBtn');
   if(btn){
-    btn.textContent = !wasPantry ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
-    btn.classList.toggle('on', !wasPantry);
+    btn.textContent = veut ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
+    btn.classList.toggle('on', veut);
   }
+  const ok = await _pantrySet(ing._dbId, veut);
+  if(!ok){
+    if(btn){
+      btn.textContent = ing.toujours_dispo ? '✓ Toujours en cuisine' : '🏠 Toujours en cuisine';
+      btn.classList.toggle('on', !!ing.toujours_dispo);
+    }
+    _ingToast('Erreur réseau — choix non enregistré');
+    return;
+  }
+  ing.toujours_dispo = veut;   // sans ca, le clic suivant repart d'un etat perime
+  _ingRender();                // la tuile porte l'indicateur, elle doit suivre
 }
 
-function _ingPantryRefreshPanel(nom, isPantry){
+// Appele depuis le dialogue des courses : l'ingredient est designe par son id
+// en base, plus par son nom (BL-193).
+function _ingPantryRefreshPanel(ingId, isPantry){
+  if (typeof _ingAll !== 'undefined' && Array.isArray(_ingAll)) {
+    const local = _ingAll.find(i => String(i._dbId) === String(ingId));
+    if (local) local.toujours_dispo = !!isPantry;
+  }
   if(!document.getElementById('ing-detailPanel')?.classList.contains('open')) return;
-  const ing = _ingAll.find(i=>i.name===nom);
+  const ing = _ingAll.find(i=>String(i._dbId)===String(ingId));
   if(!ing || ing.id!==_ingDetailId) return;
   const btn = document.getElementById('ing-detailPantryBtn');
   if(btn){
@@ -11137,6 +11312,10 @@ function _ingOpenEditPanel(id, e) {
     .then(convs => { _ingConvLoaded = convs; _ingRenderConvRows(); })
     .catch(() => {});
 
+  // Recherche d'image : seulement quand il n'y a pas d'image (BL-194)
+  const searchSection = document.getElementById('ing-editSearchSection');
+  if (searchSection) searchSection.style.display = ing.imageUrl ? 'none' : '';
+
   // Hero
   const hero = document.getElementById('ing-editHero');
   const overlayText = document.getElementById('ing-editHeroOverlayText');
@@ -11165,9 +11344,7 @@ function _ingOpenEditPanel(id, e) {
   const linked2 = (ing.usedIn || []).map(id =>
     _rvSrc2.find(r => String(r.id).replace(/^d_/, '') === String(id))
   ).filter(Boolean);
-  document.getElementById('ing-editRecipesList').innerHTML = linked2.length
-    ? linked2.map(r => `<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">${r.emoji||'🍽'}</span>${r.nom||r.name||'?'}</div>`).join('')
-    : `<span style="color:var(--grey-d);font-size:14px">Aucune recette liée</span>`;
+  _ingRenderRecipeList('ing-editRecipesList', 'ing-editRecipesLabel', linked2, false);
 
   // Saisonnalité (éditable)
   const editSaison = (() => { try { return JSON.parse(ing.saison || '[]'); } catch(e) { return []; } })();
@@ -11338,6 +11515,18 @@ function _ingTriggerImageUpload() {
   const input = document.getElementById('ing-imageFileInput');
   input.value = '';
   input.click();
+}
+
+// « fond blanc stock » parce qu'une photo detachee du fond s'integre dans les
+// tuiles et les listes. On lit le champ Nom et non l'ingredient enregistre :
+// un nom qu'on vient de corriger sans encore enregistrer doit etre pris en
+// compte (BL-194).
+function _ingSearchImage() {
+  const saisi = (document.getElementById('ing-editName').value || '').trim();
+  const ing   = _ingAll.find(i => i.id === _ingEditingId);
+  const nom   = saisi || (ing ? ing.name : '');
+  if (!nom) { _ingToast('Donner un nom d\'abord'); return; }
+  window.open(_googleSearchUrl(nom + ' fond blanc stock', true), '_blank', 'noopener');
 }
 
 function _ingHandleImageFile(input) {
@@ -11836,6 +12025,8 @@ window.ingDissociateParent = _ingDissociateParent;
 window.ingSelectRayon      = _ingSelectRayon;
 window.ingTriggerImageUpload = _ingTriggerImageUpload;
 window.ingHandleImageFile  = _ingHandleImageFile;
+window.ingSearchImage      = _ingSearchImage;
+window.ingToggleRecipeList = _ingToggleRecipeList;
 window.ingOpenMergeSheet   = _ingOpenMergeSheet;
 window.ingCloseMergeSheet  = _ingCloseMergeSheet;
 window.ingSelectMergeName  = _ingSelectMergeName;
@@ -11864,6 +12055,7 @@ window.ingRemoveConversion = _ingRemoveConversion;
 window.ingHideHdmenu          = _ingHideHdmenu;
 window.ingDeselectAll         = _ingDeselectAll;
 window.ingPantryToggleDetail  = _ingPantryToggleDetail;
+window.ingSetPantrySelected   = _ingSetPantrySelected;
 window.__ingPantryRefreshPanel = _ingPantryRefreshPanel;
 
 // Exposer pour le hook switchPage (lecture seule)
