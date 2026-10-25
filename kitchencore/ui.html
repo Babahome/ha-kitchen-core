@@ -1157,11 +1157,20 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .toast.warn { background: var(--c-warning); }
 @keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 .toast-ico { margin-right: var(--sp-2); }
-/* Bouton « Annuler » dans un toast (BL-190) */
-.toast-action { margin-left:12px; background:var(--c-scrim-light-soft); border:1px solid var(--c-scrim-light);
+/* Bouton « Annuler » dans un toast (BL-190, reparé en BL-217).
+   .toast-wrap est en pointer-events:none pour laisser la page utilisable
+   sous les messages, et les enfants heritent : un bouton place dedans
+   etait donc intouchable et l'appui traversait jusqu'a la tuile du
+   dessous. On retablit les appuis sur le bouton ET sur le toast qui en
+   porte un — un message qui propose une action doit capter le doigt —
+   mais pas sur les messages passifs, qui ne doivent rien bloquer. */
+.toast--action { pointer-events: auto; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3); }
+.toast-action { pointer-events: auto; touch-action: manipulation;
+                margin-left: var(--sp-3); min-height: var(--tap); flex-shrink: 0;
+                background:var(--c-scrim-light-soft); border:1px solid var(--c-scrim-light);
                 color:var(--c-surface); font-family:inherit; font-size:var(--fs-xs); font-weight:var(--fw-heavy); border-radius:var(--r-sm);
-                padding:3px 10px; cursor:pointer; vertical-align:middle; }
-.toast-action:active { background:var(--c-scrim-light-soft); }
+                padding: 0 var(--sp-4); cursor:pointer; }
+.toast-action:active { background:var(--c-scrim-light); color:var(--c-text); }
 
 /* ══ COURSES v2 ════════════════════════════════════════════════════════════ */
 .cl-header    { background:var(--c-surface);border-bottom:1px solid var(--grey);position:sticky;top:0;z-index:10; }
@@ -6011,18 +6020,38 @@ function showToast(msg, type = 'ok', action = null) {
   t.innerHTML = ico(type === 'ok' ? 'check' : 'alert', 'icon-sm toast-ico') + '<span></span>';
   t.lastChild.textContent = msg;
   const avecAction = !!(action && typeof action.onClick === 'function');
+
+  // Un toast qu'on doit avoir le temps de lire ET de toucher reste plus
+  // longtemps, et son compte a rebours s'arrete tant que le doigt est pose :
+  // six secondes ne suffisent pas toujours pour lire, viser et appuyer.
+  let reste = avecAction ? 6000 : 2800;
+  let debut = 0, minuteur = null;
+  const fermer = () => {
+    minuteur = null;
+    t.style.transition = 'opacity .3s';
+    t.style.opacity = '0';
+    setTimeout(() => t.remove(), 300);
+  };
+  const lancer = () => { if (minuteur || !t.isConnected) return; debut = Date.now(); minuteur = setTimeout(fermer, reste); };
+  const suspendre = () => {
+    if (!minuteur) return;
+    clearTimeout(minuteur); minuteur = null;
+    reste = Math.max(1500, reste - (Date.now() - debut));
+  };
+
   if (avecAction) {
+    t.classList.add('toast--action');
     const b = document.createElement('button');
     b.className = 'toast-action';
     b.textContent = action.label || 'Annuler';
-    b.onclick = e => { e.stopPropagation(); t.remove(); action.onClick(); };
+    b.onclick = e => { e.stopPropagation(); clearTimeout(minuteur); minuteur = null; t.remove(); action.onClick(); };
     t.appendChild(b);
+    ['pointerdown', 'pointerenter'].forEach(ev => t.addEventListener(ev, suspendre));
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => t.addEventListener(ev, lancer));
   }
-  const wrap = document.getElementById('toasts');
-  wrap.appendChild(t);
-  // Un toast qu'on doit avoir le temps de lire ET de toucher reste plus longtemps
-  const duree = avecAction ? 6000 : 2800;
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, duree);
+
+  document.getElementById('toasts').appendChild(t);
+  lancer();
 }
 
 // ── Init zones max-height ────────────────────────────────────────────────────

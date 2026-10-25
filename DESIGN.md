@@ -206,7 +206,7 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 
 1. État vide : icône `--icon-lg` en `--c-text-3`, une phrase, et le bouton pour en sortir.
 2. Suppression : confirmation en sheet, ou suppression immédiate + toast « Annuler » de 5 s. Jamais silencieuse.
-3. Retour d'action : toast court au-dessus de la nav quand l'écran ne change pas visiblement.
+3. Retour d'action : toast court au-dessus de la nav quand l'écran ne change pas visiblement. Un toast **passif** ne capte pas le doigt (`pointer-events: none`) ; un toast **qui porte un bouton** le capte (`pointer-events: auto` sur le toast et sur le bouton), sinon l'appui traverse et déclenche ce qu'il y a dessous. Son bouton fait 44 px de haut, et le compte à rebours **s'arrête tant que le doigt est posé**.
 4. Chargement : squelette ou indicateur local, jamais d'écran bloqué sans signe de vie.
 5. Erreurs : langage clair, en `--c-danger`, à côté du champ, avec quoi faire.
 6. Cibles tactiles : 44 × 44 px minimum, 8 px entre deux cibles.
