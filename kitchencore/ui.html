@@ -240,6 +240,11 @@
 .hero-fav.on { color: var(--c-danger); }
 .hero-fav:active { transform: scale(.9); }
 
+/* Les deux boutons d'une ligne de la page Zones de stock (BL-219) : le
+   meme rond que partout ailleurs, juste un peu plus grand car la ligne
+   est aeree. */
+.zs-btn { --btn-round-size: 36px; }
+
 /* Vignette d'un objet qui a une photo (BL-206, charte section 3).
    Carre de --thumb-size : 40 px en liste, 64 px en carte (.thumb--lg). La
    photo est recadree pour remplir le carre. Sans photo, le meme carre en
@@ -3360,7 +3365,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <span class="st-fab-search-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
-      oninput="_stockSearch=this.value;_stockOrGpRender()">
+      oninput="_stockSearch=this.value;_stockOrGpRender();_stockUpdateFab()">
     <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
   </div>
 
@@ -4378,6 +4383,7 @@ function stockToggleSearch() {
     inp.value = '';
     _stockSearch = '';
     _stockOrGpRender();
+    _stockUpdateFab();   // le champ vide ramene l'icone de scan (BL-215)
     inp.blur();
   }
 }
@@ -4788,8 +4794,14 @@ function _stockUpdateFab() {
   const n = document.querySelector('.page.active')?.id === 'page-stock' ? _stockSelectedIds.size : 0;
   const fab = document.getElementById('main-fab');
   if (fab) {
-    fab.innerHTML = n > 0 ? _SVG_FAB_CART : _SVG_FAB_PLUS;
-    fab.title = n > 0 ? `Ajouter ${n} produit(s) aux courses` : '';
+    // Meme regle que la page Courses (BL-110) : l'icone suit le champ de
+    // recherche. Elle montre toujours l'action qu'elle declenche (BL-210) —
+    // avant, le FAB affichait « + » et ouvrait le scanner.
+    const txt = (document.getElementById('st-search-input')?.value || '').trim();
+    fab.innerHTML = n > 0 ? _SVG_FAB_CART : (txt ? _SVG_FAB_PLUS : _SVG_FAB_SCAN);
+    fab.title = n > 0 ? `Ajouter ${n} produit(s) aux courses`
+              : txt   ? `Créer le produit « ${txt} »`
+                      : 'Scanner un code-barres';
   }
   const hasSel = n > 0;
   const label = document.getElementById('stock-hd-sel-label');
@@ -5546,8 +5558,8 @@ function _zsRender() {
         <div class="zs-drag-handle" style="color:var(--grey-d);font-size:1rem;cursor:grab;padding:0 2px;touch-action:none;user-select:none;line-height:1">⠿</div>
         <div class="zs-emoji" onclick="zsEditEmoji(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="font-size:1.5rem;cursor:pointer;min-width:34px;text-align:center" title="Changer l'emoji">${z.emoji}</div>
         <div style="flex:1;font-weight:700;font-size:.95rem">${z.nom}</div>
-        <button onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="border:none;background:var(--grey-l);border-radius:8px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--text)">✏️</button>
-        <button onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}') " style="border:none;background:var(--c-danger-soft);border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--red)">${ico('delete','icon-sm')}</button>
+        <button class="btn-icon--round zs-btn" onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" aria-label="Renommer">${ico('edit','icon-sm')}</button>
+        <button class="btn-icon--round btn-del zs-btn" onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}')" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
       </div>`;
     });
   }
@@ -6081,7 +6093,7 @@ const PAGE_CONFIG = {
   recettes: { title: 'Recettes',      fab: true,  search: true,  fabIcon: '+', dark: true  },
   menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
-  ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
+  ingredients: { title: 'Ingrédients', fab: true,  search: false, fabIcon: '+', dark: false },
   rayons:               { title: 'Rayons', ico: 'rayon',               fab: true,  search: false, fabIcon: '+', dark: false },
   marchands:            { title: 'Marchands', ico: 'shop',           fab: true,  search: false, fabIcon: '+', dark: false },
   'suggestion-config':  { title: 'Suggestions aléatoires', ico: 'random', fab: true, search: false, fabIcon: '+', dark: false },
@@ -6353,7 +6365,23 @@ function fabAction() {
   const active = document.querySelector('.page.active');
   if (!active) return;
   const page = active.id.replace('page-', '');
-  if (page === 'stock')     { if (_stockSelectedIds.size > 0) { stockAddSelectedToCourses(); } else if(typeof openScanner==='function') openScanner(); return; }
+  if (page === 'stock') {
+    if (_stockSelectedIds.size > 0) { stockAddSelectedToCourses(); return; }
+    // Champ de recherche rempli : on cree le produit qui porte ce nom
+    // (choix de Baptiste). Sinon on scanne. BL-215.
+    const txt = (document.getElementById('st-search-input')?.value || '').trim();
+    if (txt) { openNewProduit('', txt); return; }
+    if (typeof openScanner === 'function') openScanner();
+    return;
+  }
+  if (page === 'ingredients') {
+    // Un nom deja tape : on cree directement. Sinon on ouvre la barre de
+    // recherche, qui EST le chemin de creation de la page. BL-215.
+    const q = (document.getElementById('ing-searchInput')?.value || '').trim();
+    if (q) { ingCreateFromSearch(); return; }
+    if (typeof ingOpenSearch === 'function') ingOpenSearch();
+    return;
+  }
   if (page === 'recettes')  { if(typeof rvFabDialToggle==='function') rvFabDialToggle(); return; }
   if (page === 'courses')   { clFabAction(); return; }
   if (page === 'rayons')              { _ryOpenModal(); return; }
@@ -6387,6 +6415,10 @@ function closeRecetteMenu() { closeCtx && closeCtx(); }
   document.getElementById('fab-search')?.classList.remove('visible');
   document.getElementById('st-fab-search')?.classList.add('visible');
   document.getElementById('st-fab-scan-search')?.classList.add('visible');
+  // switchPage() n'est pas appele au demarrage : sans cet appel le FAB garde
+  // l'icone ecrite dans le HTML et affiche « + » alors qu'il ouvre le
+  // scanner (BL-215).
+  _stockUpdateFab();
 })();
 
 // Rediriger vers la page d'accueil personnalisée (Personnalisation).
@@ -7274,9 +7306,12 @@ function _parseQtyOFF(str) {
   return null;
 }
 
-async function openNewProduit(code) {
+// `nom` pre-remplit la fiche quand la creation part du champ de recherche
+// du Stock (BL-215). Jusque-la cette fonction n'etait appelee de nulle
+// part : le panneau existait sans aucun moyen de l'ouvrir.
+async function openNewProduit(code, nom) {
   document.getElementById('pnp-code').value = code || '';
-  document.getElementById('pnp-nom').value = '';
+  document.getElementById('pnp-nom').value = nom || '';
   document.getElementById('pnp-marque').value = '';
   document.getElementById('pnp-ing-search').value = '';
   document.getElementById('pnp-ing-id').value = '';
@@ -7289,6 +7324,8 @@ async function openNewProduit(code) {
   _pnpZone = STOCK_ZONES.length > 0 ? STOCK_ZONES[0].key : 'À définir';
   document.querySelectorAll('.pnp-zone-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
   document.getElementById('panel-new-produit').classList.add('open');
+  // Le nom pre-rempli doit chercher son ingredient comme une saisie au clavier.
+  if (nom) pnpAutoMatchIng(nom);
 
   // Lookup OpenFoodFacts si on a un code
   if (code) {
@@ -9629,12 +9666,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // ════════════════════════════════════════════════════════════════════════════
 // PAGE MENU — Timeline + Modal + Drag&Drop (v0.5)
 // ════════════════════════════════════════════════════════════════════════════
+// Plus d'emoji de type de repas (BL-212, choix de Baptiste) : le type se
+// lit a sa barre de couleur et a son libelle. Le champ `e` a disparu ;
+// attention a ne pas le confondre avec `r.e`, l'emoji de la recette ou de
+// la note planifiee, qui est une donnee et reste affiche.
 const MC = {
-  p:{l:'Petit-déj',s:'sp',t:'tp',e:'🌅',o:0},
-  d:{l:'Déjeuner', s:'sd',t:'td',e:'☀️',o:1},
-  g:{l:'Goûter',   s:'sg2',t:'tg2',e:'🍪',o:2},
-  n:{l:'Dîner',    s:'sn',t:'tn',e:'🌙',o:3},
-  a:{l:'Autre',    s:'sa',t:'ta',e:'📌',o:4},
+  p:{l:'Petit-déj',s:'sp',t:'tp',o:0},
+  d:{l:'Déjeuner', s:'sd',t:'td',o:1},
+  g:{l:'Goûter',   s:'sg2',t:'tg2',o:2},
+  n:{l:'Dîner',    s:'sn',t:'tn',o:3},
+  a:{l:'Autre',    s:'sa',t:'ta',o:4},
 };
 
 // Types de repas affiches en colonnes sur grand ecran (le type 'a' = Autre passe
@@ -9767,7 +9808,7 @@ function mBuild(scrollY){
         ${thumbHtml}
         <div class="m-bd">
           <div class="m-top-row">
-            <div class="m-tg ${tCls}">${c.e} ${c.l}${portStr}</div>
+            <div class="m-tg ${tCls}">${c.l}${portStr}</div>
             <div class="m-bts">
               <button class="m-bt m-bt-cart" data-act="courses" aria-label="Ajouter aux courses">${ico('cart','icon-sm')}</button>
               <button class="m-bt m-bt-edit" data-act="edit" aria-label="Modifier">${ico('edit','icon-sm')}</button>
@@ -9809,7 +9850,7 @@ function mBuild(scrollY){
       </div>
       <div class="m-zone" id="mz-${k}"
         ondragover="mZO(event,'${k}')" ondragleave="mZL(event)" ondrop="mZD(event,'${k}')">
-        ${rp.length===0?'':MCOLS.map(t=>`<div class="m-colhd" data-t="${t}">${MC[t].e} ${MC[t].l}</div>`).join('')}
+        ${rp.length===0?'':MCOLS.map(t=>`<div class="m-colhd" data-t="${t}">${MC[t].l}</div>`).join('')}
         ${rp.length===0?'<div class="m-empty">Rien de prévu — tapez + pour planifier</div>':''}
         ${cards}
       </div>
