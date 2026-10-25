@@ -3193,7 +3193,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ctx-item" onclick="exportDetailJson()"><span><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg></span> Exporter (.json)</div>
     </div>
     <div class="p-scroll" id="detail-body"></div>
-    <button class="ev3-save-fab" onclick="openEdit(_currentId)"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
+    <button class="ev3-save-fab" onclick="openEdit(_currentId)" aria-label="Modifier" title="Modifier"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-edit"></use></svg></button>
   </div>
 
   <!-- Panel édition recette -->
@@ -3205,7 +3205,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
 
     <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
-    <button class="ev3-save-fab" onclick="saveRecette()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-edit"></use></svg></button>
+    <button class="ev3-save-fab" onclick="saveRecette()" aria-label="Enregistrer" title="Enregistrer"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-save"></use></svg></button>
 
     <div class="ev3-form" id="edit-form">
 
@@ -3444,11 +3444,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
     </div>
     <!-- FABs toujours visibles (hors zone scroll) -->
-    <button class="stock-sf-fab-reset" onclick="stockSfReset()" title="Réinitialiser">
-      <svg class="icon icon-lg" aria-hidden="true"><use href="#i-save"></use></svg>
-    </button>
-    <button class="stock-sf-fab-apply" onclick="stockSfApply()" title="Appliquer">
+    <button class="stock-sf-fab-reset" onclick="stockSfReset()" title="Réinitialiser" aria-label="Réinitialiser">
       <svg class="icon" aria-hidden="true"><use href="#i-reset"></use></svg>
+    </button>
+    <button class="stock-sf-fab-apply" onclick="stockSfApply()" title="Appliquer" aria-label="Appliquer">
+      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
     </button>
   </div>
 
@@ -4200,7 +4200,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="ing-panel-value" id="stock-detailDlc" style="margin-bottom:8px"></div>
         <div style="display:flex;gap:8px;align-items:center">
           <input class="ing-panel-input" id="stock-detailDlcInput" type="date" style="flex:1;margin:0">
-          <button class="btn btn--primary" onclick="stockDetailSaveDlc()" aria-label="Enregistrer la date"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button class="btn btn--primary" onclick="stockDetailSaveDlc()" aria-label="Enregistrer la date" title="Enregistrer la date"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-save"></use></svg></button>
         </div>
         <div id="stock-detailDlcQuick" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px"></div>
       </div>

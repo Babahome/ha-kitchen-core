@@ -101,6 +101,8 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 - **`${ico(...)}` exige un gabarit** (backticks). Dans une chaîne à apostrophes, il s'affiche tel quel — ou casse la syntaxe.
 - Style : `.icon { width: var(--icon-md); height: var(--icon-md); fill: currentColor; flex-shrink: 0; }`. La couleur vient du texte parent.
 - Une action = une icône, partout.
+- **L'icône d'un bouton montre l'action qu'il déclenche, jamais l'état où l'on se trouve.** Un bouton qui ouvre l'édition porte le crayon ; celui qui enregistre porte la disquette.
+- **`check` ne veut dire ni « modifier » ni « enregistrer ».** Il est réservé à cocher une sélection ou à confirmer un choix (appliquer un filtre, valider une sélection multiple). C'est l'échange de ces trois icônes qui a produit le défaut BL-210.
 
 | Sens | Icône mdi |
 | --- | --- |
@@ -121,6 +123,7 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 | Menu | menu |
 | Retour | arrow-left |
 | Enregistrer | content-save |
+| Réinitialiser | restore |
 | Retirer / moins | minus |
 | Lier à un élément | link-variant |
 | Pastille d'état | circle |
