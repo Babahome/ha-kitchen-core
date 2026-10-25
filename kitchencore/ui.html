@@ -128,6 +128,52 @@
 .sf-dot--soon    { color: var(--c-warning); }
 .sf-dot--ok      { color: var(--c-success); }
 
+/* ── Boutons (BL-199, charte section 3) ────────────────────────────────────
+   Une seule classe + une variante. Hauteur 44 px (--tap), rayon --r-md,
+   texte --fs-md / --fw-bold. Dans une confirmation : annuler (ghost) a
+   gauche, action a droite. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap); padding: 0 var(--sp-4);
+  border: none; border-radius: var(--r-md);
+  font-family: var(--font); font-size: var(--fs-md); font-weight: var(--fw-bold);
+  cursor: pointer; transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn--primary   { background: var(--c-primary); color: var(--c-on-primary); }
+.btn--secondary { background: var(--c-surface); color: var(--c-primary);
+                  border: 2px solid var(--c-primary); }
+.btn--ghost     { background: var(--c-bg); color: var(--c-text-2); }
+.btn--danger    { background: var(--c-surface); color: var(--c-danger);
+                  border: 2px solid var(--c-danger); }
+.btn--danger-solid { background: var(--c-danger); color: var(--c-on-primary); }
+.btn:active     { opacity: .75; }
+.btn:disabled   { opacity: .5; cursor: default; }
+/* Mise en page seulement : la part de largeur prise dans une rangee. */
+.btn--block { width: 100%; }
+.btn--grow  { flex: 1; }
+.btn--grow2 { flex: 2; }
+
+/* Bouton a icone seule. Il porte toujours un aria-label.
+   --sm garde une taille visible plus petite mais conserve une ZONE TACTILE
+   de 44 px, posee par un calque transparent centre. A n'utiliser que si le
+   bouton a de la place autour de lui : dans une rangee serree, trois zones
+   de 44 px se chevauchent et se volent les appuis. */
+.btn-icon {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: var(--tap); height: var(--tap); padding: 0;
+  border: none; border-radius: 50%; background: none;
+  color: var(--c-text-2); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-icon:active { opacity: .6; }
+.btn-icon--sm { width: 34px; height: 34px; }
+.btn-icon--sm::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: var(--tap); height: var(--tap); transform: translate(-50%, -50%);
+}
+
 /* Icones (BL-198) : la couleur vient du texte parent, d'ou currentColor.
    vertical-align:-.15em aligne l'icone sur la ligne de base du texte a cote. */
 .icon {
@@ -2516,13 +2562,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .rv-mealie-url-row { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
 .rv-mealie-url-inp { flex:1; padding:9px 12px; border:1.5px solid var(--grey); border-radius:var(--r-md); font-family:'Nunito',sans-serif; font-size:var(--fs-sm); background:var(--c-surface); color:var(--text); }
 .rv-mealie-url-inp:focus { outline:none; border-color:var(--orange); }
-.btn-rv-load { background:var(--orange); color:var(--c-surface); border:none; border-radius:var(--r-md); padding:9px 14px; font-family:'Nunito',sans-serif; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; white-space:nowrap; }
-.btn-rv-load:disabled { opacity:.5; cursor:default; }
 /* Reprise des photos Mealie restees en URL externe (import anterieur au correctif) */
-.btn-rv-repair { width:100%; margin-bottom:14px; background:transparent; color:var(--grey-d);
-                 border:1px dashed var(--grey); border-radius:var(--r-md); padding:8px 12px;
-                 font-family:'Nunito',sans-serif; font-size:var(--fs-xs); font-weight:var(--fw-bold); cursor:pointer; }
-.btn-rv-repair:disabled { opacity:.5; cursor:default; }
 .rv-mealie-results { display:flex; flex-direction:column; gap:8px; }
 .rv-mealie-empty { text-align:center; padding:2.5rem 1rem; color:var(--grey-d); font-size:var(--fs-sm); }
 .rv-spinner { text-align:center; padding:2rem; color:var(--grey-d); font-size:var(--fs-sm); }
@@ -2539,9 +2579,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .rv-json-textarea { width:100%; height:200px; padding:10px 12px; border:1.5px solid var(--grey); border-radius:var(--r-md); font-family:'Courier New',monospace; font-size:var(--fs-xs); background:var(--c-bg); color:var(--text); resize:none; line-height:1.5; }
 .rv-json-textarea:focus { outline:none; border-color:var(--orange); }
 .rv-json-actions { display:flex; gap:8px; margin-top:10px; }
-.btn-json-clear { flex:none; padding:10px 14px; border-radius:var(--r-md); background:var(--grey-l); border:1.5px solid var(--grey); color:var(--grey-d); font-family:'Nunito',sans-serif; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; }
-.btn-json-import { flex:1; padding:10px; border-radius:var(--r-md); background:var(--orange); border:none; color:var(--c-surface); font-family:'Nunito',sans-serif; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor:pointer; }
-.btn-json-import:disabled { opacity:.5; cursor:default; }
 .rv-json-hint { margin-top:10px; padding:10px 12px; background:var(--orange-l); border-radius:var(--r-md); border-left:3px solid var(--orange); font-size:var(--fs-xs); color:var(--c-primary-strong); line-height:1.6; }
 .rv-json-hint code { background:var(--c-bg); border-radius:var(--r-sm); padding:1px 4px; font-size:var(--fs-xs); }
 /* ══ /MODAL IMPORT RECETTE ═════════════════════════════════════════════════ */
@@ -2581,8 +2618,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .sgc-add-cond { display: flex; align-items: center; gap: 6px; background: none; border: 2px dashed var(--c-border); border-radius:var(--r-sm); color: var(--text2); padding: 7px 12px; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor: pointer; font-family: var(--font); width: 100%; transition: all .15s; margin-top: 4px; }
 .sgc-add-cond:hover { border-color: var(--orange); color: var(--orange); }
 .sgc-save-bar { position: sticky; bottom: 0; background: var(--c-surface); border-top: 1px solid var(--c-border); padding: 10px 16px; display: flex; gap: 10px; margin: 0 -16px; box-shadow: var(--shadow-1); }
-.sgc-btn-save { flex: 1; background: var(--orange); color: var(--c-surface); border: none; border-radius:var(--r-md); padding: 13px; font-size:var(--fs-md); font-weight:var(--fw-heavy); cursor: pointer; font-family: var(--font); }
-.sgc-btn-cancel { background: var(--grey-l); color: var(--c-text-2); border: none; border-radius:var(--r-md); padding: 13px 16px; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor: pointer; font-family: var(--font); }
 .sgc-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
 .sgc-empty .e { font-size:var(--fs-2xl); margin-bottom: 10px; }
 /* ── Page Sauvegarde (import/export) ── */
@@ -2590,9 +2625,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .bk-card { background: var(--c-surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
 .bk-title { font-weight:var(--fw-heavy); font-size:var(--fs-md); margin-bottom: 4px; }
 .bk-desc { font-size:var(--fs-sm); color: var(--text2); margin-bottom: 12px; line-height: 1.4; }
-.bk-btn { width: 100%; background: var(--orange); color: var(--c-surface); border: none; border-radius:var(--r-md); padding: 13px; font-size:var(--fs-md); font-weight:var(--fw-heavy); cursor: pointer; font-family: var(--font); }
-.bk-btn:disabled { opacity: .5; cursor: default; }
-.bk-btn-outline { background: var(--c-surface); color: var(--orange); border: 2px solid var(--orange); padding: 11px; }
 .bk-file-summary { font-size:var(--fs-sm); color: var(--text2); margin-top: 10px; line-height: 1.4; }
 .bk-file-summary b { color: var(--text); }
 .bk-radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; cursor: pointer; }
@@ -2633,8 +2665,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .ry-form-input:focus { border-color: var(--orange); }
 .ry-form-select { width: 100%; box-sizing: border-box; border: 2px solid var(--grey); border-radius:var(--r-md); padding: 10px 12px; font-size:var(--fs-sm); font-family: inherit; font-weight:var(--fw-regular); outline: none; background: var(--c-surface); }
 .ry-modal-btns { display: flex; gap: 8px; margin-top: 16px; }
-.ry-btn-cancel { flex: 1; padding: 12px; border: 2px solid var(--grey); border-radius:var(--r-md); background: var(--c-surface); font-family: inherit; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor: pointer; }
-.ry-btn-confirm { flex: 2; padding: 12px; border: none; border-radius:var(--r-md); background: var(--orange); color: var(--c-on-primary); font-family: inherit; font-size:var(--fs-sm); font-weight:var(--fw-heavy); cursor: pointer; }
 .ry-dissocier { display: inline-block; margin-top: 4px; font-size:var(--fs-xs); font-weight:var(--fw-bold); color: var(--orange); cursor: pointer; text-decoration: underline; }
 
 #page-marchands { background: var(--grey-l); }
@@ -2699,10 +2729,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .mch-emoji-opt.active { border-color: var(--orange); background: var(--orange-l); }
 .mch-emoji-opt:active { transform: scale(.9); }
 .mch-modal-btns { display: flex; gap: 8px; margin-top: 18px; }
-.mch-btn-cancel { flex: 1; padding: 11px; border-radius:var(--r-md); border: 2px solid var(--grey); background: var(--c-surface); font-family: var(--font); font-size:var(--fs-sm); font-weight:var(--fw-heavy); cursor: pointer; }
-.mch-btn-confirm { flex: 2; padding: 11px; border-radius:var(--r-md); border: none; background: var(--orange); color: var(--c-on-primary); font-family: var(--font); font-size:var(--fs-sm); font-weight:var(--fw-heavy); cursor: pointer; }
-.mch-btn-confirm:active { background: var(--orange-d); }
-.mch-btn-danger { flex: 1; padding: 11px; border-radius:var(--r-md); border: 2px solid var(--red); background: var(--c-surface); color: var(--red); font-family: var(--font); font-size:var(--fs-sm); font-weight:var(--fw-heavy); cursor: pointer; }
 /* ══ /MARCHANDS ═════════════════════════════════════════════════════════════ */
 
 /* ══ PANEL CRÉATION PRODUIT ═════════════════════════════════════════════════ */
@@ -3041,14 +3067,14 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="bk-card">
           <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Exporter mes données</div>
           <div class="bk-desc">Télécharge un fichier contenant toutes vos recettes, ingrédients, stocks, courses et photos. À envoyer ensuite à la personne qui veut importer vos données (mail, clé USB…).</div>
-          <button class="bk-btn" id="bk-export-btn" onclick="bkExport()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Télécharger la sauvegarde</button>
+          <button class="btn btn--primary btn--block" id="bk-export-btn" onclick="bkExport()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Télécharger la sauvegarde</button>
         </div>
 
         <div class="bk-card">
           <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-upload"></use></svg> Importer des données</div>
           <div class="bk-desc">Choisissez un fichier de sauvegarde (.json) reçu d'une autre installation KitchenCore.</div>
           <input type="file" id="bk-file-input" accept="application/json,.json" style="display:none" onchange="bkFileSelected(event)">
-          <button class="bk-btn bk-btn-outline" onclick="document.getElementById('bk-file-input').click()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir un fichier</button>
+          <button class="btn btn--secondary btn--block" onclick="document.getElementById('bk-file-input').click()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir un fichier</button>
           <div id="bk-file-summary" class="bk-file-summary"></div>
 
           <div id="bk-import-options" style="display:none">
@@ -3062,7 +3088,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
               <input type="radio" name="bk-mode" value="merge">
               <div><span class="t">Ajouter sans effacer</span><span class="s">Ajoute les données du fichier à celles déjà présentes (les doublons de noms sont réutilisés, rien n'est effacé).</span></div>
             </label>
-            <button class="bk-btn" id="bk-import-btn" onclick="bkImport()" style="margin-top:8px"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg> Importer</button>
+            <button class="btn btn--primary btn--block" id="bk-import-btn" onclick="bkImport()" style="margin-top:8px"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg> Importer</button>
           </div>
 
           <div id="bk-result" style="display:none" class="bk-result"></div>
@@ -3127,13 +3153,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
             <input class="rv-mealie-url-inp" id="rv-mealie-url"
               placeholder="http://192.168.1.166:30111"
               value="http://192.168.1.166:30111">
-            <button class="btn-rv-load" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
+            <button class="btn btn--primary" id="rv-btn-load" onclick="rvMealieLoad()">Charger</button>
           </div>
           <div class="rv-mealie-url-row" style="margin-bottom:8px">
             <input class="rv-mealie-url-inp" id="rv-mealie-token" autocomplete="off"
               placeholder="API Token (laisser vide si non requis)" type="text">
           </div>
-          <button class="btn-rv-repair" id="rv-btn-repair" onclick="rvMealieRepairPhotos()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Réparer les photos manquantes</button>
+          <button class="btn btn--ghost btn--block" id="rv-btn-repair" onclick="rvMealieRepairPhotos()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Réparer les photos manquantes</button>
           <div id="rv-mealie-results" class="rv-mealie-results">
             <div class="rv-mealie-empty">Clique sur "Charger" pour afficher tes recettes Mealie.</div>
           </div>
@@ -3153,8 +3179,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
             <code>{titre, texte, timer}</code>)
           </div>
           <div class="rv-json-actions">
-            <button class="btn-json-clear" onclick="rvJsonClear()">Effacer</button>
-            <button class="btn-json-import" id="rv-btn-json-import" onclick="rvJsonImport()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Importer cette recette</button>
+            <button class="btn btn--ghost" onclick="rvJsonClear()">Effacer</button>
+            <button class="btn btn--primary btn--grow" id="rv-btn-json-import" onclick="rvJsonImport()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Importer cette recette</button>
           </div>
         </div>
       </div>
@@ -3672,8 +3698,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         </select>
       </div>
       <div class="mch-modal-btns">
-        <button class="mch-btn-cancel" onclick="_mchCloseModalMarchand()">Annuler</button>
-        <button class="mch-btn-confirm" onclick="_mchSaveMarchand()">Enregistrer</button>
+        <button class="btn btn--ghost btn--grow" onclick="_mchCloseModalMarchand()">Annuler</button>
+        <button class="btn btn--primary btn--grow2" onclick="_mchSaveMarchand()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -3699,8 +3725,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <input class="mch-form-input" id="mch-ray-nom-input" type="text" placeholder="Ex: Fruits & Légumes" maxlength="40">
       </div>
       <div class="mch-modal-btns">
-        <button class="mch-btn-cancel" onclick="_mchCloseModalRayon()">Annuler</button>
-        <button class="mch-btn-confirm" onclick="_mchSaveRayon()">Enregistrer</button>
+        <button class="btn btn--ghost btn--grow" onclick="_mchCloseModalRayon()">Annuler</button>
+        <button class="btn btn--primary btn--grow2" onclick="_mchSaveRayon()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -3732,8 +3758,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <span class="ry-dissocier" id="ry-dissocier-btn" style="display:none" onclick="_ryDissocier()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-unlink"></use></svg> Dissocier du parent</span>
       </div>
       <div class="ry-modal-btns">
-        <button class="ry-btn-cancel" onclick="_ryCloseModal()">Annuler</button>
-        <button class="ry-btn-confirm" onclick="_rySave()">Enregistrer</button>
+        <button class="btn btn--ghost btn--grow" onclick="_ryCloseModal()">Annuler</button>
+        <button class="btn btn--primary btn--grow2" onclick="_rySave()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -3744,8 +3770,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ry-modal-title">Importer des rayons</div>
       <p style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5;margin:0 0 4px">Importer la liste <strong>Carrefour Drive</strong> (13 rayons + sous-rayons) ?<br>Les rayons déjà existants seront conservés.</p>
       <div class="ry-modal-btns">
-        <button class="ry-btn-cancel" onclick="_ryCloseImportModal()">Annuler</button>
-        <button class="ry-btn-confirm" onclick="_ryImportCarrefour()">Importer</button>
+        <button class="btn btn--ghost btn--grow" onclick="_ryCloseImportModal()">Annuler</button>
+        <button class="btn btn--primary btn--grow2" onclick="_ryImportCarrefour()">Importer</button>
       </div>
     </div>
   </div>
@@ -3756,8 +3782,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="mch-modal-title" id="mch-confirm-title">Supprimer ?</div>
       <p id="mch-confirm-body" style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5"></p>
       <div class="mch-modal-btns" style="margin-top:18px">
-        <button class="mch-btn-cancel" onclick="_mchCloseConfirm()">Annuler</button>
-        <button class="mch-btn-danger" id="mch-confirm-ok-btn">Supprimer</button>
+        <button class="btn btn--ghost btn--grow" onclick="_mchCloseConfirm()">Annuler</button>
+        <button class="btn btn--danger btn--grow" id="mch-confirm-ok-btn">Supprimer</button>
       </div>
     </div>
   </div>
@@ -13525,8 +13551,8 @@ function _sgcRender() {
     _sgcRules.forEach((rule,idx) => { html += _sgcRuleHtml(rule,idx); });
   }
   html += `<div class="sgc-save-bar">
-    <button class="sgc-btn-cancel" onclick="_sgcLoad()">Annuler</button>
-    <button class="sgc-btn-save" onclick="_sgcSave()">Enregistrer</button>
+    <button class="btn btn--ghost" onclick="_sgcLoad()">Annuler</button>
+    <button class="btn btn--primary btn--grow" onclick="_sgcSave()">Enregistrer</button>
   </div>`;
   el.innerHTML = html;
 }

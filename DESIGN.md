@@ -140,7 +140,9 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - `.btn--secondary` (contour) : action alternative.
 - `.btn--ghost` (texte seul) : annuler, actions tertiaires.
 - `.btn--danger` : suppression définitive, toujours après confirmation.
-- `.btn-icon` : bouton 44 × 44 avec icône seule et `aria-label`.
+- `.btn-icon` : bouton 44 × 44 avec icône seule et `aria-label`. La variante `--sm` garde une taille **visible** plus petite tout en conservant une **zone tactile** de 44 px, posée par un calque transparent centré.
+- **Limite de la règle des 44 px** : dans une rangée serrée, trois zones de 44 px ne tiennent pas (une carte Stock fait 109 px de large) et se voleraient les appuis. Les commandes groupées `+ / −` gardent donc leur taille. Au-dessus d'elles se trouve la barre de niveau : agrandir leur zone vers le haut ramènerait le bug de suppression accidentelle corrigé en v0.10.278.
+- Mise en page : `--block`, `--grow`, `--grow2` disent la place prise dans une rangée. C'est de la mise en page, pas de l'apparence.
 - Hauteur 44 px, rayon `--r-md`, texte `--fs-md` / `--fw-bold`.
 - Dans une sheet de confirmation : annuler à gauche (ghost), action à droite (primary ou danger).
 
