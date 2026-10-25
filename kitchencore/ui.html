@@ -4294,10 +4294,25 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 })();
 
 // ── Drawer ───────────────────────────────────────────────────────────────────
-function toggleDrawer() {
-  document.getElementById('drawer').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('open');
+// Volet lateral (BL-211). On ne bascule plus a l'aveugle : setDrawer()
+// FORCE le meme etat sur le volet et sur son voile, donc appeler
+// closeDrawer() deux fois ne rouvre rien, et un etat incoherent se repare
+// au premier appel. toggleDrawer() reste le point d'entree des onclick du
+// balisage.
+function setDrawer(ouvert) {
+  document.getElementById('drawer').classList.toggle('open', ouvert);
+  document.getElementById('overlay').classList.toggle('open', ouvert);
 }
+function openDrawer()  {
+  setDrawer(true);
+  // Comme les panneaux (v0.10.279) : le volet empile sa propre entree, sans
+  // quoi le retour n'aurait rien a consommer depuis la page de depart et
+  // quitterait l'app au lieu de fermer le volet.
+  _navPanneauOuvert();
+}
+function closeDrawer() { setDrawer(false); }
+function drawerOuvert() { return document.getElementById('drawer').classList.contains('open'); }
+function toggleDrawer() { setDrawer(!drawerOuvert()); }
 
 // ── Course item check ────────────────────────────────────────────────────────
 function toggleItem(el) {
@@ -6172,6 +6187,9 @@ const NAV_PANNEAUX = [
   ['#ing-detailPanel.open',    () => ingCloseDetailPanel()],
   ['#stock-editPanel.open',    () => stockCloseEdit()],
   ['#stock-detailPanel.open',  () => stockCloseDetail()],
+  // Le volet lateral en dernier : il est sous les panneaux. Sans lui ici,
+  // le retour changeait de page en le laissant ouvert par-dessus (BL-211).
+  ['#drawer.open',             () => closeDrawer()],
 ];
 
 // Ferme le panneau ouvert le plus profond. Renvoie true si quelque chose a ete
@@ -6232,6 +6250,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function switchPage(tab, page, title) {
+  // Le volet ne doit jamais survivre a un changement de page (BL-211).
+  // Les entrees du volet le ferment deja elles-memes ; ceci couvre les
+  // navigations declenchees par le code.
+  closeDrawer();
   // pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
