@@ -155,7 +155,10 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
 - **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
 
-**Bottom sheet** — composant unique `.sheet` pour toutes les modales, choix, confirmations et formulaires. Fond `--c-overlay`, coins hauts `--r-lg`, poignée, fermeture par tap sur l'overlay et swipe bas. Pas de modale centrée sauf exception validée.
+**Bottom sheet** — deux classes : `.sheet-overlay` (le voile, `--c-overlay`) et `.sheet` (la feuille : `--c-surface`, coins hauts `--r-lg`, poignée dessinée par le composant, safe-area réservée en bas). Fermée par **tap sur le voile**, **glissement vers le bas** et **Échap**. Pas de modale centrée sauf exception validée.
+- **Le voile accepte `.on` comme `.open`** : les modales existantes utilisaient l'un ou l'autre, et les recabler n'apporterait rien.
+- **Échap et le glissement simulent un clic sur le voile**, ce qui déclenche le gestionnaire que chaque modale porte déjà (`onclick="if(event.target===this)fermer()"`). Une nouvelle feuille hérite donc des trois gestes rien qu'en portant les deux classes et ce `onclick`.
+- Le glissement ne démarre que si le contenu est **déjà en haut**, sinon on empêcherait de faire défiler la feuille.
 
 **Carte** — `.card` : fond `--c-surface`, rayon `--r-md`, ombre `--shadow-1`, padding `--sp-4`.
 

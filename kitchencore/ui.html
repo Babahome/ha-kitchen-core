@@ -128,6 +128,35 @@
 .sf-dot--soon    { color: var(--c-warning); }
 .sf-dot--ok      { color: var(--c-success); }
 
+/* ── Feuille et son voile (BL-200, charte section 3) ───────────────────────
+   Un seul composant pour toutes les modales de bas d'ecran. Le voile ferme
+   au tap, la feuille porte sa poignee et reserve la safe-area en bas. Les
+   deux etats .on et .open sont acceptes : les anciennes modales utilisaient
+   l'un ou l'autre, et les recabler toutes n'apporterait rien. */
+.sheet-overlay {
+  position: absolute; inset: 0; z-index: 150;
+  background: var(--c-overlay);
+  display: none; flex-direction: column; justify-content: flex-end;
+}
+.sheet-overlay.on, .sheet-overlay.open { display: flex; }
+
+.sheet {
+  background: var(--c-surface);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  max-height: 88%;
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheetUp .25s cubic-bezier(.4, 0, .2, 1);
+}
+/* Poignee : dessinee par le composant, plus par un <div> dans chaque modale. */
+.sheet::before {
+  content: ''; flex-shrink: 0;
+  width: 40px; height: 4px; border-radius: var(--r-pill);
+  background: var(--c-border);
+  margin: var(--sp-2) auto var(--sp-3);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+
 /* ── Boutons (BL-199, charte section 3) ────────────────────────────────────
    Une seule classe + une variante. Hauteur 44 px (--tap), rayon --r-md,
    texte --fs-md / --fw-bold. Dans une confirmation : annuler (ghost) a
@@ -1005,7 +1034,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
    BURGER DRAWER
 ══════════════════════════════════════════════════════════════════════════════ */
 .drawer-overlay {
-  position: absolute; inset: 0; background: var(--c-overlay);
+  
   z-index: 50; opacity: 0; pointer-events: none;
   transition: opacity .25s;
 }
@@ -1134,10 +1163,10 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-mbadge.drive  { border-color:var(--c-info-soft);background:var(--c-info-soft);color:var(--c-info); }
 .cl-mbadge.fourche{ border-color:var(--c-success-soft);background:var(--c-success-soft);color:var(--c-success); }
 /* Modal marchand */
-.cl-mmodal    { position:absolute;inset:0;background:var(--c-overlay);z-index:100;
+.cl-mmodal    { z-index:100;
                 display:none;flex-direction:column;justify-content:flex-end; }
 .cl-mmodal.on { display:flex; }
-.cl-msheet    { background:var(--c-surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:20px 18px 40px;
+.cl-msheet    { padding:20px 18px 40px;
                 animation:mup .25s cubic-bezier(.4,0,.2,1); }
 .cl-mopt      { display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--r-md);
                 border:2px solid var(--grey);cursor:pointer;transition:all .15s;margin-bottom:8px; }
@@ -1212,7 +1241,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .cl-suggest-empty{ padding:12px 14px;font-size:var(--fs-sm);color:var(--grey-d);font-weight:var(--fw-regular);font-style:italic; }
 /* Edit sheet quantité / unité */
-.cl-edit-modal{ position:absolute;inset:0;background:var(--c-overlay);z-index:150;
+.cl-edit-modal{ z-index:150;
                 display:none;flex-direction:column;justify-content:flex-end; }
 .cl-edit-modal.on{ display:flex; }
 .cl-edit-pm   { width:44px;height:44px;border-radius:50%;border:2px solid var(--grey);
@@ -1553,13 +1582,13 @@ textarea.einput{ resize:none;min-height:60px; }
 .tag-name { flex:1; font-weight:var(--fw-bold); font-size:var(--fs-md); }
 .tag-name input { font-family:inherit; font-size:var(--fs-md); font-weight:var(--fw-bold); border:none; border-bottom:2px solid var(--orange); outline:none; background:transparent; width:100%; }
 .tag-count { background:var(--grey-l); border-radius:var(--r-lg); padding:3px 10px; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--grey-d); flex-shrink:0; }
-.tag-merge-sheet { position:absolute; inset:auto 0 0 0; background:var(--c-surface); border-radius:var(--r-lg) var(--r-lg) 0 0; padding:0 0 env(safe-area-inset-bottom); box-shadow:var(--shadow-2); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; display:none; }
+.tag-merge-sheet { position:absolute; inset:auto 0 0 0;  padding:0 0 env(safe-area-inset-bottom); box-shadow:var(--shadow-2); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; display:none; }
 .tag-merge-sheet.open { display:block; transform:translateY(0); }
 .tag-merge-sheet-head { padding:18px 20px 10px; font-weight:var(--fw-heavy); font-size:var(--fs-md); }
 .tag-merge-option { padding:14px 20px; display:flex; align-items:center; gap:10px; font-size:var(--fs-md); cursor:pointer; }
 .tag-merge-option:active { background:var(--grey-l); }
 .tag-merge-option.selected-target { background:var(--orange-l); font-weight:var(--fw-bold); color:var(--orange); }
-.tag-backdrop { position:absolute; inset:0; background:var(--c-overlay); display:none; z-index:119; }
+.tag-backdrop {  display:none; z-index:119; }
 .tag-backdrop.open { display:block; }
 
 /* ══ PANEL EDIT v3 ══════════════════════════════════════════════════════════ */
@@ -1603,7 +1632,7 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-hero-placeholder { font-size:var(--fs-2xl);font-weight:var(--fw-heavy);color:var(--orange);opacity:.5;
                         letter-spacing:-.02em;text-transform:uppercase;line-height:1;
                         position:relative;z-index:1; }
-.ev3-hero-overlay { position:absolute; inset:0; background:var(--c-overlay); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
+.ev3-hero-overlay {  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
 .ev3-hero-overlay span { color:var(--c-on-primary); font-size:var(--fs-sm); font-weight:var(--fw-bold); }
 .ev3-hero-overlay-icon { font-size:var(--fs-2xl); }
 .ev3-hero:hover .ev3-hero-overlay, .ev3-hero.touching .ev3-hero-overlay { opacity:1; }
@@ -1818,11 +1847,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .btn-tod   { background:var(--c-scrim-light-soft);border-radius:var(--r-sm);padding:5px 9px;cursor:pointer;color:var(--c-on-primary);font-size:var(--fs-xs);font-weight:var(--fw-heavy);display:none;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0; }
 .btn-tod:active { opacity:.75; }
 /* Modal ajout repas */
-.m-modal   { position:absolute;inset:0;background:var(--c-overlay);z-index:100;display:none;flex-direction:column;justify-content:flex-end; }
+.m-modal   { z-index:100;display:none;flex-direction:column;justify-content:flex-end; }
 .m-modal.on { display:flex; }
-.m-sh      { background:var(--c-surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:16px 18px 40px;max-height:88vh;overflow-y:auto;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.m-sh      { padding:16px 18px 40px;max-height:88vh;overflow-y:auto;animation:mup .25s cubic-bezier(.4,0,.2,1); }
 @keyframes mup{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.m-hn      { width:40px;height:4px;background:var(--grey);border-radius:var(--r-pill);margin:0 auto 16px; }
 .m-tt      { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:3px; }
 .m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold);margin-bottom:14px; }
 .m-tr      { display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:2px; }
@@ -1861,9 +1889,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-thumb-emo { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:var(--fs-2xl); }
 
 /* Modal "Ajouter au menu" depuis la page Recettes : choix du jour */
-.am-day-modal { position:absolute;inset:0;background:var(--c-overlay);z-index:150;display:none;flex-direction:column;justify-content:flex-end; }
+.am-day-modal { z-index:150;display:none;flex-direction:column;justify-content:flex-end; }
 .am-day-modal.on { display:flex; }
-.am-day-sheet { background:var(--c-surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:16px 18px 30px;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.am-day-sheet { padding:16px 18px 30px;animation:mup .25s cubic-bezier(.4,0,.2,1); }
 .am-day-title { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:14px;padding-right:10px; }
 .am-day-grid  { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
 .am-day-btn   { display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:var(--r-md);border:2px solid var(--grey);background:var(--c-surface);font-family:var(--font);cursor:pointer;transition:all .15s; }
@@ -1872,9 +1900,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .am-day-num   { font-size:var(--fs-xs);font-weight:var(--fw-bold);color:var(--grey-d); }
 
 /* Modal sélection ingrédients → courses (depuis Menu) */
-.m-ing-modal  { position:absolute;inset:0;background:var(--c-overlay);z-index:200;display:none;flex-direction:column;justify-content:flex-end; }
+.m-ing-modal  { z-index:200;display:none;flex-direction:column;justify-content:flex-end; }
 .m-ing-modal.on { display:flex; }
-.m-ing-sheet  { background:var(--c-surface);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-height:82vh;display:flex;flex-direction:column;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.m-ing-sheet  { width:100%;max-height:82vh;display:flex;flex-direction:column;animation:mup .25s cubic-bezier(.4,0,.2,1); }
 .m-ing-handle { width:40px;height:4px;background:var(--grey);border-radius:var(--r-pill);margin:12px auto 0; }
 .m-ing-head   { padding:14px 20px 12px;border-bottom:1px solid var(--grey);flex-shrink:0; }
 .m-ing-title  { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text); }
@@ -2280,7 +2308,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     user-select: none;
   }
   .ing-panel-hero-overlay {
-    position: absolute; inset: 0; background: var(--c-overlay);
+    
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px; color: var(--c-on-primary); font-size:var(--fs-xs); font-weight:var(--fw-bold); cursor: pointer;
   }
@@ -2491,12 +2519,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
 /* ══ MODAL IMPORT RECETTE ══════════════════════════════════════════════════ */
 .rv-import-overlay {
-  position:absolute; inset:0; background:var(--c-overlay);
+  
   z-index:200; display:none; flex-direction:column; justify-content:flex-end;
 }
 .rv-import-overlay.open { display:flex; }
 .rv-import-sheet {
-  background:var(--c-surface); border-radius:var(--r-lg) var(--r-lg) 0 0;
+  
   max-height:88%; display:flex; flex-direction:column;
   box-shadow:var(--shadow-2);
   animation:rvSlideUp .25s ease;
@@ -2879,9 +2907,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
 
       <!-- Modal marchand -->
-      <div class="cl-mmodal" id="cl-mmodal" onclick="if(event.target===this)clCloseMmodal()">
-        <div class="cl-msheet" onclick="event.stopPropagation()">
-          <div class="m-hn"></div>
+      <div class="cl-mmodal sheet-overlay" id="cl-mmodal" onclick="if(event.target===this)clCloseMmodal()">
+        <div class="cl-msheet sheet" onclick="event.stopPropagation()">
+          
           <div class="cl-msheet-title">Changer de marchand</div>
           <div class="cl-msheet-sub" id="cl-msheet-sub"></div>
           <div id="cl-mopts"></div>
@@ -3096,8 +3124,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- ══ OVERLAYS (enfants directs du frame — hors content pour éviter le stacking context iOS) ══ -->
 
   <!-- ══ MODAL IMPORT RECETTE ══════════════════════════════════════════ -->
-  <div class="rv-import-overlay" id="rv-import-overlay" onclick="if(event.target===this)rvImportClose()">
-    <div class="rv-import-sheet" onclick="event.stopPropagation()">
+  <div class="rv-import-overlay sheet-overlay" id="rv-import-overlay" onclick="if(event.target===this)rvImportClose()">
+    <div class="rv-import-sheet sheet" onclick="event.stopPropagation()">
       <div class="rv-import-handle"></div>
       <div class="rv-import-head">
         <div class="rv-import-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Importer une recette</div>
@@ -3269,9 +3297,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- Modal "Planifier un repas" (Menu) -->
-  <div class="m-modal" id="m-modal" onclick="if(event.target===this)mClose()">
-    <div class="m-sh" onclick="event.stopPropagation()">
-      <div class="m-hn"></div>
+  <div class="m-modal sheet-overlay" id="m-modal" onclick="if(event.target===this)mClose()">
+    <div class="m-sh sheet" onclick="event.stopPropagation()">
+      
       <div class="m-tt" id="m-tt">Planifier un repas</div>
       <div class="m-dt" id="m-dt"></div>
       <div class="m-tr" id="m-tr">
@@ -3304,9 +3332,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- Modal "Ajouter au menu" (choix du jour, depuis la page Recettes) -->
-  <div class="am-day-modal" id="am-day-modal" onclick="if(event.target===this)amDayClose()">
-    <div class="am-day-sheet" onclick="event.stopPropagation()">
-      <div class="m-hn"></div>
+  <div class="am-day-modal sheet-overlay" id="am-day-modal" onclick="if(event.target===this)amDayClose()">
+    <div class="am-day-sheet sheet" onclick="event.stopPropagation()">
+      
       <div class="am-day-title" id="am-day-title">Ajouter au menu</div>
       <div class="am-day-grid" id="am-day-list"></div>
     </div>
@@ -3532,9 +3560,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
 
   <!-- Modal sélection ingrédients → courses (global, accessible depuis toutes les pages) -->
-  <div class="m-ing-modal" id="m-ing-modal" onclick="if(event.target===this)mIngClose()">
-    <div class="m-ing-sheet" onclick="event.stopPropagation()">
-      <div class="m-ing-handle"></div>
+  <div class="m-ing-modal sheet-overlay" id="m-ing-modal" onclick="if(event.target===this)mIngClose()">
+    <div class="m-ing-sheet sheet" onclick="event.stopPropagation()">
+      
       <div class="m-ing-head">
         <div class="m-ing-title">Ingrédients à ajouter aux courses</div>
         <div class="m-ing-sub" id="m-ing-sub">0 sélectionné</div>
@@ -3548,9 +3576,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- ══ MODAL AJOUT LIBRE INGRÉDIENT → COURSES (depuis Menu) ════════════ -->
-  <div class="m-ing-modal" id="m-free-ing-modal" onclick="if(event.target===this)mFreeIngClose()">
-    <div class="m-ing-sheet" onclick="event.stopPropagation()">
-      <div class="m-ing-handle"></div>
+  <div class="m-ing-modal sheet-overlay" id="m-free-ing-modal" onclick="if(event.target===this)mFreeIngClose()">
+    <div class="m-ing-sheet sheet" onclick="event.stopPropagation()">
+      
       <div class="m-ing-head">
         <div class="m-ing-title">Ajouter des ingrédients</div>
         <div class="m-free-ing-search-wrap">
@@ -4029,9 +4057,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- ══ /OVERLAYS PAGE INGRÉDIENTS ══════════════════════════════════════════ -->
 
   <!-- ══ MODAL EDIT QTÉ/UNITÉ COURSES ════════════════════════════════════════ -->
-  <div class="cl-edit-modal" id="cl-edit-modal" onclick="if(event.target===this)clCloseEditModal()">
-    <div class="cl-msheet" onclick="event.stopPropagation()">
-      <div class="m-hn"></div>
+  <div class="cl-edit-modal sheet-overlay" id="cl-edit-modal" onclick="if(event.target===this)clCloseEditModal()">
+    <div class="cl-msheet sheet" onclick="event.stopPropagation()">
+      
       <div style="font-size:1rem;font-weight:900;margin-bottom:2px" id="cl-edit-modal-title">Quantité &amp; unité</div>
       <div style="font-size:.8rem;color:var(--grey-d);margin-bottom:18px" id="cl-edit-modal-name"></div>
 
@@ -7750,6 +7778,56 @@ function clToggleSearch() {
 function _googleSearchUrl(q, images){
   return 'https://www.google.com/search?' + (images ? 'tbm=isch&' : '') + 'q=' + encodeURIComponent(q);
 }
+
+// ── Feuilles : Echap et glissement vers le bas (BL-200) ──────────────────
+// Le tap sur le voile existait deja dans chaque modale
+// (onclick="if(event.target===this)fermer()"). Ces deux gestes retrouvent la
+// feuille ouverte et SIMULENT un clic sur son voile : le gestionnaire en
+// place s'execute, et c'est donc la bonne fonction de fermeture qui part.
+// Aucune modale n'a besoin d'etre recablee.
+function _sheetOuverte() {
+  const l = document.querySelectorAll('.sheet-overlay.on, .sheet-overlay.open');
+  return l.length ? l[l.length - 1] : null;   // la derniere ouverte est au-dessus
+}
+
+function _sheetFermer(voile) {
+  if (!voile) return false;
+  voile.click();                 // declenche le onclick existant du voile
+  return true;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (_sheetFermer(_sheetOuverte())) e.preventDefault();
+});
+
+// Glissement vers le bas. On ne demarre le geste que si le contenu est
+// deja en haut, sinon on empecherait de faire defiler la feuille.
+(function () {
+  let depart = null, cible = null, defilant = null;
+  document.addEventListener('touchstart', e => {
+    const feuille = e.target.closest && e.target.closest('.sheet');
+    if (!feuille) return;
+    const voile = feuille.closest('.sheet-overlay');
+    if (!voile) return;
+    defilant = e.target.closest('[style*="overflow"], .sheet') || feuille;
+    if (defilant.scrollTop > 0) return;
+    depart = e.touches[0].clientY; cible = voile;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (depart === null) return;
+    const dy = e.touches[0].clientY - depart;
+    if (dy < 0 || (defilant && defilant.scrollTop > 0)) { depart = null; return; }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (depart === null) return;
+    const dy = (e.changedTouches[0] || {}).clientY - depart;
+    if (dy > 80) _sheetFermer(cible);
+    depart = null; cible = null; defilant = null;
+  }, { passive: true });
+})();
 
 // Icone pour le HTML construit en JS (BL-198). `cls` ajoute une taille
 // (icon-sm / icon-lg) ou une couleur.
