@@ -172,6 +172,8 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - **Le voile accepte `.on` comme `.open`** : les modales existantes utilisaient l'un ou l'autre, et les recabler n'apporterait rien.
 - **Échap et le glissement simulent un clic sur le voile**, ce qui déclenche le gestionnaire que chaque modale porte déjà (`onclick="if(event.target===this)fermer()"`). Une nouvelle feuille hérite donc des trois gestes rien qu'en portant les deux classes et ce `onclick`.
 - Le glissement ne démarre que si le contenu est **déjà en haut**, sinon on empêcherait de faire défiler la feuille.
+- **Une seule exception centrée, validée** : la **confirmation de suppression**. Une confirmation est faite pour arrêter net ; la coller en bas avec les formulaires la banaliserait. Elle n'est pas une feuille, donc elle porte `data-voile` pour garder tout de même le tap sur le voile et Échap. Tout formulaire, lui, est une feuille.
+- **Un voile sans `onclick` ne réagit à rien**, pas même à Échap : les deux gestes globaux simulent un clic dessus. Une nouvelle feuille porte donc toujours `onclick="if(event.target===this)fermer()"`.
 
 **Carte** — `.card` : fond `--c-surface`, rayon `--r-md`, ombre `--shadow-1`, padding `--sp-4`.
 

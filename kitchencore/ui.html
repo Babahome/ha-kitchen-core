@@ -2621,9 +2621,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .ry-btn { width: 30px; height: 30px; border-radius:var(--r-sm); border: none; background: var(--grey-l); cursor: pointer; font-size:var(--fs-sm); display: grid; place-items: center; }
 .ry-btn:active { background: var(--grey); }
 /* Modal rayons page */
-.ry-overlay { position: fixed; inset: 0; background: var(--c-overlay); z-index: 900; display: none; align-items: flex-end; justify-content: center; }
-.ry-overlay.open { display: flex; }
-.ry-modal-box { background: var(--c-surface); border-radius:var(--r-lg) var(--r-lg) 0 0; padding: 20px 16px 32px; width: 100%; max-width: 480px; }
+/* Page Rayons : l'enveloppe vient du composant .sheet (BL-200), il ne
+   reste que le rembourrage propre a ces deux formulaires. */
+.ry-sheet { padding: 0 var(--sp-4) var(--sp-5); overflow-y: auto; }
+.ry-sheet::-webkit-scrollbar { display: none; }
 .ry-modal-title { font-size:var(--fs-md); font-weight:var(--fw-heavy); margin-bottom: 14px; }
 .ry-form-group { margin-bottom: 12px; }
 .ry-form-label { font-size:var(--fs-xs); font-weight:var(--fw-heavy); color: var(--text2); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 6px; }
@@ -2673,10 +2674,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .mch-empty { text-align: center; padding: 48px 20px; color: var(--text2); }
 .mch-empty-ico { font-size:var(--fs-2xl); margin-bottom: 10px; }
 .mch-empty-txt { font-size:var(--fs-sm); font-weight:var(--fw-bold); line-height: 1.6; }
-.mch-overlay { position: fixed; inset: 0; background: var(--c-overlay); display: none; place-items: center; z-index: 200; padding: 20px; }
+/* Page Marchands : les deux formulaires sont des feuilles (BL-200), il ne
+   reste ici que leur rembourrage. */
+.mch-sheet { padding: 0 var(--sp-5) var(--sp-5); overflow-y: auto; }
+.mch-sheet::-webkit-scrollbar { display: none; }
+/* EXCEPTION VALIDEE (charte section 3) : la confirmation de suppression
+   reste CENTREE. Une confirmation est faite pour arreter net ; la coller en
+   bas avec les formulaires la banaliserait. */
+.mch-overlay { position: absolute; inset: 0; background: var(--c-overlay); display: none; place-items: center; z-index: 200; padding: var(--sp-5); }
 .mch-overlay.open { display: grid; }
-.mch-modal-box { background: var(--c-surface); border-radius:var(--r-lg); padding: 20px; width: 100%; max-width: 360px; box-shadow: var(--shadow-2); max-height: 90dvh; overflow-y: auto; }
-.mch-modal-box::-webkit-scrollbar { display: none; }
+.mch-modal-box { background: var(--c-surface); border-radius:var(--r-lg); padding: var(--sp-5); width: 100%; max-width: 360px; box-shadow: var(--shadow-2); }
 .mch-modal-title { font-size:var(--fs-md); font-weight:var(--fw-heavy); margin-bottom: 16px; }
 .mch-form-group { margin-bottom: 14px; }
 .mch-form-label { font-size:var(--fs-xs); font-weight:var(--fw-heavy); color: var(--text2); margin-bottom: 5px; display: block; }
@@ -3627,8 +3634,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   </div>
   <!-- ── MODAL MARCHAND ── -->
-  <div class="mch-overlay" id="mch-modal">
-    <div class="mch-modal-box">
+  <div class="sheet-overlay" id="mch-modal" onclick="if(event.target===this)_mchCloseModalMarchand()">
+    <div class="sheet mch-sheet">
       <div class="mch-modal-title" id="mch-modal-title">Nouveau marchand</div>
       <div class="mch-form-group">
         <label class="mch-form-label">Image du marchand</label>
@@ -3666,8 +3673,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- ── MODAL RAYON ── -->
-  <div class="mch-overlay" id="mch-ray-modal">
-    <div class="mch-modal-box">
+  <div class="sheet-overlay" id="mch-ray-modal" onclick="if(event.target===this)_mchCloseModalRayon()">
+    <div class="sheet mch-sheet">
       <div class="mch-modal-title" id="mch-ray-modal-title">Nouveau rayon</div>
       <div class="mch-form-group">
         <label class="mch-form-label">Image du rayon</label>
@@ -3693,8 +3700,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- ── MODAL RAYON (page Rayons) ── -->
-  <div class="ry-overlay" id="ry-modal">
-    <div class="ry-modal-box">
+  <div class="sheet-overlay" id="ry-modal" onclick="if(event.target===this)_ryCloseModal()">
+    <div class="sheet ry-sheet">
       <div class="ry-modal-title" id="ry-modal-title">Nouveau rayon</div>
       <div class="ry-form-group">
         <label class="ry-form-label">Image du rayon</label>
@@ -3726,8 +3733,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- ── MODAL IMPORT RAYONS ── -->
-  <div class="ry-overlay" id="ry-import-modal">
-    <div class="ry-modal-box">
+  <div class="sheet-overlay" id="ry-import-modal" onclick="if(event.target===this)_ryCloseImportModal()">
+    <div class="sheet ry-sheet">
       <div class="ry-modal-title">Importer des rayons</div>
       <p style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5;margin:0 0 4px">Importer la liste <strong>Carrefour Drive</strong> (13 rayons + sous-rayons) ?<br>Les rayons déjà existants seront conservés.</p>
       <div class="ry-modal-btns">
@@ -3738,7 +3745,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- ── MODAL CONFIRMATION MARCHANDS ── -->
-  <div class="mch-overlay" id="mch-confirm-modal">
+  <div class="mch-overlay" id="mch-confirm-modal" data-voile onclick="if(event.target===this)_mchCloseConfirm()">
     <div class="mch-modal-box">
       <div class="mch-modal-title" id="mch-confirm-title">Supprimer ?</div>
       <p id="mch-confirm-body" style="font-size:.88rem;color:var(--text2);font-weight:600;line-height:1.5"></p>
@@ -7764,7 +7771,9 @@ function _googleSearchUrl(q, images){
 // place s'execute, et c'est donc la bonne fonction de fermeture qui part.
 // Aucune modale n'a besoin d'etre recablee.
 function _sheetOuverte() {
-  const l = document.querySelectorAll('.sheet-overlay.on, .sheet-overlay.open');
+  // data-voile couvre les modales qui ne sont pas des feuilles mais veulent
+  // quand meme Echap et le tap sur le voile (BL-200).
+  const l = document.querySelectorAll('.sheet-overlay.on, .sheet-overlay.open, [data-voile].on, [data-voile].open');
   return l.length ? l[l.length - 1] : null;   // la derniere ouverte est au-dessus
 }
 
