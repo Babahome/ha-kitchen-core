@@ -2755,8 +2755,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
      L'identifiant dit le SENS (i-delete) et non le nom de l'icone, pour
      pouvoir changer d'icone sans toucher aux appels. -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-account" viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13M12,14.9C9.03,14.9 5.9,16.36 5.9,17V18.1H18.1V17C18.1,16.36 14.97,14.9 12,14.9Z"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></symbol>
+  <symbol id="i-backup" viewBox="0 0 24 24"><path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3M19 19H5V5H16.17L19 7.83V19M12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12M6 6H15V10H6V6Z"/></symbol>
   <symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4,6H6V18H4V6M7,6H8V18H7V6M9,6H12V18H9V6M13,6H14V18H13V6M16,6H18V18H16V6M19,6H20V18H19V6M2,4V8H0V4A2,2 0 0,1 2,2H6V4H2M22,2A2,2 0 0,1 24,4V8H22V4H18V2H22M2,16V20H6V22H2A2,2 0 0,1 0,20V16H2M22,20V16H24V20A2,2 0 0,1 22,22H18V20H22Z"/></symbol>
   <symbol id="i-breakfast" viewBox="0 0 24 24"><path d="M3,12H7A5,5 0 0,1 12,7A5,5 0 0,1 17,12H21A1,1 0 0,1 22,13A1,1 0 0,1 21,14H3A1,1 0 0,1 2,13A1,1 0 0,1 3,12M15,12A3,3 0 0,0 12,9A3,3 0 0,0 9,12H15M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M12.71,16.3L15.82,19.41C16.21,19.8 16.21,20.43 15.82,20.82C15.43,21.21 14.8,21.21 14.41,20.82L12,18.41L9.59,20.82C9.2,21.21 8.57,21.21 8.18,20.82C7.79,20.43 7.79,19.8 8.18,19.41L11.29,16.3C11.5,16.1 11.74,16 12,16C12.26,16 12.5,16.1 12.71,16.3Z"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M7 11H9V13H7V11M21 5V19C21 20.11 20.11 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H6V1H8V3H16V1H18V3H19C20.11 3 21 3.9 21 5M5 7H19V5H5V7M19 19V9H5V19H19M15 13V11H17V13H15M11 13V11H13V13H11M7 15H9V17H7V15M15 17V15H17V17H15M11 17V15H13V17H11Z"/></symbol>
@@ -2764,6 +2767,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-camera-flip" viewBox="0 0 24 24"><path d="M20 5H16.83L15 3H9L7.17 5H4C2.9 5 2 5.9 2 7V19C2 20.11 2.9 21 4 21H20C21.11 21 22 20.11 22 19V7C22 5.9 21.11 5 20 5M20 19H4V7H8.05L9.88 5H14.12L16 7H20V19M5 12H7.1C7.65 9.29 10.29 7.55 13 8.1C13.76 8.25 14.43 8.59 15 9L13.56 10.45C13.11 10.17 12.58 10 12 10C10.74 10 9.6 10.8 9.18 12H11L8 15L5 12M16.91 14C16.36 16.71 13.72 18.45 11 17.9C10.25 17.74 9.58 17.41 9 17L10.44 15.55C10.9 15.83 11.43 16 12 16C13.27 16 14.41 15.2 14.83 14H13L16 11L19 14H16.91Z"/></symbol>
   <symbol id="i-cart" viewBox="0 0 24 24"><path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/></symbol>
+  <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z"/></symbol>
   <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M19,3H14.82C14.25,1.44 12.53,0.64 11,1.2C10.14,1.5 9.5,2.16 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7M17,11H7V9H17V11M15,15H7V13H15V15Z"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></symbol>
   <symbol id="i-cook" viewBox="0 0 24 24"><path d="M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z"/></symbol>
@@ -2774,13 +2780,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-dinner" viewBox="0 0 24 24"><path d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z"/></symbol>
   <symbol id="i-dot" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M2 12H4V17H20V12H22V17C22 18.11 21.11 19 20 19H4C2.9 19 2 18.11 2 17V12M12 15L17.55 9.54L16.13 8.13L13 11.25V2H11V11.25L7.88 8.13L6.46 9.55L12 15Z"/></symbol>
+  <symbol id="i-drag" viewBox="0 0 24 24"><path d="M21 11H3V9H21V11M21 13H3V15H21V13Z"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></symbol>
   <symbol id="i-external" viewBox="0 0 24 24"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/></symbol>
   <symbol id="i-fav" viewBox="0 0 24 24"><path d="M12.1,18.55L12,18.65L11.89,18.55C7.14,14.24 4,11.39 4,8.5C4,6.5 5.5,5 7.5,5C9.04,5 10.54,6 11.07,7.36H12.93C13.46,6 14.96,5 16.5,5C18.5,5 20,6.5 20,8.5C20,11.39 16.86,14.24 12.1,18.55M16.5,3C14.76,3 13.09,3.81 12,5.08C10.91,3.81 9.24,3 7.5,3C4.42,3 2,5.41 2,8.5C2,12.27 5.4,15.36 10.55,20.03L12,21.35L13.45,20.03C18.6,15.36 22,12.27 22,8.5C22,5.41 19.58,3 16.5,3Z"/></symbol>
   <symbol id="i-fav-on" viewBox="0 0 24 24"><path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></symbol>
   <symbol id="i-filter" viewBox="0 0 24 24"><path d="M6,13H18V11H6M3,6V8H21V6M10,18H14V16H10V18Z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M6.1,10L4,18V8H21A2,2 0 0,0 19,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H19C19.9,20 20.7,19.4 20.9,18.5L23.2,10H6.1M19,18H6L7.6,12H20.6L19,18Z"/></symbol>
   <symbol id="i-freezer" viewBox="0 0 24 24"><path d="M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z"/></symbol>
   <symbol id="i-fridge" viewBox="0 0 24 24"><path d="M9,21V22H7V21A2,2 0 0,1 5,19V4A2,2 0 0,1 7,2H17A2,2 0 0,1 19,4V19A2,2 0 0,1 17,21V22H15V21H9M7,4V9H17V4H7M7,19H17V11H7V19M8,12H10V15H8V12M8,6H10V8H8V6Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M9,13H15V19H18V10L12,5.5L6,10V19H9V13M4,21V9L12,3L20,9V21H4Z"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></symbol>
   <symbol id="i-import-remote" viewBox="0 0 24 24"><path d="M6.5 20Q4.22 20 2.61 18.43 1 16.85 1 14.58 1 12.63 2.17 11.1 3.35 9.57 5.25 9.15 5.68 7.35 7.38 5.73 9.07 4.1 11 4.1 11.83 4.1 12.41 4.69 13 5.28 13 6.1V12.15L14.6 10.6L16 12L12 16L8 12L9.4 10.6L11 12.15V6.1Q9.1 6.45 8.05 7.94 7 9.43 7 11H6.5Q5.05 11 4.03 12.03 3 13.05 3 14.5 3 15.95 4.03 17 5.05 18 6.5 18H18.5Q19.55 18 20.27 17.27 21 16.55 21 15.5 21 14.45 20.27 13.73 19.55 13 18.5 13H17V11Q17 9.8 16.45 8.76 15.9 7.73 15 7V4.68Q16.85 5.55 17.93 7.26 19 9 19 11 20.73 11.2 21.86 12.5 23 13.78 23 15.5 23 17.38 21.69 18.69 20.38 20 18.5 20M12 11.05Z"/></symbol>
   <symbol id="i-ingredient" viewBox="0 0 24 24"><path d="M16,10L15.8,11H13.5A0.5,0.5 0 0,0 13,11.5A0.5,0.5 0 0,0 13.5,12H15.6L14.6,17H12.5A0.5,0.5 0 0,0 12,17.5A0.5,0.5 0 0,0 12.5,18H14.4L14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20L9,15H10.5A0.5,0.5 0 0,0 11,14.5A0.5,0.5 0 0,0 10.5,14H8.8L8,10C8,8.8 8.93,7.77 10.29,7.29L8.9,5.28C8.59,4.82 8.7,4.2 9.16,3.89C9.61,3.57 10.23,3.69 10.55,4.14L11,4.8V3A1,1 0 0,1 12,2A1,1 0 0,1 13,3V5.28L14.5,3.54C14.83,3.12 15.47,3.07 15.89,3.43C16.31,3.78 16.36,4.41 16,4.84L13.87,7.35C15.14,7.85 16,8.85 16,10Z"/></symbol>
@@ -2802,6 +2811,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></symbol>
   <symbol id="i-season" viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z"/></symbol>
   <symbol id="i-sheet" viewBox="0 0 24 24"><path d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z"/></symbol>
   <symbol id="i-shop" viewBox="0 0 24 24"><path d="M18.36 9L18.96 12H5.04L5.64 9H18.36M20 4H4V6H20V4M20 7H4L3 12V14H4V20H14V14H18V20H20V14H21V12L20 7M6 18V14H12V18H6Z"/></symbol>
   <symbol id="i-snack" viewBox="0 0 24 24"><path d="M20.87 10.5C20.6 10 20 10 20 10H18V9C18 8 17 8 17 8H15V7C15 6 14 6 14 6H13V4C13 3 12 3 12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12C21 11.5 20.96 11 20.87 10.5M11.32 18.96C12 18.82 12.5 18.22 12.5 17.5C12.5 16.67 11.83 16 11 16S9.5 16.67 9.5 17.5C9.5 18 9.76 18.47 10.16 18.74C7.54 18.04 5.5 15.81 5.09 13.12C5 12.61 5 12.11 5 11.62C5.07 12.39 5.71 13 6.5 13C7.33 13 8 12.33 8 11.5S7.33 10 6.5 10C5.82 10 5.25 10.46 5.07 11.08C5.47 8 7.91 5.5 11 5.07V6.5C11 7.33 11.67 8 12.5 8H13V8.5C13 9.33 13.67 10 14.5 10H16V10.5C16 11.33 16.67 12 17.5 12H19C19 16.08 15.5 19.36 11.32 18.96M9.5 9C8.67 9 8 8.33 8 7.5S8.67 6 9.5 6 11 6.67 11 7.5 10.33 9 9.5 9M13 12.5C13 13.33 12.33 14 11.5 14S10 13.33 10 12.5 10.67 11 11.5 11 13 11.67 13 12.5M18 14.5C18 15.33 17.33 16 16.5 16S15 15.33 15 14.5 15.67 13 16.5 13 18 13.67 18 14.5Z"/></symbol>
@@ -2810,10 +2820,15 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z"/></symbol>
   <symbol id="i-tags" viewBox="0 0 24 24"><path d="M6.5 10C7.3 10 8 9.3 8 8.5S7.3 7 6.5 7 5 7.7 5 8.5 5.7 10 6.5 10M9 6L16 13L11 18L4 11V6H9M9 4H4C2.9 4 2 4.9 2 6V11C2 11.6 2.2 12.1 2.6 12.4L9.6 19.4C9.9 19.8 10.4 20 11 20S12.1 19.8 12.4 19.4L17.4 14.4C17.8 14 18 13.5 18 13C18 12.4 17.8 11.9 17.4 11.6L10.4 4.6C10.1 4.2 9.6 4 9 4M13.5 5.7L14.5 4.7L21.4 11.6C21.8 12 22 12.5 22 13S21.8 14.1 21.4 14.4L16 19.8L15 18.8L20.7 13L13.5 5.7Z"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><path d="M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"/></symbol>
   <symbol id="i-today" viewBox="0 0 24 24"><path d="M19 3H18V1H16V3H8V1H6V3H5C3.9 3 3 3.89 3 5V19C3 20.11 3.9 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3M19 19H5V9H19V19M19 7H5V5H19M7 11H12V16H7"/></symbol>
   <symbol id="i-torch" viewBox="0 0 24 24"><path d="M9,10L6,5H18L15,10H9M18,4H6V2H18V4M9,22V11H15V22H9M12,13A1,1 0 0,0 11,14A1,1 0 0,0 12,15A1,1 0 0,0 13,14A1,1 0 0,0 12,13Z"/></symbol>
   <symbol id="i-undefined" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/></symbol>
+  <symbol id="i-unknown" viewBox="0 0 24 24"><path d="M15.07,11.25L14.17,12.17C13.45,12.89 13,13.5 13,15H11V14.5C11,13.39 11.45,12.39 12.17,11.67L13.41,10.41C13.78,10.05 14,9.55 14,9C14,7.89 13.1,7 12,7A2,2 0 0,0 10,9H8A4,4 0 0,1 12,5A4,4 0 0,1 16,9C16,9.88 15.64,10.67 15.07,11.25M13,19H11V17H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12C22,6.47 17.5,2 12,2Z"/></symbol>
+  <symbol id="i-unlink" viewBox="0 0 24 24"><path d="M2,5.27L3.28,4L20,20.72L18.73,22L13.9,17.17L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L12.5,15.76L10.88,14.15C10.87,14.39 10.77,14.64 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C8.12,13.77 7.63,12.37 7.72,11L2,5.27M12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.79,8.97L9.38,7.55L12.71,4.22M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.2,10.54 16.61,12.5 16.06,14.23L14.28,12.46C14.23,11.78 13.94,11.11 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M2 12H4V17H20V12H22V17C22 18.11 21.11 19 20 19H4C2.9 19 2 18.11 2 17V12M12 2L6.46 7.46L7.88 8.88L11 5.75V15H13V5.75L16.13 8.88L17.55 7.45L12 2Z"/></symbol>
   <symbol id="i-view" viewBox="0 0 24 24"><path d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z"/></symbol>
+  <symbol id="i-wait" viewBox="0 0 24 24"><path d="M6,2H18V8H18V8L14,12L18,16V16H18V22H6V16H6V16L10,12L6,8V8H6V2M16,16.5L12,12.5L8,16.5V20H16V16.5M12,11.5L16,7.5V4H8V7.5L12,11.5M10,6H14V6.75L12,8.75L10,6.75V6Z"/></symbol>
   <symbol id="i-zones" viewBox="0 0 24 24"><path d="M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"/></symbol>
 </svg>
 
@@ -2897,12 +2912,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
       <!-- fab-search courses -->
       <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
-        <span>🔍</span>
+        <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
         <input class="cl-fab-search-input" id="cl-search-input" type="search" placeholder="Ajouter un article…"
           autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
           onclick="event.stopPropagation()" oninput="clSearchFilter(this.value);clFabUpdate()"
           onkeydown="if(event.key==='Escape')clToggleSearch();else if(event.key==='Enter'){event.preventDefault();clAddItem();}">
-        <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer">✕</button>
+        <button class="fab-clear-btn" onclick="event.stopPropagation();clToggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </div>
 
     </div>
@@ -2914,12 +2929,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <input id="rv-tag-search" class="rv-tag-search" type="search" placeholder="Tag…" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
                oninput="rvTagSearch(this.value)" aria-label="Rechercher un tag">
         <div id="rv-chips" class="chips">
-          <div class="chip on" onclick="setFilter(this)">🍽️ Tout</div>
+          <div class="chip on" onclick="setFilter(this)">Tout</div>
         </div>
       </div>
 
       <div class="sec-head">
-        <span class="sec-ico">🍴</span>
+        <span class="sec-ico"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-cook"></use></svg></span>
         <span class="sec-lbl">Recettes</span>
         <span class="sec-count" id="sec-count"></span>
       </div>
@@ -2951,7 +2966,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <!-- ══ PAGE PROFIL ══════════════════════════════════════════════════════ -->
     <div id="page-profil" class="page">
       <div class="placeholder-page">
-        <div class="placeholder-icon">👤</div>
+        <div class="placeholder-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-account"></use></svg></div>
         <div class="placeholder-title">Profil</div>
         <div class="placeholder-sub">Paramètres, zones de rangement, préférences alimentaires.</div>
         <div class="placeholder-chip">Bientôt disponible</div>
@@ -3010,7 +3025,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <!-- ══ PAGE MARCHANDS ═══════════════════════════════════════════════════ -->
     <div id="page-marchands" class="page">
       <div class="mch-content" id="mch-content">
-        <div class="mch-empty"><div class="mch-empty-ico">🏪</div><div class="mch-empty-txt">Chargement…</div></div>
+        <div class="mch-empty"><div class="mch-empty-ico"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-shop"></use></svg></div><div class="mch-empty-txt">Chargement…</div></div>
       </div>
     </div>
 
@@ -3024,16 +3039,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div style="padding:16px 14px 100px;display:flex;flex-direction:column;gap:14px">
 
         <div class="bk-card">
-          <div class="bk-title">⬇️ Exporter mes données</div>
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Exporter mes données</div>
           <div class="bk-desc">Télécharge un fichier contenant toutes vos recettes, ingrédients, stocks, courses et photos. À envoyer ensuite à la personne qui veut importer vos données (mail, clé USB…).</div>
-          <button class="bk-btn" id="bk-export-btn" onclick="bkExport()">📤 Télécharger la sauvegarde</button>
+          <button class="bk-btn" id="bk-export-btn" onclick="bkExport()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Télécharger la sauvegarde</button>
         </div>
 
         <div class="bk-card">
-          <div class="bk-title">⬆️ Importer des données</div>
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-upload"></use></svg> Importer des données</div>
           <div class="bk-desc">Choisissez un fichier de sauvegarde (.json) reçu d'une autre installation KitchenCore.</div>
           <input type="file" id="bk-file-input" accept="application/json,.json" style="display:none" onchange="bkFileSelected(event)">
-          <button class="bk-btn bk-btn-outline" onclick="document.getElementById('bk-file-input').click()">📁 Choisir un fichier</button>
+          <button class="bk-btn bk-btn-outline" onclick="document.getElementById('bk-file-input').click()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir un fichier</button>
           <div id="bk-file-summary" class="bk-file-summary"></div>
 
           <div id="bk-import-options" style="display:none">
@@ -3047,7 +3062,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
               <input type="radio" name="bk-mode" value="merge">
               <div><span class="t">Ajouter sans effacer</span><span class="s">Ajoute les données du fichier à celles déjà présentes (les doublons de noms sont réutilisés, rien n'est effacé).</span></div>
             </label>
-            <button class="bk-btn" id="bk-import-btn" onclick="bkImport()" style="margin-top:8px">✓ Importer</button>
+            <button class="bk-btn" id="bk-import-btn" onclick="bkImport()" style="margin-top:8px"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg> Importer</button>
           </div>
 
           <div id="bk-result" style="display:none" class="bk-result"></div>
@@ -3061,7 +3076,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div style="padding:16px 14px 100px;display:flex;flex-direction:column;gap:14px">
 
         <div class="bk-card">
-          <div class="bk-title">🏠 Page d'accueil</div>
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-home"></use></svg> Page d'accueil</div>
           <div class="bk-desc">Choisissez la page affichée à l'ouverture de l'application.</div>
 
           <label class="bk-radio">
@@ -3310,9 +3325,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <div class="fab-search" id="fab-search" onclick="toggleSearch()">
-    <span>🔍</span>
+    <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <input class="fab-search-input" id="search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
-    <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer">✕</button>
+    <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
   </div>
 
   <!-- bouton scan-recherche stock -->
@@ -3328,7 +3343,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- fab-search stock -->
   <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
-    <span class="st-fab-search-icon">🔍</span>
+    <span class="st-fab-search-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockOrGpRender()">
@@ -3353,19 +3368,19 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="stock-sf-section">
           <div class="stock-sf-label">Trier par</div>
           <div class="stock-sf-options" id="stock-sf-sort-opts">
-            <div class="stock-sf-opt" data-sort="nom" onclick="stockSfPickSort(this,'nom')"><span class="sf-check">✓</span> Nom</div>
-            <div class="stock-sf-opt" data-sort="date_ajout" onclick="stockSfPickSort(this,'date_ajout')"><span class="sf-check">✓</span> Date d'ajout</div>
-            <div class="stock-sf-opt" data-sort="dlc" onclick="stockSfPickSort(this,'dlc')"><span class="sf-check">✓</span> Expiration</div>
-            <div class="stock-sf-opt" data-sort="rayon" onclick="stockSfPickSort(this,'rayon')"><span class="sf-check">✓</span> Rayon</div>
-            <div class="stock-sf-opt active" data-sort="zone" onclick="stockSfPickSort(this,'zone')"><span class="sf-check">✓</span> Zone</div>
-            <div class="stock-sf-opt" data-sort="quantite" onclick="stockSfPickSort(this,'quantite')"><span class="sf-check">✓</span> Quantité</div>
+            <div class="stock-sf-opt" data-sort="nom" onclick="stockSfPickSort(this,'nom')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Nom</div>
+            <div class="stock-sf-opt" data-sort="date_ajout" onclick="stockSfPickSort(this,'date_ajout')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Date d'ajout</div>
+            <div class="stock-sf-opt" data-sort="dlc" onclick="stockSfPickSort(this,'dlc')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Expiration</div>
+            <div class="stock-sf-opt" data-sort="rayon" onclick="stockSfPickSort(this,'rayon')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Rayon</div>
+            <div class="stock-sf-opt active" data-sort="zone" onclick="stockSfPickSort(this,'zone')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Zone</div>
+            <div class="stock-sf-opt" data-sort="quantite" onclick="stockSfPickSort(this,'quantite')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Quantité</div>
           </div>
         </div>
         <div class="stock-sf-section" id="stock-sf-order-section">
           <div class="stock-sf-label">Ordre</div>
           <div class="stock-sf-options" id="stock-sf-order-opts">
-            <div class="stock-sf-opt active" data-order="asc" onclick="stockSfPickOrder(this,'asc')"><span class="sf-check">✓</span> Croissant</div>
-            <div class="stock-sf-opt" data-order="desc" onclick="stockSfPickOrder(this,'desc')"><span class="sf-check">✓</span> Décroissant</div>
+            <div class="stock-sf-opt active" data-order="asc" onclick="stockSfPickOrder(this,'asc')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Croissant</div>
+            <div class="stock-sf-opt" data-order="desc" onclick="stockSfPickOrder(this,'desc')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Décroissant</div>
           </div>
         </div>
       </div>
@@ -3382,17 +3397,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="stock-sf-section">
           <div class="stock-sf-label">Ingrédient lié</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-inglink="with" onclick="stockSfPickIngLink(this,'with')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-link"></use></svg> Avec ingrédient</div>
-            <div class="stock-sf-opt" data-inglink="without" onclick="stockSfPickIngLink(this,'without')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Sans ingrédient</div>
+            <div class="stock-sf-opt" data-inglink="with" onclick="stockSfPickIngLink(this,'with')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-link"></use></svg> Avec ingrédient</div>
+            <div class="stock-sf-opt" data-inglink="without" onclick="stockSfPickIngLink(this,'without')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Sans ingrédient</div>
           </div>
         </div>
         <div class="stock-sf-section">
           <div class="stock-sf-label">Expiration</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--expired" aria-hidden="true"><use href="#i-dot"></use></svg> Expiré</div>
-            <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--soon" aria-hidden="true"><use href="#i-dot"></use></svg> Bientôt (&lt;7j)</div>
-            <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--ok" aria-hidden="true"><use href="#i-dot"></use></svg> OK</div>
-            <div class="stock-sf-opt" data-fexp="none" onclick="stockSfToggleFexp(this,'none')"><span class="sf-check">✓</span> Sans date</div>
+            <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm sf-dot sf-dot--expired" aria-hidden="true"><use href="#i-dot"></use></svg> Expiré</div>
+            <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm sf-dot sf-dot--soon" aria-hidden="true"><use href="#i-dot"></use></svg> Bientôt (&lt;7j)</div>
+            <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm sf-dot sf-dot--ok" aria-hidden="true"><use href="#i-dot"></use></svg> OK</div>
+            <div class="stock-sf-opt" data-fexp="none" onclick="stockSfToggleFexp(this,'none')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Sans date</div>
           </div>
         </div>
         <div class="stock-sf-section">
@@ -3447,16 +3462,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="stock-sf-section">
           <div class="stock-sf-label">Trier par</div>
           <div class="stock-sf-options" id="ing-sf-sort-opts">
-            <div class="stock-sf-opt active" data-sort="nom" onclick="ingSfPickSort(this,'nom')"><span class="sf-check">✓</span> Nom</div>
-            <div class="stock-sf-opt" data-sort="rayon" onclick="ingSfPickSort(this,'rayon')"><span class="sf-check">✓</span> Rayon</div>
-            <div class="stock-sf-opt" data-sort="recettes" onclick="ingSfPickSort(this,'recettes')"><span class="sf-check">✓</span> Recettes liées</div>
+            <div class="stock-sf-opt active" data-sort="nom" onclick="ingSfPickSort(this,'nom')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Nom</div>
+            <div class="stock-sf-opt" data-sort="rayon" onclick="ingSfPickSort(this,'rayon')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Rayon</div>
+            <div class="stock-sf-opt" data-sort="recettes" onclick="ingSfPickSort(this,'recettes')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Recettes liées</div>
           </div>
         </div>
         <div class="stock-sf-section" id="ing-sf-order-section">
           <div class="stock-sf-label">Ordre</div>
           <div class="stock-sf-options" id="ing-sf-order-opts">
-            <div class="stock-sf-opt active" data-order="asc" onclick="ingSfPickOrder(this,'asc')"><span class="sf-check">✓</span> Croissant</div>
-            <div class="stock-sf-opt" data-order="desc" onclick="ingSfPickOrder(this,'desc')"><span class="sf-check">✓</span> Décroissant</div>
+            <div class="stock-sf-opt active" data-order="asc" onclick="ingSfPickOrder(this,'asc')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Croissant</div>
+            <div class="stock-sf-opt" data-order="desc" onclick="ingSfPickOrder(this,'desc')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> Décroissant</div>
           </div>
         </div>
       </div>
@@ -3469,18 +3484,18 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="stock-sf-section">
           <div class="stock-sf-label">État</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-fetat="sans-rayon" onclick="ingSfToggleFetat(this,'sans-rayon')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-alert"></use></svg> Sans rayon</div>
-            <div class="stock-sf-opt" data-fetat="sans-image" onclick="ingSfToggleFetat(this,'sans-image')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Sans image</div>
-            <div class="stock-sf-opt" data-fetat="sans-recette" onclick="ingSfToggleFetat(this,'sans-recette')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-clipboard"></use></svg> Sans recette</div>
-            <div class="stock-sf-opt" data-fetat="avec-recette" onclick="ingSfToggleFetat(this,'avec-recette')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-cook"></use></svg> Avec recette</div>
-            <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-season"></use></svg> Sans saison</div>
-            <div class="stock-sf-opt" data-fetat="toujours-dispo" onclick="ingSfToggleFetat(this,'toujours-dispo')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-pantry"></use></svg> Toujours en cuisine</div>
+            <div class="stock-sf-opt" data-fetat="sans-rayon" onclick="ingSfToggleFetat(this,'sans-rayon')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-alert"></use></svg> Sans rayon</div>
+            <div class="stock-sf-opt" data-fetat="sans-image" onclick="ingSfToggleFetat(this,'sans-image')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Sans image</div>
+            <div class="stock-sf-opt" data-fetat="sans-recette" onclick="ingSfToggleFetat(this,'sans-recette')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-clipboard"></use></svg> Sans recette</div>
+            <div class="stock-sf-opt" data-fetat="avec-recette" onclick="ingSfToggleFetat(this,'avec-recette')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-cook"></use></svg> Avec recette</div>
+            <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-season"></use></svg> Sans saison</div>
+            <div class="stock-sf-opt" data-fetat="toujours-dispo" onclick="ingSfToggleFetat(this,'toujours-dispo')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-pantry"></use></svg> Toujours en cuisine</div>
           </div>
         </div>
         <div class="stock-sf-section">
           <div class="stock-sf-label">Doublons</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" id="ing-sf-f-doublons" onclick="ingSfToggleDoublons(this)"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Doublons potentiels</div>
+            <div class="stock-sf-opt" id="ing-sf-f-doublons" onclick="ingSfToggleDoublons(this)"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Doublons potentiels</div>
           </div>
         </div>
       </div>
@@ -3518,19 +3533,19 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
     <div class="nav-tab active" data-page="stock" onclick="switchPage(this,'stock','Stock Cuisine')">
-      <div class="nav-icon">🏠</div>
+      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></div>
       <div class="nav-label">Cuisine</div>
     </div>
     <div class="nav-tab" data-page="recettes" onclick="switchPage(this,'recettes','Recettes')">
-      <div class="nav-icon">🍳</div>
+      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-cook"></use></svg></div>
       <div class="nav-label">Recettes</div>
     </div>
     <div class="nav-tab" data-page="menu" onclick="switchPage(this,'menu','Menu')">
-      <div class="nav-icon">📅</div>
+      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg></div>
       <div class="nav-label">Menu</div>
     </div>
     <div class="nav-tab" data-page="courses" onclick="switchPage(this,'courses','Courses')">
-      <div class="nav-icon">🛒</div>
+      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-cart"></use></svg></div>
       <div class="nav-label">Courses</div>
     </div>
   </div>
@@ -3614,7 +3629,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <!-- Liste scans (mode caisse) -->
     <div class="scan-list-area">
       <div class="scan-list-empty" id="scan-list-empty">
-        <span>📦</span>
+        <span><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></span>
         Scannez des produits — ils apparaîtront ici
       </div>
       <div id="scan-list"></div>
@@ -3631,11 +3646,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="mch-form-group">
         <label class="mch-form-label">Image du marchand</label>
         <div class="mch-img-upload-area">
-          <div class="mch-img-preview" id="mch-img-preview">🏪</div>
+          <div class="mch-img-preview" id="mch-img-preview"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-shop"></use></svg></div>
           <div class="mch-img-upload-btns">
-            <label class="mch-img-btn" for="mch-file-input">📁 Choisir une image</label>
+            <label class="mch-img-btn" for="mch-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="mch-file-input" accept="image/*" onchange="_mchHandleImageUpload(event)" style="display:none">
-            <button class="mch-img-btn remove" id="mch-img-remove" onclick="_mchRemoveImage()" style="display:none">✕ Supprimer l'image</button>
+            <button class="mch-img-btn remove" id="mch-img-remove" onclick="_mchRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer l'image</button>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
@@ -3670,11 +3685,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="mch-form-group">
         <label class="mch-form-label">Image du rayon</label>
         <div class="mch-img-upload-area">
-          <div class="mch-img-preview" id="mch-ray-img-preview">📦</div>
+          <div class="mch-img-preview" id="mch-ray-img-preview"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-package"></use></svg></div>
           <div class="mch-img-upload-btns">
-            <label class="mch-img-btn" for="mch-ray-file-input">📁 Choisir une image</label>
+            <label class="mch-img-btn" for="mch-ray-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="mch-ray-file-input" accept="image/*" onchange="_mchRayHandleImageUpload(event)" style="display:none">
-            <button class="mch-img-btn remove" id="mch-ray-img-remove" onclick="_mchRayRemoveImage()" style="display:none">✕ Supprimer l'image</button>
+            <button class="mch-img-btn remove" id="mch-ray-img-remove" onclick="_mchRayRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer l'image</button>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
@@ -3697,11 +3712,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ry-form-group">
         <label class="ry-form-label">Image du rayon</label>
         <div class="mch-img-upload-area">
-          <div class="mch-img-preview" id="ry-img-preview">📦</div>
+          <div class="mch-img-preview" id="ry-img-preview"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-package"></use></svg></div>
           <div class="mch-img-upload-btns">
-            <label class="mch-img-btn" for="ry-file-input">📁 Choisir une image</label>
+            <label class="mch-img-btn" for="ry-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="ry-file-input" accept="image/*" onchange="_ryHandleImg(event)" style="display:none">
-            <button class="mch-img-btn remove" id="ry-img-remove" onclick="_ryRemoveImg()" style="display:none">✕ Supprimer</button>
+            <button class="mch-img-btn remove" id="ry-img-remove" onclick="_ryRemoveImg()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer</button>
           </div>
         </div>
       </div>
@@ -3714,7 +3729,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <select class="ry-form-select" id="ry-parent-select">
           <option value="">— Rayon principal —</option>
         </select>
-        <span class="ry-dissocier" id="ry-dissocier-btn" style="display:none" onclick="_ryDissocier()">✕ Dissocier du parent</span>
+        <span class="ry-dissocier" id="ry-dissocier-btn" style="display:none" onclick="_ryDissocier()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-unlink"></use></svg> Dissocier du parent</span>
       </div>
       <div class="ry-modal-btns">
         <button class="ry-btn-cancel" onclick="_ryCloseModal()">Annuler</button>
@@ -3751,25 +3766,25 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <div class="drawer-overlay" id="overlay" onclick="toggleDrawer()"></div>
   <div class="drawer" id="drawer">
     <div class="drawer-header">
-      <div class="drawer-avatar">🥦</div>
+      <div class="drawer-avatar"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-cook"></use></svg></div>
       <div class="drawer-user">
         <div class="name">KitchenCore</div>
         <div class="sub">v0.8 · Home Assistant</div>
       </div>
     </div>
     <div class="drawer-items">
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'personnalisation','Personnalisation')"><div class="d-icon">⚙️</div> Personnalisation</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'personnalisation','Personnalisation')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg></div> Personnalisation</div>
       <div class="drawer-sep"></div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon">🧅</div> Ingrédients</div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'rayons','Rayons')"><div class="d-icon">🏷</div> Rayons</div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Marchands</div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'ingredients','Ingrédients')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-ingredient"></use></svg></div> Ingrédients</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'rayons','Rayons')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-rayon"></use></svg></div> Rayons</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-shop"></use></svg></div> Marchands</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-random"></use></svg></div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-zones"></use></svg></div> Zones de stock</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'produits','Gestion des produits')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></div> Gestion des produits</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'tags','Tags recettes')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-tags"></use></svg></div> Tags recettes</div>
       <div class="drawer-sep"></div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'backup','Sauvegarde')"><div class="d-icon">💾</div> Import / Export</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'backup','Sauvegarde')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-backup"></use></svg></div> Import / Export</div>
     </div>
     <div class="drawer-version" id="drawer-version">KitchenCore · Home Assistant Add-on</div>
   </div>
@@ -3781,7 +3796,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- ══ OVERLAYS PAGE INGRÉDIENTS ═══════════════════════════════════════════ -->
   <!-- FAB SEARCH ingrédients (préfixé ing-) -->
   <div class="ing-fab-search" id="ing-fabSearch" onclick="ingOpenSearch()">
-    <span class="icon">🔍</span>
+    <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <span class="fab-label">Rechercher</span>
     <input class="ing-fab-search-input" id="ing-searchInput" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
     <button class="ing-fab-search-add" onclick="ingCreateFromSearch()" title="Créer cet ingrédient">+</button>
@@ -3807,16 +3822,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- MENU ⋮ COURSES -->
   <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
-    <div class="m-hdmenu-item" onclick="clEnterSelMode();clHideHdmenu()"><span>☑️</span><span>Sélectionner</span></div>
-    <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span>🗑</span><span>Supprimer les cochés</span></div>
+    <div class="m-hdmenu-item" onclick="clEnterSelMode();clHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></span><span>Sélectionner</span></div>
+    <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-delete"></use></svg></span><span>Supprimer les cochés</span></div>
   </div>
 
   <!-- MENU ⋮ TAGS -->
   <div class="m-hdmenu" id="tag-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="tag-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px">0 sélectionné(s)</div>
-    <div class="m-hdmenu-item" id="tag-hd-rename" onclick="tagRenameSelected();tagHideHdmenu()"><span>✏️</span><span>Renommer</span></div>
-    <div class="m-hdmenu-item danger" id="tag-hd-delete" onclick="tagDeleteSelected();tagHideHdmenu()"><span>🗑</span><span>Supprimer</span></div>
-    <div class="m-hdmenu-item" id="tag-hd-merge" onclick="tagOpenMergeSheet();tagHideHdmenu()"><span>🔀</span><span>Fusionner</span></div>
+    <div class="m-hdmenu-item" id="tag-hd-rename" onclick="tagRenameSelected();tagHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg></span><span>Renommer</span></div>
+    <div class="m-hdmenu-item danger" id="tag-hd-delete" onclick="tagDeleteSelected();tagHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-delete"></use></svg></span><span>Supprimer</span></div>
+    <div class="m-hdmenu-item" id="tag-hd-merge" onclick="tagOpenMergeSheet();tagHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-merge"></use></svg></span><span>Fusionner</span></div>
   </div>
 
   <!-- MERGE SHEET TAGS -->
@@ -3844,7 +3859,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- MENU ⋮ RAYONS -->
   <div class="m-hdmenu" id="ry-hdmenu" onclick="event.stopPropagation()">
-    <div class="m-hdmenu-item" onclick="_ryShowImportModal();ryHideHdmenu()"><span>📥</span><span>Importer une liste de rayons Carrefour Drive</span></div>
+    <div class="m-hdmenu-item" onclick="_ryShowImportModal();ryHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg></span><span>Importer une liste de rayons Carrefour Drive</span></div>
   </div>
 
   <!-- BACKDROP (absolute dans frame) -->
@@ -3980,13 +3995,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <div class="ing-bottom-sheet" id="ing-mergeSheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <span class="sheet-title">🔀 Fusionner les ingrédients</span>
-      <button class="sheet-close" onclick="ingCloseMergeSheet()">✕</button>
+      <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Fusionner les ingrédients</span>
+      <button class="sheet-close" onclick="ingCloseMergeSheet()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
     </div>
     <div class="sheet-body">
       <div class="merge-preview">
         <div class="merge-items" id="ing-mergeItems"></div>
-        <div class="merge-arrow">↓</div>
+        <div class="merge-arrow"><svg class="icon" aria-hidden="true"><use href="#i-arrow-down"></use></svg></div>
         <div class="merge-impact" id="ing-mergeImpact"></div>
       </div>
 
@@ -3998,7 +4013,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <input class="form-input" id="ing-mergeCustomName" placeholder="Nom personnalisé...">
       </div>
 
-      <button class="btn-primary" onclick="ingConfirmMerge()">🔀 Confirmer la fusion</button>
+      <button class="btn-primary" onclick="ingConfirmMerge()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Confirmer la fusion</button>
     </div>
   </div>
   <!-- RAYON SHEET (multi-sélection) -->
@@ -4006,13 +4021,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-rayon"></use></svg> Changer le rayon</span>
-      <button class="sheet-close" onclick="ingCloseRayonSheet()">✕</button>
+      <button class="sheet-close" onclick="ingCloseRayonSheet()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
     </div>
     <div class="sheet-body">
       <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Choisir le rayon pour les <strong id="ing-rayonSelCount">0</strong> ingrédients sélectionnés</p>
       <div class="rayon-grid" id="ing-rayonSheetGrid"></div>
       <div style="height:12px"></div>
-      <button class="btn-primary" onclick="ingApplyRayonSelected()">✓ Appliquer</button>
+      <button class="btn-primary" onclick="ingApplyRayonSelected()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg> Appliquer</button>
     </div>
   </div>
   <!-- SHEET CHANGER SAISON (multi-sélection) -->
@@ -4020,7 +4035,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-season"></use></svg> Changer la saison</span>
-      <button class="sheet-close" onclick="ingCloseSaisonSheet()">✕</button>
+      <button class="sheet-close" onclick="ingCloseSaisonSheet()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
     </div>
     <div class="sheet-body">
       <p style="font-size:13px;color:var(--grey-d);margin-bottom:12px">Définir la saison pour les <strong id="ing-saisonSelCount">0</strong> ingrédients sélectionnés</p>
@@ -4028,7 +4043,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ing-saison-labels" id="ing-bulkSaisonLabels"></div>
       <div class="ing-saison-summary" id="ing-bulkSaisonSummary">Saison non définie</div>
       <div style="height:12px"></div>
-      <button class="btn-primary" onclick="ingApplySaisonSelected()">✓ Appliquer</button>
+      <button class="btn-primary" onclick="ingApplySaisonSelected()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg> Appliquer</button>
     </div>
   </div>
   <!-- ══ /OVERLAYS PAGE INGRÉDIENTS ══════════════════════════════════════════ -->
@@ -4084,7 +4099,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
                background:var(--orange);color:white;font-size:.95rem;font-weight:800;
                font-family:var(--font);transition:opacity .15s;"
         onmousedown="this.style.opacity='.8'" onmouseup="this.style.opacity='1'">
-        ✓ Valider
+        Valider
       </button>
     </div>
   </div>
@@ -4106,7 +4121,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="pnp-label">Nom du produit *</div>
         <input class="pnp-input" id="pnp-nom" placeholder="ex: Lait demi-écrémé Lactel 1L" oninput="pnpAutoMatchIng(this.value)">
         <div id="pnp-off-badge" style="display:none;margin-top:6px;font-size:12px;color:var(--c-text-2);display:none;align-items:center;gap:5px">
-          <span style="background:var(--c-success-soft);color:var(--c-success);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✓ OpenFoodFacts</span>
+          <span style="background:var(--c-success-soft);color:var(--c-success);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${ico('check','icon-sm')} OpenFoodFacts</span>
           <span id="pnp-off-info"></span>
         </div>
       </div>
@@ -4177,7 +4192,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="ing-panel-value" id="stock-detailDlc" style="margin-bottom:8px"></div>
         <div style="display:flex;gap:8px;align-items:center">
           <input class="ing-panel-input" id="stock-detailDlcInput" type="date" style="flex:1;margin:0">
-          <button class="panel-inline-btn panel-inline-btn--sm" onclick="stockDetailSaveDlc()">✓</button>
+          <button class="panel-inline-btn panel-inline-btn--sm" onclick="stockDetailSaveDlc()" aria-label="Enregistrer la date"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></button>
         </div>
         <div id="stock-detailDlcQuick" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px"></div>
       </div>
@@ -4273,7 +4288,7 @@ function toggleDrawer() {
 // ── Course item check ────────────────────────────────────────────────────────
 function toggleItem(el) {
   const checked = el.classList.toggle('checked');
-  el.textContent = checked ? '✓' : '';
+  el.innerHTML = checked ? ico('check', 'icon-sm') : '';
   el.closest('.course-item').classList.toggle('done', checked);
 }
 
@@ -4660,7 +4675,7 @@ function _arrondi2(v) {
 function _stockCard(s) {
   const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
   const statusClass = qty === 0 ? 'empty' : qty <= 1 ? 'warn' : 'ok';
-  const statusEmoji = qty === 0 ? '😟' : qty <= 1 ? '😐' : '😊';
+  const statusEmoji = ico('dot', 'icon-sm');   // la couleur vient de .prod-status
   const initiales = (s.produit_nom || s.ingredient_nom || '?').substring(0, 2).toUpperCase();
   const imgHtml = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'))
     ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--c-text-3)\\'>${initiales}</div>'">`
@@ -4965,7 +4980,7 @@ function _stockOpenDetail(id) {
     const _bcNom    = (s.produit_nom || s.ingredient_nom || '').trim();
     const _bcMarque = (s.marque || '').trim();
     const _bcQuery  = [_bcMarque, _bcNom].filter(Boolean).join(' ') || s.code_barres;
-    document.getElementById('stock-detailBarcode').innerHTML = `<a href="${_googleSearchUrl(_bcQuery, false)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} 🔍</a>`;
+    document.getElementById('stock-detailBarcode').innerHTML = `<a href="${_googleSearchUrl(_bcQuery, false)}" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none">${s.code_barres} ${ico('search','icon-sm')}</a>`;
     bcSection.style.display = '';
   } else {
     bcSection.style.display = 'none';
@@ -5168,7 +5183,7 @@ function _stockRenderRayonChips() {
       : '';
     return `<div class="rayon-chip${p.id===_stockEditRayonId?' active':''}${hasKids?' has-children':''}${isOpen?' open':''}"
       onclick="stockToggleRayonParent(this,${p.id},${hasKids})">
-      ${_rayonIcon(p)} ${p.nom}${hasKids?' ▾':''}
+      ${_rayonIcon(p)} ${p.nom}${hasKids?' '+ico('chevron-down','icon-sm'):''}
     </div>${kidsHtml}`;
   }).join('');
 
@@ -5403,7 +5418,7 @@ async function stockSaveEdit() {
 
     stockCloseEdit();
     await _stockLoad();
-    showToast('Produit mis à jour ✓');
+    showToast('Produit mis à jour');
   } catch(e) { showToast('Erreur sauvegarde', 'error'); }
 }
 
@@ -5503,7 +5518,7 @@ function _zsRender() {
         <div class="zs-emoji" onclick="zsEditEmoji(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="font-size:1.5rem;cursor:pointer;min-width:34px;text-align:center" title="Changer l'emoji">${z.emoji}</div>
         <div style="flex:1;font-weight:700;font-size:.95rem">${z.nom}</div>
         <button onclick="zsRename(${z.id},'${z.nom.replace(/'/g,"\\'")}','${z.emoji}')" style="border:none;background:var(--grey-l);border-radius:8px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--text)">✏️</button>
-        <button onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}') " style="border:none;background:var(--c-danger-soft);border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--red)">🗑</button>
+        <button onclick="zsDelete(${z.id},'${z.nom.replace(/'/g,"\\'")}') " style="border:none;background:var(--c-danger-soft);border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--red)">${ico('delete','icon-sm')}</button>
       </div>`;
     });
   }
@@ -5617,7 +5632,7 @@ function _tagRender() {
     const sel = _tagSelectedIds.has(t.id);
     const renaming = _tagRenaming === t.id;
     return `<div class="tag-card${sel ? ' selected' : ''}" data-tag-id="${t.id}" onclick="tagOnCardClick(${t.id}, event)">
-      ${_tagSelectMode ? `<div class="tag-checkbox">${sel ? '✓' : ''}</div>` : ''}
+      ${_tagSelectMode ? `<div class="tag-checkbox">${sel ? ico('check','icon-sm') : ''}</div>` : ''}
       <div class="tag-name">
         ${renaming
           ? `<input id="tag-rename-input-${t.id}" value="${t.nom.replace(/"/g,'&quot;')}" onclick="event.stopPropagation()"
@@ -5696,7 +5711,7 @@ function _tagUpdateSelectUI() {
   const n = _tagSelectedIds.size;
   if (btn) {
     if (_tagSelectMode) {
-      btn.textContent = n > 0 ? `✕ Annuler (${n})` : '✕ Annuler';
+      btn.innerHTML = ico('close', 'icon-sm') + (n > 0 ? ` Annuler (${n})` : ' Annuler');
       btn.style.background = 'var(--c-scrim-light-soft)';
     } else {
       btn.textContent = 'Sélectionner';
@@ -5759,7 +5774,7 @@ function tagOpenMergeSheet() {
       if (!tag) return '';
       const isTgt = id === _tagMergeTarget;
       return `<div class="tag-merge-option${isTgt ? ' selected-target' : ''}" data-merge-id="${id}" onclick="tagSelectMergeTarget(${id})">
-        ${isTgt ? '✓ ' : ''}<strong>${tag.nom}</strong>
+        ${isTgt ? ico('check','icon-sm') + ' ' : ''}<strong>${tag.nom}</strong>
         <span style="margin-left:auto;font-size:.8rem;color:var(--grey-d)">${tag.count} recette${tag.count!==1?'s':''}</span>
       </div>`;
     }).join('');
@@ -5775,8 +5790,8 @@ function tagSelectMergeTarget(id) {
   opts.querySelectorAll('.tag-merge-option').forEach(el => {
     const isTarget = Number(el.dataset.mergeId) === id;
     el.classList.toggle('selected-target', isTarget);
-    el.innerHTML = el.innerHTML.replace(/^✓ /, '');
-    if (isTarget) el.innerHTML = '✓ ' + el.innerHTML;
+    el.innerHTML = el.innerHTML.replace(/^<svg[^>]*>.*?<\/svg> /, '');
+if (isTarget) el.innerHTML = ico('check','icon-sm') + ' ' + el.innerHTML;
   });
 }
 
@@ -5825,7 +5840,7 @@ function stockSfOpen() {
   // Peupler zones
   const fz = document.getElementById('stock-sf-f-zones');
   if (fz) fz.innerHTML = STOCK_ZONES.map(z =>
-    `<div class="stock-sf-opt${_stockFZones.has(z.key) ? ' active' : ''}" data-zone="${z.key}" onclick="stockSfToggleFzone(this,'${z.key}')"><span class="sf-check">✓</span> ${_zoneIco(z)} ${z.key}</div>`
+    `<div class="stock-sf-opt${_stockFZones.has(z.key) ? ' active' : ''}" data-zone="${z.key}" onclick="stockSfToggleFzone(this,'${z.key}')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> ${_zoneIco(z)} ${z.key}</div>`
   ).join('');
   // Peupler rayons présents dans le stock
   const fr = document.getElementById('stock-sf-f-rayons');
@@ -5836,7 +5851,7 @@ function stockSfOpen() {
       if (n && !seen.has(n)) seen.set(n, s.rayon_emoji || s.ingredient_rayon_emoji || '📦');
     });
     fr.innerHTML = [...seen.entries()].sort((a,b) => a[0].localeCompare(b[0],'fr')).map(([n,e]) =>
-      `<div class="stock-sf-opt${_stockFRayons.has(n) ? ' active' : ''}" onclick="stockSfToggleFrayon(this,'${n.replace(/'/g,"\\'")}')"><span class="sf-check">✓</span> ${e} ${n}</div>`
+      `<div class="stock-sf-opt${_stockFRayons.has(n) ? ' active' : ''}" onclick="stockSfToggleFrayon(this,'${n.replace(/'/g,"\\'")}')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> ${e} ${n}</div>`
     ).join('') || '<div style="color:var(--c-text-3);font-size:.82rem">Aucun rayon dans le stock</div>';
   }
   // Remettre les sélections tri en état
@@ -6018,13 +6033,13 @@ const PAGE_CONFIG = {
   menu:     { title: 'Menu',          fab: false, search: false, fabIcon: '+', dark: false },
   profil:   { title: 'Profil',        fab: false, search: false, fabIcon: '+', dark: false },
   ingredients: { title: 'Ingrédients', fab: false, search: false, fabIcon: '', dark: false },
-  rayons:               { title: '🏷 Rayons',               fab: true,  search: false, fabIcon: '+', dark: false },
-  marchands:            { title: '🏪 Marchands',           fab: true,  search: false, fabIcon: '+', dark: false },
-  'suggestion-config':  { title: '🎲 Suggestions aléatoires', fab: true, search: false, fabIcon: '+', dark: false },
-  'zones-stock':        { title: '🗂 Zones de stock',          fab: false, search: false, fabIcon: '', dark: false },
-  'produits':           { title: '📦 Gestion des produits',    fab: false, search: false, fabIcon: '', dark: false },
-  'backup':             { title: '💾 Sauvegarde',              fab: false, search: false, fabIcon: '', dark: false },
-  'personnalisation':   { title: '⚙️ Personnalisation',         fab: false, search: false, fabIcon: '', dark: false },
+  rayons:               { title: 'Rayons', ico: 'rayon',               fab: true,  search: false, fabIcon: '+', dark: false },
+  marchands:            { title: 'Marchands', ico: 'shop',           fab: true,  search: false, fabIcon: '+', dark: false },
+  'suggestion-config':  { title: 'Suggestions aléatoires', ico: 'random', fab: true, search: false, fabIcon: '+', dark: false },
+  'zones-stock':        { title: 'Zones de stock', ico: 'zones',          fab: false, search: false, fabIcon: '', dark: false },
+  'produits':           { title: 'Gestion des produits', ico: 'package',    fab: false, search: false, fabIcon: '', dark: false },
+  'backup':             { title: 'Sauvegarde', ico: 'save',              fab: false, search: false, fabIcon: '', dark: false },
+  'personnalisation':   { title: 'Personnalisation', ico: 'settings',         fab: false, search: false, fabIcon: '', dark: false },
 };
 
 // ── Personnalisation : page d'accueil ────────────────────────────────────────
@@ -6190,7 +6205,11 @@ function switchPage(tab, page, title) {
   if (tab) tab.classList.add('active');
 
   const cfg = PAGE_CONFIG[page] || { title: title, fab: true, search: false, dark: false };
-  document.getElementById('header-title').textContent = cfg.title || title;
+  // Le titre peut etre accompagne d'une icone (BL-198). Le texte est pose par
+  // un noeud texte et non par innerHTML : rien n'y est interprete.
+  const hTitre = document.getElementById('header-title');
+  hTitre.innerHTML = cfg.ico ? ico(cfg.ico, 'icon-sm') + ' ' : '';
+  hTitre.append(cfg.title || title);
   document.getElementById('content').scrollTo({ top: 0, behavior: 'instant' });
 
   // Header couleur
@@ -6563,7 +6582,7 @@ async function _startScanner() {
         if (!_nativeDetector) return;
         if (!_scanDone && video.readyState >= 2) {
           if (_calcSharpness(video) < _SHARP_THRESHOLD) {
-            _setHint('📷 Stabilisez — image floue');
+            _setHint('Stabilisez — image floue');
             _lastCode = null; _confirmCount = 0;
             _rafId = requestAnimationFrame(loop);
             return;
@@ -6651,7 +6670,7 @@ async function _startScanner() {
     if (_scanDone || !_zxing) return;
     if (video.readyState >= 2 && video.videoWidth > 0) {
       if (_calcSharpness(video) < _SHARP_THRESHOLD) {
-        _setHint('📷 Stabilisez — image floue');
+        _setHint('Stabilisez — image floue');
         _lastCode = null; _confirmCount = 0;
         _rafId = requestAnimationFrame(_zxingLoop);
         return;
@@ -6846,13 +6865,13 @@ function _renderScanList() {
     const photoSrc = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/') || item.photo.startsWith('data:')) ? item.photo : null);
     const photoHtml = photoSrc
       ? `<img src="${photoSrc}">`
-      : `📦`;
+      : ico('package','icon-lg');
 
     // En destination « courses » on ne crée aucun produit : on range par rayon, pas par zone
     const toCourses = _scanTarget === 'courses';
     const detail = toCourses ? (item.rayon || '') : (item.zone || '');
     const sub = item.status === 'loading' ? `<span style="color:var(--c-text-3)">recherche…</span>`
-      : item.status === 'unknown' ? `<span style="color:var(--c-danger);font-weight:700">❓ Inconnu</span>`
+      : item.status === 'unknown' ? `<span style="color:var(--c-danger);font-weight:700">${ico('unknown','icon-sm')} Inconnu</span>`
       : item.status === 'new'     ? `<span style="color:var(--c-warning);font-weight:700">${ico('new','icon-sm')} ${toCourses ? 'Nouveau produit' : 'Nouveau — sera créé'}</span>`
       : `<span>${item.marque || ''}${item.marque && detail ? ' · ' : ''}${detail}</span>`;
 
@@ -6876,7 +6895,7 @@ function _renderScanList() {
         <div class="scan-item-sub">${sub}</div>
       </div>
       ${qtyHtml}
-      <span class="scan-item-del" onclick="event.stopPropagation();_scanRemove(${idx})">✕</span>
+      <span class="scan-item-del" onclick="event.stopPropagation();_scanRemove(${idx})" aria-label="Retirer">${ico('close','icon-sm')}</span>
     </div>`;
   }).join('');
 }
@@ -6955,7 +6974,7 @@ async function validateScanList() {
   if (!items.length) { showToast('Liste vide', 'warn'); return; }
 
   const fab = document.getElementById('scan-validate-fab');
-  fab.textContent = '⏳ En cours…';
+  fab.innerHTML = ico('wait', 'icon-sm') + ' En cours…';
   fab.disabled = true;
 
   let ok = 0, err = 0;
@@ -7006,7 +7025,7 @@ async function _validateScanToCourses() {
   if (items.some(i => i.nom === i.code)) { showToast('Nommez les produits inconnus avant de valider', 'warn'); return; }
 
   const fab = document.getElementById('scan-validate-fab');
-  fab.textContent = '⏳ En cours…';
+  fab.innerHTML = ico('wait', 'icon-sm') + ' En cours…';
   fab.disabled = true;
 
   // Marchand = onglet actif de la page Courses, repli sur le premier marchand
@@ -7218,7 +7237,7 @@ async function openNewProduit(code) {
   // Lookup OpenFoodFacts si on a un code
   if (code) {
     badge.style.display = 'flex';
-    badge.innerHTML = '<span style="background:var(--c-warning-soft);color:var(--c-warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">⏳ Recherche OpenFoodFacts…</span>';
+    badge.innerHTML = '<span style="background:var(--c-warning-soft);color:var(--c-warning);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">' + ico('wait','icon-sm') + ' Recherche OpenFoodFacts…</span>';
     try {
       const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}?fields=product_name,product_name_fr,generic_name,generic_name_fr,brands,quantity`);
       const data = await r.json();
@@ -7234,13 +7253,13 @@ async function openNewProduit(code) {
           document.getElementById('pnp-unite').value = parsed.unite;
         }
         const qty = p.quantity ? ` · ${p.quantity}` : '';
-        badge.innerHTML = `<span style="background:var(--c-success-soft);color:var(--c-success);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✓ OpenFoodFacts${qty}</span>`;
-        if (!nom && !marque) badge.innerHTML = '<span style="background:var(--c-danger-soft);color:var(--c-danger);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">⚠ Produit trouvé mais sans nom</span>';
+        badge.innerHTML = `<span style="background:var(--c-success-soft);color:var(--c-success);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${ico('check','icon-sm')} OpenFoodFacts${qty}</span>`;
+        if (!nom && !marque) badge.innerHTML = '<span style="background:var(--c-danger-soft);color:var(--c-danger);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">' + ico('alert','icon-sm') + ' Produit trouvé mais sans nom</span>';
       } else {
         badge.innerHTML = '<span style="background:var(--c-bg);color:var(--c-text-3);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">— Non trouvé sur OpenFoodFacts</span>';
       }
     } catch(e) {
-      badge.innerHTML = `<span style="background:var(--c-danger-soft);color:var(--c-danger);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">✗ Erreur : ${e.message}</span>`;
+      badge.innerHTML = `<span style="background:var(--c-danger-soft);color:var(--c-danger);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${ico('close','icon-sm')} Erreur : ${e.message}</span>`;
     }
   }
 
@@ -7304,7 +7323,7 @@ async function pnpCreateIng(ctx) {
     if (ctx === 'edit') {
       document.getElementById('stock-editIngImg').style.display = 'none';
     }
-    showToast(`✓ « ${data.nom} » créé`);
+    showToast(`« ${data.nom} » créé`);
   } catch(e) { showToast('Erreur création', 'warn'); }
 }
 
@@ -7369,7 +7388,7 @@ async function saveNewProduit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ packs_pleins: 1 })
     });
-    showToast(`✓ ${nom} ajouté au stock`, 'ok');
+    showToast(`${nom} ajouté au stock`, 'ok');
     // Mettre à jour l'item dans la liste de scan s'il était inconnu/nouveau
     const scanItem = _scanList.find(i => i.code === code);
     if (scanItem) {
@@ -7549,7 +7568,7 @@ function clItemHTML(item) {
       ${badge}
       <div class="cl-qty-ctrl">
         <button class="cl-qbtn${isDel?' del':''}"
-          onclick="${isDel?`clDel('${item.id}')`:`clQty('${item.id}',-1)`}">${isDel?'🗑':'−'}</button>
+          onclick="${isDel?`clDel('${item.id}')`:`clQty('${item.id}',-1)`}">${isDel?ico('delete','icon-sm'):ico('minus','icon-sm')}</button>
         <span class="cl-qnum">${qLabel}</span>
         <button class="cl-qbtn" onclick="clQty('${item.id}',1)">+</button>
       </div>
@@ -7731,7 +7750,7 @@ async function clAddItem() {
     if(inp){ inp.value=''; inp.classList.remove('expanded'); }
     _clSearchOpen=false;
     clFabUpdate();   // champ vide : le FAB redevient le scan (BL-110)
-    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ Ajouté à la liste','ok');
+    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : 'Ajouté à la liste','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
@@ -7852,7 +7871,7 @@ async function clPickSuggestion(nom, rayon, icone, produitId) {
     clRender();
     inp.value=''; inp.classList.remove('expanded'); _clSearchOpen=false;
     clFabUpdate();   // champ vide : le FAB redevient le scan (BL-110)
-    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : '✓ '+nom+' ajouté','ok');
+    showToast(merged ? `${ligne.n} ×${ligne.qty} dans la liste` : nom+' ajouté','ok');
   } catch(e){ showToast('Erreur réseau','error'); }
 }
 
@@ -7957,7 +7976,7 @@ function clCtxDel()     { const id=_clCtxId; clCloseCtx(); clDel(id); }
 async function clCtxToIngredient() {
   const item=_cl.find(x=>x.id===_clCtxId); clCloseCtx(); if(!item) return;
   try {
-    let ing=null; let msg='✓ "'+item.n+'" ajouté aux ingrédients';
+    let ing=null; let msg='« '+item.n+' » ajouté aux ingrédients';
     const res=await fetch('/api/ingredients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:item.n})});
     if(res.status===409){
       // Ingrédient déjà existant → on le retrouve pour lier quand même.
@@ -8058,7 +8077,7 @@ function clConfirmEdit() {
   clRender();
   clCloseEditModal();
   const label = item.qty + (item.unit ? ' ' + item.unit : '');
-  showToast(`✓ ${item.n} : ${label}`, 'ok');
+  showToast(`${item.n} : ${label}`, 'ok');
 }
 
 function clCloseEditModal() {
@@ -8096,7 +8115,7 @@ function clToggleSel(id) {
   const el = document.getElementById('cli-'+id);
   if (el) {
     const chk = el.querySelector('.cl-sel-chk');
-    if (chk) { const on = _clSelected.has(id); chk.classList.toggle('on', on); chk.textContent = on ? '✓' : ''; }
+    if (chk) { const on = _clSelected.has(id); chk.classList.toggle('on', on); chk.innerHTML = on ? ico('check','icon-sm') : ''; }
     el.classList.toggle('sel-checked', _clSelected.has(id));
   }
 }
@@ -8134,7 +8153,7 @@ function clSetMarchandBulk(m) {
   clCloseMmodal();
   const n = _clSelected.size;
   clExitSelMode();
-  showToast('✓ ' + n + ' article' + (n>1?'s':'') + ' déplacé' + (n>1?'s':''), 'ok');
+  showToast('' + n + ' article' + (n>1?'s':'') + ' déplacé' + (n>1?'s':''), 'ok');
 }
 
 // ── Modal marchand ────────────────────────────────────────────────────────────
@@ -8160,7 +8179,7 @@ function clOpenMmodal(id) {
   document.getElementById('cl-mmodal').classList.add('on');
 }
 function clCloseMmodal(){ document.getElementById('cl-mmodal').classList.remove('on'); }
-function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({m})}).catch(()=>{});clRender();} clCloseMmodal(); showToast('✓ Marchand mis à jour','ok'); }
+function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({m})}).catch(()=>{});clRender();} clCloseMmodal(); showToast('Marchand mis à jour','ok'); }
 
 // ── Boutons marchands ─────────────────────────────────────────────────────────
 function clOpenDrive() {
@@ -8172,7 +8191,7 @@ function clCopyFourche() {
   const items=_cl.filter(i=>i.m==='fourche'&&!i.done);
   if(!items.length){ showToast('Aucun article La Fourche','warn'); return; }
   const txt='🌿 La Fourche\n\n'+items.map(i=>`• ${i.n} ×${i.qty}`).join('\n');
-  navigator.clipboard.writeText(txt).then(()=>showToast('✓ Liste copiée','ok')).catch(()=>alert(txt));
+  navigator.clipboard.writeText(txt).then(()=>showToast('Liste copiée','ok')).catch(()=>alert(txt));
 }
 
 // ── Clavier virtuel : garder .frame au-dessus du clavier (BL-181) ───────────
@@ -8302,10 +8321,10 @@ function renderChips() {
   // une apostrophe (« l'ete ») cassait l'ancien setFilter(this,'...').
   const chip = t => `<div class="chip${_filterTags.has(t.nom)?' on':''}" data-tag="${ev3Esc(t.nom)}" onclick="setFilter(this)">${ev3Esc(t.nom)}</div>`;
   const mode = _filterTags.size >= 2
-    ? `<div class="chip chip-mode" onclick="rvTagModeToggle()" title="Changer la règle de combinaison">${_filterMode === 'all' ? 'Tous ces tags' : 'Un de ces tags'} ⇄</div>`
+    ? `<div class="chip chip-mode" onclick="rvTagModeToggle()" title="Changer la règle de combinaison">${_filterMode === 'all' ? 'Tous ces tags' : 'Un de ces tags'} ${ico('swap','icon-sm')}</div>`
     : '';
   el.innerHTML =
-    `<div class="chip${_filterTags.size ? '' : ' on'}" onclick="setFilter(this)">🍽️ Tout</div>` +
+    `<div class="chip${_filterTags.size ? '' : ' on'}" onclick="setFilter(this)">Tout</div>` +
     mode +
     visibles.map(chip).join('') +
     (q && !visibles.some(t => norm(t.nom).includes(q)) ? `<div class="chip static">Aucun tag</div>` : '');
@@ -8570,7 +8589,7 @@ async function openDetail(id) {
   } catch(e) {}
   document.getElementById('detail-title').textContent = r.nom;
 
-  const stars = [1,2,3,4,5].map(i=>`<span class="d-star${i<=(r.note||0)?' on':''}" onclick="setNote('${id}',${i})">★</span>`).join('');
+  const stars = [1,2,3,4,5].map(i=>`<span class="d-star${i<=(r.note||0)?' on':''}" onclick="setNote('${id}',${i})">${ico('star','icon-sm')}</span>`).join('');
   const tags  = (r.tags||[]).map(t=>`<span class="d-tag">${t}</span>`).join('');
   const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
   const ingrs = (r.ingredients||[]).map(i=>{
@@ -8599,7 +8618,7 @@ async function openDetail(id) {
     const displayNom = (i.nom_pluriel && !isNaN(qtyNum) && qtyNum > 1) ? i.nom_pluriel : i.nom;
     const rowClick = (isSub && subRecId) ? `onclick="window.open('?recipe=${subRecId}','_blank')"` : '';
     const rowCls   = (isSub && subRecId) ? ' link' : '';
-    const linkIcon = (isSub && subRecId) ? `<span class="d-sub-link">↗</span>` : '';
+    const linkIcon = (isSub && subRecId) ? `<span class="d-sub-link">${ico('external','icon-sm')}</span>` : '';
     // Conversion unité → grammes (informatif) : "2 tomates  ≈ 100 g"
     const convG = (!isSub && i.conversion_grammes && !isNaN(qtyNum) && qtyNum > 0)
       ? `<span class="d-ingr-conv">≈ ${fmtGrammesApprox(qtyNum * i.conversion_grammes)} g</span>` : '';
@@ -8634,7 +8653,7 @@ async function openDetail(id) {
           ${thumbs ? `<div class="d-step-thumbs">${thumbs}</div>` : ''}
         </div>` : ''}
         <div class="d-step-txt">${hTxt.html}</div>
-        ${s.timer>0?`<button class="d-timer">⏱ ${fmt(s.timer)}</button>`:''}
+        ${s.timer>0?`<button class="d-timer">${ico('timer','icon-sm')} ${fmt(s.timer)}</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -8642,7 +8661,7 @@ async function openDetail(id) {
   document.getElementById('detail-body').innerHTML = `
     <div class="d-topbar">
       <div class="d-stars">${stars}</div>
-      <button class="d-fav-btn${r.favori?' on':''}" onclick="toggleFav('${id}')">${r.favori?'♥':'♡'}</button>
+      <button class="d-fav-btn${r.favori?' on':''}" onclick="toggleFav('${id}')" aria-label="Favori">${ico(r.favori?'fav-on':'fav')}</button>
     </div>
     <div class="d-hero">
       ${r.photo
@@ -8653,9 +8672,9 @@ async function openDetail(id) {
       <div class="d-nom">${r.nom}</div>
       <div class="d-tags">${tags}</div>
       <div class="d-infos">
-        <div class="d-info"><div class="d-info-v">👥 ${r.portions||2}</div><div class="d-info-l">portions</div></div>
-        ${r.temps_prep?`<div class="d-info"><div class="d-info-v">🥄 ${r.temps_prep}min</div><div class="d-info-l">prépa</div></div>`:''}
-        ${r.temps_cuisson?`<div class="d-info"><div class="d-info-v">🔥 ${r.temps_cuisson}min</div><div class="d-info-l">cuisson</div></div>`:''}
+        <div class="d-info"><div class="d-info-v">${ico('portions','icon-sm')} ${r.portions||2}</div><div class="d-info-l">portions</div></div>
+        ${r.temps_prep?`<div class="d-info"><div class="d-info-v">${ico('prep','icon-sm')} ${r.temps_prep}min</div><div class="d-info-l">prépa</div></div>`:''}
+        ${r.temps_cuisson?`<div class="d-info"><div class="d-info-v">${ico('cooktime','icon-sm')} ${r.temps_cuisson}min</div><div class="d-info-l">cuisson</div></div>`:''}
       </div>
     </div>
     ${ingrs?`<div class="d-sec"><div class="d-sec-ttl">Ingrédients</div>${ingrs}</div>`:''}
@@ -8674,7 +8693,7 @@ function _cookModeBtnHtml(){
   // Toujours rendu, même si l'API est absente : un bouton masqué en silence est
   // impossible à diagnostiquer (« je ne vois pas le bouton »). Si l'API manque,
   // cookModeToggle() explique pourquoi au lieu de ne rien faire.
-  return `<button class="d-cook-btn" id="d-cook-btn" onclick="cookModeToggle()">🔆 Mode cuisine</button>`;
+  return `<button class="d-cook-btn" id="d-cook-btn" onclick="cookModeToggle()">${ico('cookmode','icon-sm')} Mode cuisine</button>`;
 }
 // Pourquoi le mode cuisine est indisponible, ou null s'il est disponible
 function _cookModeUnavailable(){
@@ -8697,7 +8716,7 @@ async function cookModeToggle(){
   if(ko){ showToast(ko,'warn'); return; }
   if(!(await _cookWakeRequest())){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
   _cookMode = true; _cookModeRender();
-  showToast('🔆 Mode cuisine — écran maintenu allumé','ok');
+  showToast('Mode cuisine — écran maintenu allumé','ok');
 }
 function cookModeOff(silencieux){
   _cookMode = false;
@@ -9084,11 +9103,11 @@ function renderSteps() {
         <input class="ev3-step-title-inp" placeholder="Titre de l'étape (optionnel)" value="${ev3Esc(s.titre)}" oninput="_eSteps[${x}].titre=this.value">
         <textarea class="ev3-step-text-inp" rows="2" placeholder="Instructions…" oninput="_eSteps[${x}].texte=this.value">${ev3Esc(s.texte)}</textarea>
         <div class="ev3-step-timer-row">
-          <span>⏱</span>
+          <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-timer"></use></svg></span>
           <input class="ev3-step-timer-inp" type="number" min="0" placeholder="Timer (secondes)" value="${s.timer||''}" oninput="_eSteps[${x}].timer=+this.value||0">
         </div>
       </div>
-      <button class="ev3-row-del" onclick="delStep(${x})">✕</button>
+      <button class="ev3-row-del" onclick="delStep(${x})" aria-label="Retirer cette étape">${ico('close','icon-sm')}</button>
     </div>
   `).join('');
   ev3BindDrag('e-steps', _eSteps, renderSteps, '.ev3-step-drag');
@@ -9126,7 +9145,7 @@ async function saveRecette() {
     await loadRecettes();
     closeEdit();
     if(_editId) openDetail(data.id);
-    showToast(_editId?'Recette mise à jour ✓':'Recette créée ✓','ok');
+    showToast(_editId?'Recette mise à jour':'Recette créée','ok');
   } catch(e) { showToast('Erreur sauvegarde','error'); }
 }
 
@@ -9197,12 +9216,12 @@ async function _copyToClipboard(text) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
-      showToast('JSON copié ✓');
+      showToast('JSON copié');
       return;
     }
     throw new Error('clipboard API indisponible');
   } catch(e) {
-    if (_copyFallback(text)) showToast('JSON copié ✓');
+    if (_copyFallback(text)) showToast('JSON copié');
     else showToast('Impossible de copier — utilise plutôt "Exporter en fichier"', 'error');
   }
 }
@@ -9248,7 +9267,7 @@ async function exportDetailJson() {
     const obj = _recetteToImportObj(r);
     const slug = (obj.nom||'recette').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'recette';
     _downloadJson(obj, `recette-${slug}.json`);
-    showToast('Fichier téléchargé ✓');
+    showToast('Fichier téléchargé');
   } catch(e) { showToast('Erreur lors de l\'export', 'error'); }
 }
 async function copyEditJson() {
@@ -9317,8 +9336,8 @@ async function rvMealieRepairPhotos() {
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Erreur serveur');
-    if (d.total === 0)   rvImportFeedback('Aucune photo à réparer ✓', 'ok');
-    else if (d.reparees) rvImportFeedback(`${d.reparees}/${d.total} photo(s) réparée(s) ✓`, 'ok');
+    if (d.total === 0)   rvImportFeedback('Aucune photo à réparer', 'ok');
+    else if (d.reparees) rvImportFeedback(`${d.reparees}/${d.total} photo(s) réparée(s)`, 'ok');
     else                 rvImportFeedback(`Aucune réparée sur ${d.total} — ${d.echecs[0]?.raison || 'échec'}`, 'err');
     if (d.reparees && typeof loadRecettes === 'function') await loadRecettes();
   } catch(e) {
@@ -9360,7 +9379,7 @@ async function rvMealieLoad() {
           ${item.description ? `<div class="rv-mealie-card-desc">${item.description.replace(/</g,'&lt;').slice(0,80)}</div>` : ''}
         </div>
         <button class="rv-mealie-card-action" id="rv-mc-btn-${item.slug}"
-          onclick="rvMealieImport('${item.slug.replace(/'/g,"\\'")}','${safeUrl}','${safeToken}')">⬇ Importer</button>
+          onclick="rvMealieImport('${item.slug.replace(/'/g,"\\'")}','${safeUrl}','${safeToken}')">${ico('download','icon-sm')} Importer</button>
       </div>
     `).join('');
   } catch(e) {
@@ -9881,12 +9900,12 @@ async function mAdd(){
       if(id) await fetch('/api/menu/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)});
       _md[_mKey][_mEditIdx]={...item,id};
       mSrt(_mKey);
-      mClose(); mBuild(); showToast('✓ Repas modifié','ok');
+      mClose(); mBuild(); showToast('Repas modifié','ok');
     } else {
       const res=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:_mKey,...item})});
       const {id}=await res.json();
       _md[_mKey].push({...item,id}); mSrt(_mKey);
-      mClose(); mBuild(); showToast('✓ Ajouté au menu','ok');
+      mClose(); mBuild(); showToast('Ajouté au menu','ok');
     }
   }catch(e){showToast('Erreur réseau','error');}
 }
@@ -10057,7 +10076,7 @@ async function mOpenDetailFromCard(k,x){
     // recettes » cassait la navigation (BL-89).
     switchPage(document.querySelector('.nav-tab[data-page="recettes"]'), 'recettes', 'Recettes');
   } else {
-    showToast('Recette non enregistrée — utilisez ✏️ pour modifier','warn');
+    showToast('Recette non enregistrée — utilisez le crayon pour la modifier','warn');
   }
 }
 
@@ -10117,12 +10136,12 @@ function mIngOpen(){
       const qtyStr = [isNaN(qtyNum)?null:qtyNum, ing.unite].filter(Boolean).join(' ');
       const nomEsc = ing.nom.replace(/'/g,"\\'");
       html += `<div class="m-ing-row">
-        <div class="m-ing-check ${isPantry?'':'on'}" onclick="mIngRowToggle(this,'${key}')">✓</div>
+        <div class="m-ing-check ${isPantry?'':'on'}" onclick="mIngRowToggle(this,'${key}')">${ico('check','icon-sm')}</div>
         <div class="m-ing-info">
           <span class="m-ing-nom">${ing.nom}</span>
           ${qtyStr?`<span class="m-ing-qty">${qtyStr}</span>`:''}
         </div>
-        <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}',${ing.ing_id||'null'},'${nomEsc}')" title="Toujours dans ma cuisine">🏠</div>
+        <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}',${ing.ing_id||'null'},'${nomEsc}')" title="Toujours dans ma cuisine" aria-label="Toujours dans ma cuisine">${ico('pantry','icon-sm')}</div>
       </div>`;
     });
   });
@@ -10237,7 +10256,7 @@ function mFreeIngRenderList(items){
       const avatar = isUrl ? `<img src="${it.icone}" onerror="this.parentNode.innerHTML='<span class=\\'m-ing-ini\\'>${ini}</span>'">` : `<span class="m-ing-ini">${ini}</span>`;
       const nomJ = JSON.stringify(nom);
       html += `<div class="m-ing-row">
-        <div class="m-ing-check on" onclick="mFreeIngToggle(${nomJ})">✓</div>
+        <div class="m-ing-check on" onclick="mFreeIngToggle(${nomJ})">${ico('check','icon-sm')}</div>
         <div class="m-ing-av">${avatar}</div>
         <div class="m-ing-info"><span class="m-ing-nom">${nom}</span>${it.rayon?`<span class="m-ing-qty">${it.rayon}</span>`:''}</div>
       </div>`;
@@ -10691,7 +10710,7 @@ function _ingRender() {
           const nb = tree.filter(t => t.depth === 0 && String((_ingRayons.find(x => x.id === _ingEffectiveRayonId(t.ing))||{}).id || 'sans') === cle).length;
           hd = r
             ? `<div class="ing-rayon-hd">${_rayonIcon(r)} <span>${r.nom}</span><span class="ing-rayon-nb">${nb}</span></div>`
-            : `<div class="ing-rayon-hd sans">⚠️ <span>Sans rayon</span><span class="ing-rayon-nb">${nb}</span></div>`;
+            : `<div class="ing-rayon-hd sans">${ico('alert','icon-sm')} <span>Sans rayon</span><span class="ing-rayon-nb">${nb}</span></div>`;
         }
       }
       return hd + _ingRenderCard(ing, i, depth);
@@ -10763,12 +10782,12 @@ function _ingRenderCard(ing, i, depth) {
       <div class="ing-name">${ing.name}</div>
       <div class="ing-meta">
         ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${_rayonIcon(effRayon.rayon)} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
-        ${recipeCount > 0 ? `<span class="ing-badge recipes">🍳 ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
+        ${recipeCount > 0 ? `<span class="ing-badge recipes">${ico('cook','icon-sm')} ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
         ${ing.toujours_dispo ? `<span class="ing-badge pantry">${ico('pantry','icon-sm')} Toujours en cuisine</span>` : ''}
       </div>
     </div>
     <div class="ing-actions">
-      <button class="ing-btn" draggable="false" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier">✏️</button>
+      <button class="ing-btn" draggable="false" onclick="ingOpenEditPanel('${ing.id}', event)" title="Modifier" aria-label="Modifier">${ico('edit','icon-sm')}</button>
     </div>
     <div class="ing-drag-handle" draggable="false" ontouchstart="event.preventDefault()" onclick="event.stopPropagation()" title="Glisser pour rattacher à un parent">⠿</div>
   </div>`;
@@ -10968,7 +10987,7 @@ function _ingRenderDoublons() {
   }
   grid.innerHTML = groups.map(g => `
     <div class="dup-group">
-      <div class="dup-group-header">⚠️ Similaires : <strong>"${g.key}"</strong></div>
+      <div class="dup-group-header">${ico('alert','icon-sm')} Similaires : <strong>"${g.key}"</strong></div>
       <div class="dup-group-items">
         ${g.items.map(ing => `
           <div class="dup-item" onclick="ingOpenDetailPanel('${ing.id}')">
@@ -10979,7 +10998,7 @@ function _ingRenderDoublons() {
         `).join('')}
       </div>
       <div class="dup-group-actions">
-        <button class="btn-merge-quick" onclick='ingQuickMergeGroup(${JSON.stringify(g.items.map(i=>i.id))})'>🔀 Fusionner ces ${g.items.length}</button>
+        <button class="btn-merge-quick" onclick='ingQuickMergeGroup(${JSON.stringify(g.items.map(i=>i.id))})'>${ico('merge','icon-sm')} Fusionner ces ${g.items.length}</button>
         <button class="btn-ignore" onclick="ingIgnoreDupGroup(this)">Ignorer</button>
       </div>
     </div>
@@ -11722,7 +11741,7 @@ function _ingRenderRayonGrid(containerId, selected) {
       : '';
     return `<button class="rayon-chip${parentActive?' active':''}${hasKids?' has-children':''}${isOpen?' open':''}" data-rayon-id="${p.id}"
       onclick="ingToggleRayonParent('${containerId}',${p.id},this,${hasKids})">
-      ${_rayonIcon(p)} ${p.nom}${hasKids?' ▾':''}
+      ${_rayonIcon(p)} ${p.nom}${hasKids?' '+ico('chevron-down','icon-sm'):''}
     </button>${kidsHtml}`;
   }).join('');
 }
@@ -11934,7 +11953,7 @@ function _ingOpenMergeSheet() {
     return `<div class="name-option" onclick="ingSelectMergeName(this)" data-name="${i.name.replace(/"/g, '&quot;')}">
       ${avatar}
       <span style="flex:1">${i.name}</span>
-      <span class="check">✓</span>
+      <span class="check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span>
     </div>`;
   }).join('');
 
@@ -12163,7 +12182,7 @@ async function _ingCreateFromSearch() {
     }
     _ingCloseSearch(null);
     await _ingLoadData();
-    _ingToast(`✓ « ${nom} » créé`);
+    _ingToast(`« ${nom} » créé`);
   } catch(e) { _ingToast('Erreur création'); }
 }
 
@@ -12236,11 +12255,11 @@ function _ingSfRenderRayonOptions() {
     const parentClick = hasKids ? `ingSfToggleRayonGroup(this)` : `ingSfToggleFrayon(this,'${p.id}')`;
     const kidsHtml = hasKids
       ? `<div class="rayon-children-row" style="${isOpen ? '' : 'display:none'}">` +
-        kids.map(c => `<div class="stock-sf-opt${_ingFRayons.has(String(c.id)) ? ' active' : ''}" onclick="ingSfToggleFrayon(this,'${c.id}')"><span class="sf-check">✓</span> ${_rayonIcon(c)} ${c.nom}</div>`).join('') +
+        kids.map(c => `<div class="stock-sf-opt${_ingFRayons.has(String(c.id)) ? ' active' : ''}" onclick="ingSfToggleFrayon(this,'${c.id}')"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> ${_rayonIcon(c)} ${c.nom}</div>`).join('') +
         `</div>`
       : '';
     return `<div style="width:100%">
-      <div class="stock-sf-opt${parentActive ? ' active' : ''}${hasKids ? ' has-children' + (isOpen ? ' open' : '') : ''}" onclick="${parentClick}"><span class="sf-check">✓</span> ${_rayonIcon(p)} ${p.nom}${hasKids ? ' ▾' : ''}</div>${kidsHtml}
+      <div class="stock-sf-opt${parentActive ? ' active' : ''}${hasKids ? ' has-children' + (isOpen ? ' open' : '') : ''}" onclick="${parentClick}"><span class="sf-check"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"></use></svg></span> ${_rayonIcon(p)} ${p.nom}${hasKids ? ' ' + ico('chevron-down','icon-sm') : ''}</div>${kidsHtml}
     </div>`;
   }).join('') || '<div style="color:var(--c-text-3);font-size:.82rem">Aucun rayon utilisé</div>';
 }
@@ -12482,7 +12501,7 @@ function _ryCardHTML(r, level, hasChildren, collapsed) {
     ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
     : `<div class="ry-img">${r.emoji || '📦'}</div>`;
   const collapseBtn = (level===0 && hasChildren)
-    ? `<button class="ry-btn" onclick="event.stopPropagation();_ryToggleCollapse(${r.id})">${collapsed?'▸':'▾'}</button>`
+    ? `<button class="ry-btn" onclick="event.stopPropagation();_ryToggleCollapse(${r.id})" aria-label="Déplier">${collapsed?ico('chevron-right','icon-sm'):ico('chevron-down','icon-sm')}</button>`
     : '';
   return `<div class="${cls}" data-ry-id="${r.id}" data-level="${level}">
     <div class="mch-rayon-handle" style="color:var(--grey-d);font-size:1.1rem;cursor:grab;padding:4px 6px;touch-action:none">⠿</div>
@@ -12490,8 +12509,8 @@ function _ryCardHTML(r, level, hasChildren, collapsed) {
     <div style="flex:1;min-width:0"><div class="ry-nom">${r.nom}</div></div>
     <div class="ry-actions">
       ${collapseBtn}
-      <button class="ry-btn" onclick="event.stopPropagation();_ryOpenModal(${r.id})">✏️</button>
-      <button class="ry-btn" onclick="event.stopPropagation();_ryConfirmDelete(${r.id})">🗑</button>
+      <button class="ry-btn" onclick="event.stopPropagation();_ryOpenModal(${r.id})" aria-label="Modifier">${ico('edit','icon-sm')}</button>
+      <button class="ry-btn" onclick="event.stopPropagation();_ryConfirmDelete(${r.id})" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
     </div>
   </div>`;
 }
@@ -12758,7 +12777,7 @@ async function _rySetParent(childId, parentId) {
       body: JSON.stringify({ parent_id: parentId })
     });
     if (!r.ok) { const d = await r.json(); showToast(d.error || 'Erreur', 'err'); return; }
-    showToast('Lien créé ✓', 'ok');
+    showToast('Lien créé', 'ok');
     await _ryLoad();
   } catch(_) { showToast('Erreur réseau', 'err'); }
 }
@@ -12832,7 +12851,7 @@ function _ryUpdateImgPreview() {
     preview.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
     btn.style.display = 'block';
   } else {
-    preview.innerHTML = '📦';
+    preview.innerHTML = ico('package','icon-lg');
     btn.style.display = 'none';
   }
 }
@@ -12856,7 +12875,7 @@ async function _rySave() {
     } else if (!_ryImg && !_ryImgUrl && rayonId && _ryEditId) {
       await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({icone: null}) });
     }
-    showToast(_ryEditId ? 'Rayon modifié ✓' : 'Rayon créé ✓', 'ok');
+    showToast(_ryEditId ? 'Rayon modifié' : 'Rayon créé', 'ok');
     _ryCloseModal();
     await _ryLoad();
   } catch(e) { showToast('Erreur enregistrement', 'err'); }
@@ -12866,7 +12885,7 @@ async function _ryDissocier() {
   if (!_ryEditId) return;
   try {
     await fetch(`/api/rayons/${_ryEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({parent_id: null}) });
-    showToast('Dissocié ✓', 'ok');
+    showToast('Dissocié', 'ok');
     _ryCloseModal();
     await _ryLoad();
   } catch(e) { showToast('Erreur', 'err'); }
@@ -12964,7 +12983,7 @@ async function _ryImportCarrefour() {
     });
     const d = await r.json();
     if (!r.ok) { showToast(d.error || 'Erreur import', 'err'); return; }
-    showToast(`${d.imported} rayons importés ✓`, 'ok');
+    showToast(`${d.imported} rayons importés`, 'ok');
     await _ryLoad();
   } catch(e) { showToast('Erreur réseau', 'err'); }
 }
@@ -12980,7 +12999,7 @@ const _mchRayExpanded = new Set(); // clés "marchandId:rayonId" des groupes de 
 async function _mchLoad() {
   if (_mchLoading) return;
   _mchLoading = true;
-  document.getElementById('mch-content').innerHTML = '<div class="mch-empty"><div class="mch-empty-ico">⏳</div><div class="mch-empty-txt">Chargement…</div></div>';
+  document.getElementById('mch-content').innerHTML = `<div class="mch-empty"><div class="mch-empty-ico">${ico('wait','icon-lg')}</div><div class="mch-empty-txt">Chargement…</div></div>`;
   try {
     const r = await fetch('/api/marchands');
     if (!r.ok) throw new Error(await r.text());
@@ -12988,7 +13007,7 @@ async function _mchLoad() {
     _mchRender();
   } catch(e) {
     showToast('Erreur chargement marchands', 'err');
-    document.getElementById('mch-content').innerHTML = '<div class="mch-empty"><div class="mch-empty-ico">⚠️</div><div class="mch-empty-txt">Erreur de chargement</div></div>';
+    document.getElementById('mch-content').innerHTML = `<div class="mch-empty"><div class="mch-empty-ico">${ico('alert','icon-lg')}</div><div class="mch-empty-txt">Erreur de chargement</div></div>`;
   } finally {
     _mchLoading = false;
   }
@@ -12997,7 +13016,7 @@ async function _mchLoad() {
 function _mchRender() {
   const container = document.getElementById('mch-content');
   if (!_mchData.length) {
-    container.innerHTML = `<div class="mch-empty"><div class="mch-empty-ico">🏪</div><div class="mch-empty-txt">Aucun marchand<br><span style="font-weight:400;font-size:.82rem">Appuie sur "+" pour commencer</span></div></div>`;
+    container.innerHTML = `<div class="mch-empty"><div class="mch-empty-ico"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-shop"></use></svg></div><div class="mch-empty-txt">Aucun marchand<br><span style="font-weight:400;font-size:.82rem">Appuie sur "+" pour commencer</span></div></div>`;
     return;
   }
   container.innerHTML = _mchData.map(m => _mchRenderMarchand(m)).join('');
@@ -13021,12 +13040,12 @@ function _mchRenderMarchand(m) {
         <div class="mch-sub">${nb} rayon${nb>1?'s':''}</div>
       </div>
       <div class="mch-actions">
-        <button class="mch-btn" onclick="_mchOpenModalMarchand(${m.id})">✏️</button>
-        <button class="mch-btn" onclick="_mchConfirmDeleteMarchand(${m.id})">🗑</button>
+        <button class="mch-btn" onclick="_mchOpenModalMarchand(${m.id})" aria-label="Modifier">${ico('edit','icon-sm')}</button>
+        <button class="mch-btn" onclick="_mchConfirmDeleteMarchand(${m.id})" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
       </div>
     </div>
     <div class="mch-rayons-section">
-      <div class="mch-rayons-label"><span>Ordre de parcours</span><span>↕ glisser pour réordonner</span></div>
+      <div class="mch-rayons-label"><span>Ordre de parcours</span><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-drag"></use></svg> glisser pour réordonner</span></div>
       <div class="mch-rayon-list" id="mch-rayon-list-${m.id}">${rayonsHTML}</div>
     </div>
   </div>`;
@@ -13036,7 +13055,7 @@ function _mchRenderRayonGroup(mId, p, children) {
   const hasKids = children.length > 0;
   const expanded = hasKids && _mchRayExpanded.has(`${mId}:${p.id}`);
   const extra = hasKids
-    ? `<button class="mch-rayon-toggle" onclick="event.stopPropagation();_mchToggleRayonGroup(${mId},${p.id})">${expanded ? '▾' : '▸'}</button>
+    ? `<button class="mch-rayon-toggle" onclick="event.stopPropagation();_mchToggleRayonGroup(${mId},${p.id})">${expanded ? ico('chevron-down','icon-sm') : ico('chevron-right','icon-sm')}</button>
        <span class="mch-rayon-count">${children.length}</span>`
     : '';
   const childrenHTML = hasKids
@@ -13127,7 +13146,7 @@ function _mchUpdateImagePreview() {
     preview.innerHTML = `<img src="${_mchCurrentImage}" alt="aperçu">`;
     removeBtn.style.display = 'block';
   } else {
-    preview.innerHTML = '🏪';
+    preview.innerHTML = ico('shop','icon-lg');
     removeBtn.style.display = 'none';
   }
 }
@@ -13163,7 +13182,7 @@ function _mchRayUpdateImagePreview() {
     preview.innerHTML = `<img src="${src}" alt="aperçu" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
     removeBtn.style.display = 'block';
   } else {
-    preview.innerHTML = '📦';
+    preview.innerHTML = ico('package','icon-lg');
     removeBtn.style.display = 'none';
   }
 }
@@ -13274,7 +13293,7 @@ async function _mchSaveRayon() {
       // Image supprimée → effacer icone en BDD
       await fetch(`/api/rayons/${rayonId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({icone:null}) });
     }
-    showToast(_mchEditRayonId ? 'Rayon modifié ✓' : 'Rayon ajouté ✓', 'ok');
+    showToast(_mchEditRayonId ? 'Rayon modifié' : 'Rayon ajouté', 'ok');
     _mchCloseModalRayon();
     await _mchLoad();
   } catch(e) { showToast('Erreur lors de l\'enregistrement', 'err'); }
@@ -13459,11 +13478,11 @@ async function _mchCommitOrder(mId, list) {
 (function(){
 const SGC_DAYS  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const SGC_MEALS = [
-  { id:'p', label:'🌅 Petit-déj' },
-  { id:'d', label:'☀️ Déjeuner' },
-  { id:'n', label:'🌙 Dîner' },
-  { id:'g', label:'🍪 Goûter' },
-  { id:'a', label:'📌 Autre' },
+  { id:'p', label:'Petit-déj', ico:'breakfast' },
+  { id:'d', label:'Déjeuner',  ico:'lunch' },
+  { id:'n', label:'Dîner',     ico:'dinner' },
+  { id:'g', label:'Goûter',    ico:'snack' },
+  { id:'a', label:'Autre',     ico:'other' },
 ];
 const SGC_ALL_DAYS  = [0,1,2,3,4,5,6];
 const SGC_ALL_MEALS = SGC_MEALS.map(m=>m.id);
@@ -13501,7 +13520,7 @@ function _sgcRender() {
   if (!el) return;
   let html = '';
   if (!_sgcRules.length) {
-    html = `<div class="sgc-empty"><div class="e">🎲</div><p>Aucune règle — suggestions entièrement aléatoires.</p></div>`;
+    html = `<div class="sgc-empty"><div class="e">${ico('random','icon-lg')}</div><p>Aucune règle — suggestions entièrement aléatoires.</p></div>`;
   } else {
     _sgcRules.forEach((rule,idx) => { html += _sgcRuleHtml(rule,idx); });
   }
@@ -13518,7 +13537,7 @@ function _sgcRuleHtml(rule, idx) {
   const mLabel  = (rule.meals||[]).length === SGC_ALL_MEALS.length ? 'Tous les repas' : (rule.meals||[]).map(id=>SGC_MEALS.find(m=>m.id===id)?.label||id).join(', ')||'Aucun repas';
 
   const daysHtml  = SGC_DAYS.map((d,i)=>`<button class="sgc-chip${(rule.days||[]).includes(i)?' on':''}" onclick="_sgcToggleDay(${idx},${i})">${d}</button>`).join('');
-  const mealsHtml = SGC_MEALS.map(m=>`<button class="sgc-chip${(rule.meals||[]).includes(m.id)?' on':''}" onclick="_sgcToggleMeal(${idx},'${m.id}')">${m.label}</button>`).join('');
+  const mealsHtml = SGC_MEALS.map(m=>`<button class="sgc-chip${(rule.meals||[]).includes(m.id)?' on':''}" onclick="_sgcToggleMeal(${idx},'${m.id}')">${ico(m.ico,'icon-sm')} ${m.label}</button>`).join('');
 
   const condsHtml = (rule.conditions||[]).length
     ? (rule.conditions||[]).map((c,ci)=>{
@@ -13535,7 +13554,7 @@ function _sgcRuleHtml(rule, idx) {
             valEl=`<input type="number" class="sgc-val days" min="1" max="365" value="${c.val||7}" onchange="_sgcSetCondVal(${idx},${ci},this.value)"><span style="font-size:.82rem;color:var(--text2);white-space:nowrap">jours</span>`;
           }
         }
-        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel" onclick="_sgcDelCond(${idx},${ci})">✕</button></div>`;
+        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel" onclick="_sgcDelCond(${idx},${ci})" aria-label="Retirer">${ico('close','icon-sm')}</button></div>`;
       }).join('')
     : `<div style="color:var(--text2);font-size:.85rem;padding:4px 0">Aucune condition.</div>`;
 
@@ -13546,8 +13565,8 @@ function _sgcRuleHtml(rule, idx) {
         <input class="sgc-name" value="${(rule.name||'').replace(/"/g,'&quot;')}" placeholder="Nom de la règle" onchange="_sgcUpdateName(${idx},this.value)">
         <div class="sgc-subtitle">${dLabel} · ${mLabel}</div>
       </div>
-      <button class="sgc-del" onclick="event.stopPropagation();_sgcDelRule(${idx})">✕</button>
-      <span class="sgc-chevron${isOpen?' open':''}">▼</span>
+      <button class="sgc-del" onclick="event.stopPropagation();_sgcDelRule(${idx})" aria-label="Supprimer la règle">${ico('close','icon-sm')}</button>
+      <span class="sgc-chevron${isOpen?' open':''}">${ico('chevron-down','icon-sm')}</span>
     </div>
     <div class="sgc-body${isOpen?'':' hidden'}">
       <div><div class="sgc-label">Jours applicables</div><div class="sgc-chips">${daysHtml}</div></div>
@@ -13576,7 +13595,7 @@ window._sgcSetCondVal   = function(idx,ci,v) { _sgcRules[idx].conditions[ci].val
 window._sgcSave         = async function() {
   try {
     await fetch('/api/suggestion-rules',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(_sgcRules)});
-    showToast('Règles enregistrées ✓','ok');
+    showToast('Règles enregistrées','ok');
   } catch(_) { showToast('Erreur lors de l\'enregistrement','err'); }
 };
 })();
@@ -13587,7 +13606,7 @@ let _bkPendingImport = null;
 window.bkExport = async function() {
   const btn = document.getElementById('bk-export-btn');
   const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Préparation…';
+  btn.disabled = true; btn.innerHTML = ico('wait', 'icon-sm') + ' Préparation…';
   try {
     const res = await fetch('/api/backup/export');
     if (!res.ok) throw new Error('export failed');
@@ -13600,7 +13619,7 @@ window.bkExport = async function() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showToast('Sauvegarde téléchargée ✓', 'ok');
+    showToast('Sauvegarde téléchargée', 'ok');
   } catch(e) {
     showToast('Erreur lors de l\'export', 'err');
   } finally {
@@ -13658,7 +13677,7 @@ window.bkImport = async function() {
   if (mode === 'merge' && !confirm('Ajouter les données du fichier à celles déjà présentes, sans rien effacer ?')) return;
   const btn = document.getElementById('bk-import-btn');
   const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Import des données…';
+  btn.disabled = true; btn.innerHTML = ico('wait', 'icon-sm') + ' Import des données…';
   try {
     const res = await fetch('/api/backup/import', {
       method: 'POST',
@@ -13673,7 +13692,7 @@ window.bkImport = async function() {
     let photosRestored = 0, photosFailed = 0;
     const chunks = _bkChunkPhotos(_bkPendingImport.photos);
     for (let i = 0; i < chunks.length; i++) {
-      btn.textContent = `⏳ Photos ${i + 1}/${chunks.length}…`;
+      btn.innerHTML = ico('wait', 'icon-sm') + ` Photos ${i + 1}/${chunks.length}…`;
       try {
         const pr = await fetch('/api/backup/import-photos', {
           method: 'POST',
@@ -13687,10 +13706,10 @@ window.bkImport = async function() {
 
     const r = document.getElementById('bk-result');
     r.style.display = 'block';
-    r.innerHTML = `✓ Import terminé — ${total} élément(s) importé(s), ${photosRestored} photo(s) restaurée(s)` +
+    r.innerHTML = `Import terminé — ${total} élément(s) importé(s), ${photosRestored} photo(s) restaurée(s)` +
       (photosFailed ? `, ${photosFailed} photo(s) en échec` : '') +
       `.<br>Rechargement de l'application…`;
-    showToast('Import réussi ✓', 'ok');
+    showToast('Import réussi', 'ok');
     setTimeout(() => location.reload(), 1500);
   } catch(e) {
     showToast('Erreur : ' + e.message, 'err');

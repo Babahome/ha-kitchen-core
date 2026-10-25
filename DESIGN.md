@@ -94,7 +94,10 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 - Intégration : sprite SVG en haut du body (`symbol id="i-delete"`…), utilisé via `svg class="icon"` + `use href="#i-delete"`. Pas de CDN : l'appli doit marcher hors ligne.
 - **Identifiants par le sens, pas par le nom de l'icône** : `i-delete` et non `i-delete-outline`, pour pouvoir changer d'icône sans toucher aux appels. Le sprite est généré depuis le paquet `@mdi/svg` et n'embarque **que** les icônes utilisées.
 - **Ce qui n'est pas une icône** : un emoji choisi par l'utilisateur (icône d'un ingrédient, emoji d'un repas, d'un rayon, d'un marchand, d'une zone de stockage créée à la main) est une **donnée** et reste tel quel. Seules les valeurs par défaut livrées avec l'app peuvent devenir des icônes.
-- **Limite du HTML** : une `<option>` de `<select>` n'accepte pas de SVG. L'emoji y reste.
+- **Limites où l'emoji reste**, et ce ne sont pas des oublis : une `<option>` de `<select>` n'accepte pas de SVG ; un `confirm()` natif et un texte copié dans le presse-papier non plus. Dans ces trois cas, on écrit du texte, pas du balisage.
+- **Un emoji à l'intérieur d'une chaîne de libellé ne se remplace pas : il se supprime.** Le texte à côté porte déjà l'information, et faire transiter du HTML dans une variable texte est fragile.
+- **Le HTML statique ne suffit pas** quand du JS redessine l'élément : `textContent` effacerait l'icône. Chercher les écritures à l'exécution (`textContent`, `innerText`) sur chaque page.
+- **`${ico(...)}` exige un gabarit** (backticks). Dans une chaîne à apostrophes, il s'affiche tel quel — ou casse la syntaxe.
 - Style : `.icon { width: var(--icon-md); height: var(--icon-md); fill: currentColor; flex-shrink: 0; }`. La couleur vient du texte parent.
 - Une action = une icône, partout.
 
