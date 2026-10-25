@@ -92,6 +92,7 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 - Aucun emoji dans l'interface : ni boutons, ni titres, ni onglets, ni états vides.
 - Jeu unique : Material Design Icons (mdi), le même que Home Assistant.
 - Intégration : sprite SVG en haut du body (`symbol id="i-delete"`…), utilisé via `svg class="icon"` + `use href="#i-delete"`. Pas de CDN : l'appli doit marcher hors ligne.
+- **Un seul jeu, vraiment** : aucune icône n'est tracée à la main à côté du sprite. Un SVG écrit directement dans le balisage est un second jeu d'icônes qui dérive — c'est ainsi que le scan s'est retrouvé avec trois dessins différents.
 - **Identifiants par le sens, pas par le nom de l'icône** : `i-delete` et non `i-delete-outline`, pour pouvoir changer d'icône sans toucher aux appels. Le sprite est généré depuis le paquet `@mdi/svg` et n'embarque **que** les icônes utilisées.
 - **Ce qui n'est pas une icône** : un emoji choisi par l'utilisateur (icône d'un ingrédient, emoji d'un repas, d'un rayon, d'un marchand, d'une zone de stockage créée à la main) est une **donnée** et reste tel quel. Seules les valeurs par défaut livrées avec l'app peuvent devenir des icônes.
 - **Limites où l'emoji reste**, et ce ne sont pas des oublis : une `<option>` de `<select>` n'accepte pas de SVG ; un `confirm()` natif et un texte copié dans le presse-papier non plus. Dans ces trois cas, on écrit du texte, pas du balisage.
@@ -113,6 +114,7 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 | Filtrer | filter-variant |
 | Plus d'options | dots-vertical |
 | Favori off / on | heart-outline / heart |
+| Toujours en cuisine | home-heart |
 | Scanner | barcode-scan |
 | Photo | camera-outline |
 | Avertissement | alert-outline |
@@ -128,7 +130,7 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 | Changer de caméra | camera-flip-outline |
 | Zones de stockage | archive-outline |
 
-Spécifique KitchenCore : `package-variant` (stock), `cart-outline` (courses), `silverware-fork-knife` (recettes), `calendar-month-outline` (menu), `fridge-outline`, `snowflake` (congélateur), `cupboard-outline`.
+Spécifique KitchenCore : `home-outline` (**stock / Cuisine** : c'est le chez-soi, pas un carton), `package-variant` (catalogue produits), `cart-outline` (courses), `silverware-fork-knife` (recettes), `calendar-month-outline` (menu), `fridge-outline`, `snowflake` (congélateur), `cupboard-outline`.
 
 ## 3. Composants
 
@@ -146,6 +148,13 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - Hauteur 44 px, rayon `--r-md`, texte `--fs-md` / `--fw-bold`.
 - Dans une sheet de confirmation : annuler à gauche (ghost), action à droite (primary ou danger).
 
+**Supprimer** — une seule apparence, sur toutes les pages :
+
+- **Dans une liste ou une carte** : `.btn-del`, fond transparent, pas de bordure, icône `delete-outline` en `--icon-md`, couleur `--c-text-3` au repos et `--c-danger` au survol ou à l'appui, `aria-label` « Supprimer ». **Pas de rouge permanent** : sur un écran dense, une action qui crie en rouge alors qu'elle n'est pas plus fréquente que les autres fatigue la lecture.
+- **Dans une sheet ou un détail** : `.btn .btn--danger` avec un libellé explicite.
+- **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
+- **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
+
 **Bottom sheet** — composant unique `.sheet` pour toutes les modales, choix, confirmations et formulaires. Fond `--c-overlay`, coins hauts `--r-lg`, poignée, fermeture par tap sur l'overlay et swipe bas. Pas de modale centrée sauf exception validée.
 
 **Carte** — `.card` : fond `--c-surface`, rayon `--r-md`, ombre `--shadow-1`, padding `--sp-4`.
@@ -160,6 +169,7 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 
 - Header `--c-primary`, hauteur `--header-h`, titre `--fs-xl` / `--fw-heavy`.
 - Bottom-nav (hauteur `--bottom-h`), 3 à 5 entrées, icône + libellé court.
+- **Couleurs de la bottom-nav** : onglet inactif = icône **et** libellé en `--c-text-3` ; onglet actif = icône et libellé en `--c-primary`, avec une pastille `--c-primary-soft` (rayon `--r-pill`, environ 56 × 32 px) derrière l'icône. **Aucune icône de la bottom-nav n'hérite de `--c-text`** : une barre d'icônes noires se lit comme une barre d'outils, pas comme une navigation.
 - Seul le contenu défile.
 - Respect des safe-areas (`env(safe-area-inset-*)`).
 

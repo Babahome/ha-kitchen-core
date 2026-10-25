@@ -174,6 +174,19 @@
   width: var(--tap); height: var(--tap); transform: translate(-50%, -50%);
 }
 
+.m-bt.btn-del { background: none; color: var(--c-text-3); }
+.m-bt.btn-del:active { color: var(--c-danger); background: none; }
+
+/* Suppression dans une liste ou une carte (BL-204, charte section 3).
+   La meme apparence partout : transparent, gris au repos, rouge a l'appui. */
+.btn-del {
+  display: inline-grid; place-items: center;
+  border: none; background: none; padding: 0;
+  color: var(--c-text-3); cursor: pointer;
+  transition: color .12s;
+}
+.btn-del:hover, .btn-del:active { color: var(--c-danger); }
+
 /* Icones (BL-198) : la couleur vient du texte parent, d'ou currentColor.
    vertical-align:-.15em aligne l'icone sur la ligne de base du texte a cote. */
 .icon {
@@ -262,10 +275,18 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   transition: all .15s; position: relative;
   -webkit-tap-highlight-color: transparent;
 }
-.nav-tab .nav-icon { font-size:var(--fs-xl); transition: transform .2s; }
-.nav-tab .nav-label { font-size:var(--fs-xs); font-weight:var(--fw-bold); color: var(--grey-d); letter-spacing: .02em; }
-.nav-tab.active .nav-icon { transform: scale(1.1); }
-.nav-tab.active .nav-label { color: var(--orange); }
+/* Couleurs de la bottom-nav (BL-203, charte section 4) : rien n'y herite de
+   --c-text. Une barre d'icones noires se lit comme une barre d'outils et non
+   comme une navigation. La pastille derriere l'icone active remplace le
+   simple agrandissement, qui ne se voyait pas. */
+.nav-tab .nav-icon {
+  display: grid; place-items: center;
+  width: 56px; height: 32px; border-radius: var(--r-pill);
+  color: var(--c-text-3); transition: background .2s, color .2s;
+}
+.nav-tab .nav-label { font-size:var(--fs-xs); font-weight:var(--fw-bold); color: var(--c-text-3); letter-spacing: .02em; }
+.nav-tab.active .nav-icon  { background: var(--c-primary-soft); color: var(--c-primary); }
+.nav-tab.active .nav-label { color: var(--c-primary); }
 .nav-badge {
   position: absolute; top: 4px; right: calc(50% - 18px);
   background: var(--orange); color: var(--c-on-primary);
@@ -473,8 +494,10 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 }
 .qty-btn:active { background: var(--orange); border-color: var(--orange); color: var(--c-on-primary); }
 /* Derniere unite : le « − » devient une corbeille (BL-185) */
-.qty-btn-del { color:var(--c-danger); border-color:var(--c-danger); }
-.qty-btn-del:active { background:var(--c-danger); border-color:var(--c-danger); color:var(--c-on-primary); }
+/* La poubelle prend la place du « moins » : elle garde la taille de la
+   rangee mais perd sa bordure et son rouge permanent (BL-204). */
+.qty-btn.btn-del { border-color: transparent; background: none; color: var(--c-text-3); }
+.qty-btn.btn-del:active { color: var(--c-danger); background: none; }
 /* La barre de niveau EST le curseur, et reste toujours visible (BL-185).
    touch-action:pan-y laisse le defilement vertical de la liste passer : seul un
    geste horizontal deplace le curseur. */
@@ -1107,8 +1130,8 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
                 background:var(--c-surface);display:grid;place-items:center;cursor:pointer;
                 font-size:var(--fs-sm);font-weight:var(--fw-bold);color:var(--text2);transition:all .12s;flex-shrink:0; }
 .cl-qbtn:active{ background:var(--orange);border-color:var(--orange);color:var(--c-on-primary); }
-.cl-qbtn.del  { border-color:var(--c-danger-soft);color:var(--c-danger); }
-.cl-qbtn.del:active{ background:var(--c-danger);border-color:var(--c-danger);color:var(--c-on-primary); }
+.cl-qbtn.btn-del { border-color: transparent; background: none; color: var(--c-text-3); }
+.cl-qbtn.btn-del:active { color: var(--c-danger); background: none; border-color: transparent; }
 .cl-qnum      { font-size:var(--fs-sm);font-weight:var(--fw-heavy);min-width:20px;text-align:center;color:var(--text); }
 /* Bouton ••• style recette */
 .cl-more-btn  { width:28px;height:28px;border-radius:50%;border:none;
@@ -2828,12 +2851,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-new" viewBox="0 0 24 24"><path d="M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z"/></symbol>
   <symbol id="i-other" viewBox="0 0 24 24"><path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12M8.8,14L10,12.8V4H14V12.8L15.2,14H8.8Z"/></symbol>
   <symbol id="i-package" viewBox="0 0 24 24"><path d="M2,10.96C1.5,10.68 1.35,10.07 1.63,9.59L3.13,7C3.24,6.8 3.41,6.66 3.6,6.58L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.66,6.72 20.82,6.88 20.91,7.08L22.36,9.6C22.64,10.08 22.47,10.69 22,10.96L21,11.54V16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V10.96C2.7,11.13 2.32,11.14 2,10.96M12,4.15V4.15L12,10.85V10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V12.69L14,15.59C13.67,15.77 13.3,15.76 13,15.6V19.29L19,15.91M13.85,13.36L20.13,9.73L19.55,8.72L13.27,12.35L13.85,13.36Z"/></symbol>
-  <symbol id="i-pantry" viewBox="0 0 24 24"><path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22"/></symbol>
+  <symbol id="i-pantry" viewBox="0 0 24 24"><path d="M2,12L12,3L22,12H19V20H5V12H2M12,18L12.72,17.34C15.3,15 17,13.46 17,11.57C17,10.03 15.79,8.82 14.25,8.82C13.38,8.82 12.55,9.23 12,9.87C11.45,9.23 10.62,8.82 9.75,8.82C8.21,8.82 7,10.03 7,11.57C7,13.46 8.7,15 11.28,17.34L12,18Z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></symbol>
   <symbol id="i-portions" viewBox="0 0 24 24"><path d="M12,5A3.5,3.5 0 0,0 8.5,8.5A3.5,3.5 0 0,0 12,12A3.5,3.5 0 0,0 15.5,8.5A3.5,3.5 0 0,0 12,5M12,7A1.5,1.5 0 0,1 13.5,8.5A1.5,1.5 0 0,1 12,10A1.5,1.5 0 0,1 10.5,8.5A1.5,1.5 0 0,1 12,7M5.5,8A2.5,2.5 0 0,0 3,10.5C3,11.44 3.53,12.25 4.29,12.68C4.65,12.88 5.06,13 5.5,13C5.94,13 6.35,12.88 6.71,12.68C7.08,12.47 7.39,12.17 7.62,11.81C6.89,10.86 6.5,9.7 6.5,8.5C6.5,8.41 6.5,8.31 6.5,8.22C6.2,8.08 5.86,8 5.5,8M18.5,8C18.14,8 17.8,8.08 17.5,8.22C17.5,8.31 17.5,8.41 17.5,8.5C17.5,9.7 17.11,10.86 16.38,11.81C16.5,12 16.63,12.15 16.78,12.3C16.94,12.45 17.1,12.58 17.29,12.68C17.65,12.88 18.06,13 18.5,13C18.94,13 19.35,12.88 19.71,12.68C20.47,12.25 21,11.44 21,10.5A2.5,2.5 0 0,0 18.5,8M12,14C9.66,14 5,15.17 5,17.5V19H19V17.5C19,15.17 14.34,14 12,14M4.71,14.55C2.78,14.78 0,15.76 0,17.5V19H3V17.07C3,16.06 3.69,15.22 4.71,14.55M19.29,14.55C20.31,15.22 21,16.06 21,17.07V19H24V17.5C24,15.76 21.22,14.78 19.29,14.55M12,16C13.53,16 15.24,16.5 16.23,17H7.77C8.76,16.5 10.47,16 12,16Z"/></symbol>
   <symbol id="i-prep" viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></symbol>
   <symbol id="i-random" viewBox="0 0 24 24"><path d="M14 8C13.45 8 13 7.55 13 7S13.45 6 14 6C14.55 6 15 6.45 15 7C15 7.55 14.55 8 14 8M12 12V19H5V12H12M12.78 10H4.22C3.55 10 3 10.55 3 11.22V19.78C3 20.45 3.55 21 4.22 21H12.78C13.45 21 14 20.45 14 19.78V11.22C14 10.55 13.45 10 12.78 10M19.78 3H11.22C10.55 3 10 3.55 10 4.22V8H12V5H19V12H16V14H19.78C20.45 14 21 13.45 21 12.78V4.22C21 3.55 20.45 3 19.78 3M17 8C16.45 8 16 7.55 16 7S16.45 6 17 6C17.55 6 18 6.45 18 7C18 7.55 17.55 8 17 8M17 11C16.45 11 16 10.55 16 10S16.45 9 17 9C17.55 9 18 9.45 18 10C18 10.55 17.55 11 17 11M7 15C6.45 15 6 14.55 6 14S6.45 13 7 13C7.55 13 8 13.45 8 14C8 14.55 7.55 15 7 15M10 18C9.45 18 9 17.55 9 17S9.45 16 10 16C10.55 16 11 16.45 11 17C11 17.55 10.55 18 10 18"/></symbol>
   <symbol id="i-rayon" viewBox="0 0 24 24"><path d="M21.41 11.58L12.41 2.58A2 2 0 0 0 11 2H4A2 2 0 0 0 2 4V11A2 2 0 0 0 2.59 12.42L11.59 21.42A2 2 0 0 0 13 22A2 2 0 0 0 14.41 21.41L21.41 14.41A2 2 0 0 0 22 13A2 2 0 0 0 21.41 11.58M13 20L4 11V4H11L20 13M6.5 5A1.5 1.5 0 1 1 5 6.5A1.5 1.5 0 0 1 6.5 5Z"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></symbol>
   <symbol id="i-season" viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></symbol>
@@ -2844,6 +2868,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-sort" viewBox="0 0 24 24"><path d="M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z"/></symbol>
   <symbol id="i-source" viewBox="0 0 24 24"><path d="M19 1L14 6V17L19 12.5V1M21 5V18.5C19.9 18.15 18.7 18 17.5 18C15.8 18 13.35 18.65 12 19.5V6C10.55 4.9 8.45 4.5 6.5 4.5C4.55 4.5 2.45 4.9 1 6V20.65C1 20.9 1.25 21.15 1.5 21.15C1.6 21.15 1.65 21.1 1.75 21.1C3.1 20.45 5.05 20 6.5 20C8.45 20 10.55 20.4 12 21.5C13.35 20.65 15.8 20 17.5 20C19.15 20 20.85 20.3 22.25 21.05C22.35 21.1 22.4 21.1 22.5 21.1C22.75 21.1 23 20.85 23 20.6V6C22.4 5.55 21.75 5.25 21 5M10 18.41C8.75 18.09 7.5 18 6.5 18C5.44 18 4.18 18.19 3 18.5V7.13C3.91 6.73 5.14 6.5 6.5 6.5C7.86 6.5 9.09 6.73 10 7.13V18.41Z"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></symbol>
+  <symbol id="i-stock" viewBox="0 0 24 24"><path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z"/></symbol>
   <symbol id="i-tags" viewBox="0 0 24 24"><path d="M6.5 10C7.3 10 8 9.3 8 8.5S7.3 7 6.5 7 5 7.7 5 8.5 5.7 10 6.5 10M9 6L16 13L11 18L4 11V6H9M9 4H4C2.9 4 2 4.9 2 6V11C2 11.6 2.2 12.1 2.6 12.4L9.6 19.4C9.9 19.8 10.4 20 11 20S12.1 19.8 12.4 19.4L17.4 14.4C17.8 14 18 13.5 18 13C18 12.4 17.8 11.9 17.4 11.6L10.4 4.6C10.1 4.2 9.6 4 9 4M13.5 5.7L14.5 4.7L21.4 11.6C21.8 12 22 12.5 22 13S21.8 14.1 21.4 14.4L16 19.8L15 18.8L20.7 13L13.5 5.7Z"/></symbol>
   <symbol id="i-timer" viewBox="0 0 24 24"><path d="M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"/></symbol>
@@ -2858,6 +2883,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-zones" viewBox="0 0 24 24"><path d="M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"/></symbol>
 </svg>
 
+<!-- Sprite d'icones Material Design Icons (BL-198, charte section 2).
+     Les traces viennent du paquet @mdi/svg et sont EMBARQUES : l'add-on doit
+     fonctionner sans internet. Seules les icones utilisees sont presentes.
+     L'identifiant dit le SENS (i-delete) et non le nom de l'icone, pour
+     pouvoir changer d'icone sans toucher aux appels. -->
+<svg class="icon" aria-hidden="true"><use href="#i-reset"></use></svg>
+
 <div class="frame" id="app">
 
   <!-- HEADER -->
@@ -2870,8 +2902,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div class="tag-header-actions" id="tag-headerActions">
       <button class="tag-header-btn" id="tag-selectBtn" onclick="tagToggleSelectMode()">Sélectionner</button>
     </div>
-    <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
-    <div class="header-icon" id="ing-sf-header-btn" style="display:none" onclick="ingSfOpen()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg></div>
+    <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
+    <div class="header-icon" id="ing-sf-header-btn" style="display:none" onclick="ingSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
     <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
   </div>
 
@@ -3203,7 +3235,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ctx-item" onclick="exportDetailJson()"><span><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg></span> Exporter (.json)</div>
     </div>
     <div class="p-scroll" id="detail-body"></div>
-    <button class="ev3-save-fab" onclick="openEdit(_currentId)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    <button class="ev3-save-fab" onclick="openEdit(_currentId)"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
   </div>
 
   <!-- Panel édition recette -->
@@ -3215,7 +3247,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
 
     <!-- FAB Enregistrer flottant (position:absolute dans .panel) -->
-    <button class="ev3-save-fab" onclick="saveRecette()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="ev3-save-fab" onclick="saveRecette()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-edit"></use></svg></button>
 
     <div class="ev3-form" id="edit-form">
 
@@ -3357,15 +3389,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- bouton scan-recherche stock -->
-  <div class="st-fab-scan-search" id="st-fab-scan-search" onclick="stockOpenScanSearch()" title="Rechercher par code-barres">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-      <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-      <line x1="3" y1="12" x2="21" y2="12" stroke-width="2.5"/>
-    </svg>
-  </div>
+  <div class="st-fab-scan-search" id="st-fab-scan-search" onclick="stockOpenScanSearch()" title="Rechercher par code-barres" role="button" aria-label="Rechercher par code-barres"><svg class="icon" aria-hidden="true"><use href="#i-barcode"></use></svg></div>
 
   <!-- fab-search stock -->
   <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
@@ -3463,10 +3487,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
     <!-- FABs toujours visibles (hors zone scroll) -->
     <button class="stock-sf-fab-reset" onclick="stockSfReset()" title="Réinitialiser">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <svg class="icon icon-lg" aria-hidden="true"><use href="#i-save"></use></svg>
     </button>
     <button class="stock-sf-fab-apply" onclick="stockSfApply()" title="Appliquer">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <svg class="icon" aria-hidden="true"><use href="#i-reset"></use></svg>
     </button>
   </div>
 
@@ -3528,30 +3552,30 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
     <!-- FABs toujours visibles (hors zone scroll) -->
     <button class="stock-sf-fab-reset" onclick="ingSfReset()" title="Réinitialiser">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <svg class="icon" aria-hidden="true"><use href="#i-reset"></use></svg>
     </button>
     <button class="stock-sf-fab-apply" onclick="ingSfApply()" title="Appliquer">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
     </button>
   </div>
 
   <!-- FAB -->
-  <div class="fab" id="main-fab" onclick="fabAction()"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+  <div class="fab" id="main-fab" onclick="fabAction()" role="button" aria-label="Action principale"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-plus"></use></svg></div>
 
   <!-- FAB speed-dial recettes -->
   <div class="fab-dial-backdrop" id="rv-fab-backdrop" onclick="rvFabDialClose()"></div>
   <div class="fab-dial" id="rv-fab-dial">
     <div class="fab-dial-item" onclick="rvFabImportFile()">
       <span class="fab-dial-label">Importer un fichier JSON</span>
-      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/></svg></button>
+      <button class="fab-dial-btn" aria-label="Importer un fichier JSON"><svg class="icon" aria-hidden="true"><use href="#i-folder"></use></svg></button>
     </div>
     <div class="fab-dial-item" onclick="rvFabPasteJson()">
       <span class="fab-dial-label">Coller un JSON</span>
-      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button>
+      <button class="fab-dial-btn" aria-label="Coller un JSON"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"></use></svg></button>
     </div>
     <div class="fab-dial-item" onclick="rvFabNew()">
       <span class="fab-dial-label">Nouvelle recette</span>
-      <button class="fab-dial-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="fab-dial-btn" aria-label="Nouvelle recette"><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg></button>
     </div>
   </div>
   <input type="file" id="rv-file-input" accept="application/json,.json" style="display:none" onchange="rvHandleImportFile(this)">
@@ -3559,7 +3583,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
     <div class="nav-tab active" data-page="stock" onclick="switchPage(this,'stock','Stock Cuisine')">
-      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></div>
+      <div class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-stock"></use></svg></div>
       <div class="nav-label">Cuisine</div>
     </div>
     <div class="nav-tab" data-page="recettes" onclick="switchPage(this,'recettes','Recettes')">
@@ -3676,7 +3700,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <div class="mch-img-upload-btns">
             <label class="mch-img-btn" for="mch-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="mch-file-input" accept="image/*" onchange="_mchHandleImageUpload(event)" style="display:none">
-            <button class="mch-img-btn remove" id="mch-img-remove" onclick="_mchRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer l'image</button>
+            <button class="mch-img-btn remove" id="mch-img-remove" onclick="_mchRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-delete"></use></svg> Supprimer l'image</button>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
@@ -3715,7 +3739,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <div class="mch-img-upload-btns">
             <label class="mch-img-btn" for="mch-ray-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="mch-ray-file-input" accept="image/*" onchange="_mchRayHandleImageUpload(event)" style="display:none">
-            <button class="mch-img-btn remove" id="mch-ray-img-remove" onclick="_mchRayRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer l'image</button>
+            <button class="mch-img-btn remove" id="mch-ray-img-remove" onclick="_mchRayRemoveImage()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-delete"></use></svg> Supprimer l'image</button>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--grey-d);font-weight:600;margin-top:6px">JPG, PNG, WebP · Redimensionné automatiquement à 200×200px</div>
@@ -3742,7 +3766,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <div class="mch-img-upload-btns">
             <label class="mch-img-btn" for="ry-file-input"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-folder"></use></svg> Choisir une image</label>
             <input type="file" id="ry-file-input" accept="image/*" onchange="_ryHandleImg(event)" style="display:none">
-            <button class="mch-img-btn remove" id="ry-img-remove" onclick="_ryRemoveImg()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Supprimer</button>
+            <button class="mch-img-btn remove" id="ry-img-remove" onclick="_ryRemoveImg()" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-delete"></use></svg> Supprimer</button>
           </div>
         </div>
       </div>
@@ -3931,7 +3955,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="ing-panel-recipes" id="ing-detailRecipes"></div>
       </div>
     </div>
-    <button class="panel-save-fab" onclick="ingOpenEditFromDetail()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    <button class="panel-save-fab" onclick="ingOpenEditFromDetail()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-edit"></use></svg></button>
   </div>
 
   <!-- EDIT PANEL -->
@@ -4014,7 +4038,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
       <button class="ing-panel-btn-del" onclick="ingDeleteIngredient()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-delete"></use></svg> Supprimer cet ingrédient</button>
     </div>
-    <button class="panel-save-fab" onclick="ingSaveIngredient()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="panel-save-fab" onclick="ingSaveIngredient()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-save"></use></svg></button>
   </div>
 
   <!-- MERGE SHEET -->
@@ -4227,7 +4251,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="ing-panel-value" id="stock-detailBarcode"></div>
       </div>
     </div>
-    <button class="fab panel-save-fab" onclick="stockOpenEditFromDetail()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    <button class="fab panel-save-fab" onclick="stockOpenEditFromDetail()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-edit"></use></svg></button>
   </div>
   <!-- ══ /PANEL DÉTAIL PRODUIT ══════════════════════════════════════════════ -->
 
@@ -4286,7 +4310,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
       <button class="ing-panel-btn-del" onclick="stockDeleteFromEdit()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-delete"></use></svg> Supprimer ce produit</button>
     </div>
-    <button class="fab prod-save-fab" onclick="stockSaveEdit()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="fab prod-save-fab" onclick="stockSaveEdit()"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-save"></use></svg></button>
   </div>
   <!-- ══ /PANEL ÉDITION PRODUIT ══════════════════════════════════════════════ -->
 
@@ -4498,7 +4522,7 @@ function _stockRender() {
   if (!el) return;
 
   const baseItems = _stockSortItems(_stockFilterItems(_stockItems));
-  const emptyHtml = `<div class="stock-empty"><div class="stock-empty-icon">${ico('package', 'icon-lg')}</div><div class="stock-empty-title">Stock vide</div><div class="stock-empty-hint">Scanne un produit avec le bouton + pour commencer</div></div>`;
+  const emptyHtml = `<div class="stock-empty"><div class="stock-empty-icon">${ico('stock', 'icon-lg')}</div><div class="stock-empty-title">Stock vide</div><div class="stock-empty-hint">Scanne un produit avec le bouton + pour commencer</div></div>`;
 
   // Tri rayon → groupement par rayon
   if (_stockGroupBy === 'rayon') {
@@ -4714,7 +4738,7 @@ function _stockCard(s) {
   const totalMasse = showUnit ? `${_arrondi2(qty * s.contenance)}${s.unite}` : '';
   // Bouton gauche : − pour retirer une unite, corbeille sur la derniere (BL-185)
   const leftBtn = qty <= 1
-    ? `<div class="qty-btn qty-btn-del" onclick="event.stopPropagation();_stockTileRemove(${s.produit_id})" title="Retirer du stock">${_SVG_TILE_TRASH}</div>`
+    ? `<div class="qty-btn btn-del" onclick="event.stopPropagation();_stockTileRemove(${s.produit_id})" aria-label="Retirer du stock" title="Retirer du stock">${_SVG_TILE_TRASH}</div>`
     : `<div class="qty-btn" onclick="event.stopPropagation();stockChangeQty(${s.produit_id},-1,this)">−</div>`;
   return `<div class="prod-card${sel ? ' selected' : ''}" data-id="${s.produit_id}" onclick="_stockOpenDetail(${s.produit_id})" style="position:relative">
     ${cbHtml}
@@ -4776,10 +4800,10 @@ function stockHideMainHdmenu() {
   document.getElementById('stock-main-hdmenu')?.classList.remove('on');
 }
 
-const _SVG_FAB_PLUS = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
-const _SVG_TILE_TRASH = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
-const _SVG_FAB_SCAN = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/></svg>`;
-const _SVG_FAB_CART = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/><line x1="12" y1="13" x2="12" y2="19"/><polyline points="9 16 12 19 15 16"/></svg>`;
+const _SVG_FAB_PLUS = ico('plus', 'icon-lg');
+const _SVG_TILE_TRASH = ico('delete', 'icon-sm');
+const _SVG_FAB_SCAN = ico('barcode', 'icon-lg');
+const _SVG_FAB_CART = ico('cart', 'icon-lg');
 
 function _stockUpdateFab() {
   const n = document.querySelector('.page.active')?.id === 'page-stock' ? _stockSelectedIds.size : 0;
@@ -6921,7 +6945,7 @@ function _renderScanList() {
         <div class="scan-item-sub">${sub}</div>
       </div>
       ${qtyHtml}
-      <span class="scan-item-del" onclick="event.stopPropagation();_scanRemove(${idx})" aria-label="Retirer">${ico('close','icon-sm')}</span>
+      <span class="scan-item-del btn-del" onclick="event.stopPropagation();_scanRemove(${idx})" aria-label="Retirer de la liste">${ico('delete','icon-sm')}</span>
     </div>`;
   }).join('');
 }
@@ -7593,7 +7617,7 @@ function clItemHTML(item) {
     <div class="cl-actions">
       ${badge}
       <div class="cl-qty-ctrl">
-        <button class="cl-qbtn${isDel?' del':''}"
+        <button class="cl-qbtn${isDel?' btn-del':''}"
           onclick="${isDel?`clDel('${item.id}')`:`clQty('${item.id}',-1)`}">${isDel?ico('delete','icon-sm'):ico('minus','icon-sm')}</button>
         <span class="cl-qnum">${qLabel}</span>
         <button class="cl-qbtn" onclick="clQty('${item.id}',1)">+</button>
@@ -9101,7 +9125,7 @@ function renderIngrs() {
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
              </div>`
         }
-        <button class="ev3-row-del" onclick="delIngr(${x})" aria-label="Retirer cette ligne">${ico('close','icon-sm')}</button>
+        <button class="ev3-row-del btn-del" onclick="delIngr(${x})" aria-label="Retirer cet ingrédient">${ico('delete','icon-sm')}</button>
       </div>`;
     }).join('') +
     `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>` +
@@ -9133,7 +9157,7 @@ function renderSteps() {
           <input class="ev3-step-timer-inp" type="number" min="0" placeholder="Timer (secondes)" value="${s.timer||''}" oninput="_eSteps[${x}].timer=+this.value||0">
         </div>
       </div>
-      <button class="ev3-row-del" onclick="delStep(${x})" aria-label="Retirer cette étape">${ico('close','icon-sm')}</button>
+      <button class="ev3-row-del btn-del" onclick="delStep(${x})" aria-label="Retirer cette étape">${ico('delete','icon-sm')}</button>
     </div>
   `).join('');
   ev3BindDrag('e-steps', _eSteps, renderSteps, '.ev3-step-drag');
@@ -9684,7 +9708,7 @@ function mBuild(scrollY){
             <div class="m-bts">
               <button class="m-bt m-bt-cart" data-act="courses" aria-label="Ajouter aux courses">${ico('cart','icon-sm')}</button>
               <button class="m-bt m-bt-edit" data-act="edit" aria-label="Modifier">${ico('edit','icon-sm')}</button>
-              <button class="m-bt m-bt-del" data-act="del" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
+              <button class="m-bt btn-del" data-act="del" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
             </div>
           </div>
           <div class="m-nm">${r.n}</div>
@@ -11524,7 +11548,8 @@ function _ingRenderAliasChips() {
 
     // Bouton supprimer
     const btn = document.createElement('button');
-    btn.innerHTML = ico('close', 'icon-sm');
+    btn.className = 'btn-del';
+    btn.innerHTML = ico('delete', 'icon-sm');
     btn.style.cssText = 'background:none;border:none;color:var(--orange);cursor:pointer;font-size:14px;padding:0;line-height:1';
     btn.onclick = () => _ingRemoveAlias(a.id, a.alias);
     span.appendChild(btn);
@@ -11613,7 +11638,8 @@ function _ingRenderConvRows() {
 
     const x = document.createElement('button');
     x.className = 'ing-conv-x';
-    x.innerHTML = ico('close', 'icon-sm');
+    x.classList.add('btn-del');
+    x.innerHTML = ico('delete', 'icon-sm');
     x.onclick = () => _ingRemoveConversion(c.id, c.unite);
     row.appendChild(x);
 
@@ -13580,7 +13606,7 @@ function _sgcRuleHtml(rule, idx) {
             valEl=`<input type="number" class="sgc-val days" min="1" max="365" value="${c.val||7}" onchange="_sgcSetCondVal(${idx},${ci},this.value)"><span style="font-size:.82rem;color:var(--text2);white-space:nowrap">jours</span>`;
           }
         }
-        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel" onclick="_sgcDelCond(${idx},${ci})" aria-label="Retirer">${ico('close','icon-sm')}</button></div>`;
+        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel btn-del" onclick="_sgcDelCond(${idx},${ci})" aria-label="Retirer cette condition">${ico('delete','icon-sm')}</button></div>`;
       }).join('')
     : `<div style="color:var(--text2);font-size:.85rem;padding:4px 0">Aucune condition.</div>`;
 
@@ -13591,7 +13617,7 @@ function _sgcRuleHtml(rule, idx) {
         <input class="sgc-name" value="${(rule.name||'').replace(/"/g,'&quot;')}" placeholder="Nom de la règle" onchange="_sgcUpdateName(${idx},this.value)">
         <div class="sgc-subtitle">${dLabel} · ${mLabel}</div>
       </div>
-      <button class="sgc-del" onclick="event.stopPropagation();_sgcDelRule(${idx})" aria-label="Supprimer la règle">${ico('close','icon-sm')}</button>
+      <button class="sgc-del btn-del" onclick="event.stopPropagation();_sgcDelRule(${idx})" aria-label="Supprimer la règle">${ico('delete','icon-sm')}</button>
       <span class="sgc-chevron${isOpen?' open':''}">${ico('chevron-down','icon-sm')}</span>
     </div>
     <div class="sgc-body${isOpen?'':' hidden'}">
