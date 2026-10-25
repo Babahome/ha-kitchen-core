@@ -160,6 +160,10 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
 - **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
 
+**Bouton de recherche flottant** — `.search-fab`, un seul pour toute l'appli : au repos un **rond de `--fab-size`** en bas à gauche, au-dessus de la bottom-nav, fond `--c-surface`, bordure 1 px `--c-border`, ombre `--shadow-2`, icône `magnify` en `--icon-md` / `--c-text-2`, **aucun libellé visible**, `aria-label` « Rechercher ». Le FAB d'action reste en bas à droite, même diamètre.
+- À l'ouverture, **le même bouton s'allonge** en pilule pour loger le champ ; ce n'est jamais un second élément qui apparaît. `--r-pill` donne le cercle à 56 px et les bouts arrondis une fois allongé, sans bascule de style.
+- **Aucun `gap` tant qu'il est fermé** : l'écart entre la loupe et le champ se porte sur le champ lui-même. Un `gap` de flex compte aussi pour un enfant de largeur nulle et suffit à transformer le rond en ovale.
+
 **Bottom sheet** — deux classes : `.sheet-overlay` (le voile, `--c-overlay`) et `.sheet` (la feuille : `--c-surface`, coins hauts `--r-lg`, poignée dessinée par le composant, safe-area réservée en bas). Fermée par **tap sur le voile**, **glissement vers le bas** et **Échap**. Pas de modale centrée sauf exception validée.
 - **Le voile accepte `.on` comme `.open`** : les modales existantes utilisaient l'un ou l'autre, et les recabler n'apporterait rien.
 - **Échap et le glissement simulent un clic sur le voile**, ce qui déclenche le gestionnaire que chaque modale porte déjà (`onclick="if(event.target===this)fermer()"`). Une nouvelle feuille hérite donc des trois gestes rien qu'en portant les deux classes et ce `onclick`.
@@ -181,6 +185,7 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - Bottom-nav (hauteur `--bottom-h`), 3 à 5 entrées, icône + libellé court.
 - **Couleurs de la bottom-nav** : onglet inactif = icône **et** libellé en `--c-text-3` ; onglet actif = icône et libellé en `--c-primary`, avec une pastille `--c-primary-soft` (rayon `--r-pill`, environ 56 × 32 px) derrière l'icône. **Aucune icône de la bottom-nav n'hérite de `--c-text`** : une barre d'icônes noires se lit comme une barre d'outils, pas comme une navigation.
 - Seul le contenu défile.
+- **Un conteneur qui défile sous un bouton flottant réserve `--fab-clear` en bas** (hauteur du bouton + sa marge + une respiration). Sans cette marge, la dernière ligne de la liste reste sous le bouton et on ne peut jamais l'atteindre.
 - Respect des safe-areas (`env(safe-area-inset-*)`).
 
 ## 5. Règles UX

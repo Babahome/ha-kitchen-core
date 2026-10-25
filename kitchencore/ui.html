@@ -80,6 +80,11 @@
 
   /* Gabarits */
   --header-h: 60px; --bottom-h: 68px; --tap: 44px;
+  /* Boutons flottants (BL-207) : --fab-size est le diametre du FAB d'action
+     ET du bouton de recherche ; --fab-clear est la marge que doit reserver
+     en bas un conteneur qui defile sous eux, sinon sa derniere ligne reste
+     cachee. */
+  --fab-size: 56px; --fab-clear: calc(var(--fab-size) + var(--sp-4) + var(--sp-4));
   --icon-sm: 18px; --icon-md: 22px; --icon-lg: 28px;
 
   /* ── Alias des anciennes variables ──────────────────────────────────────
@@ -292,6 +297,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .content {
   flex: 1; overflow-y: auto; overflow-x: hidden;
   background: var(--grey-l);
+  /* Les boutons flottants recouvrent le bas du contenu : sans cette marge,
+     la derniere ligne d'une liste reste cachee dessous (BL-207). */
+  padding-bottom: var(--fab-clear);
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
@@ -339,8 +347,8 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 /* ── FAB ───────────────────────────────────────────────────────────────────── */
 .fab {
-  position: absolute; bottom: calc(var(--bottom-h) + 16px); right: 16px;
-  width: 56px; height: 56px; border-radius: 50%;
+  position: absolute; bottom: calc(var(--bottom-h) + var(--sp-4)); right: var(--sp-4);
+  width: var(--fab-size); height: var(--fab-size); border-radius: 50%;
   background: var(--orange); color: var(--c-on-primary);
   display: grid; place-items: center; font-size:var(--fs-2xl);
   box-shadow: var(--shadow-primary);
@@ -754,28 +762,36 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .recette-menu-item:active { background: var(--grey-l); }
 .recette-menu-item span { font-size:var(--fs-md); }
 
-/* FAB secondaire recherche */
-.fab-search {
-  position: absolute; bottom: calc(var(--bottom-h) + 16px); left: 16px;
-  height: 46px; border-radius:var(--r-lg);
-  background: var(--c-surface); color: var(--text2);
-  display: none; align-items: center; gap: 8px;
-  padding: 0 16px 0 12px;
-  box-shadow: 0 4px 16px var(--c-overlay);
+/* Bouton de recherche flottant (BL-207, charte section 3).
+   UN SEUL composant pour les quatre pages. Au repos : un rond de
+   --fab-size avec la seule loupe, AUCUN libelle - celui des Ingredients
+   affichait « Rechercher », d'ou l'ecart. A l'ouverture, le champ passe de
+   0 a sa largeur et le bouton s'allonge de lui-meme : c'est le meme bouton
+   qui grandit. --r-pill donne le cercle a 56 px et les bouts arrondis une
+   fois allonge, sans bascule de style. */
+.search-fab, .fab-search, .cl-fab-search, .st-fab-search, .ing-fab-search {
+  position: absolute; bottom: calc(var(--bottom-h) + var(--sp-4)); left: var(--sp-4);
+  min-width: var(--fab-size); height: var(--fab-size);
+  border-radius: var(--r-pill); padding: 0 var(--sp-4);
+  background: var(--c-surface); color: var(--c-text-2);
+  border: 1px solid var(--c-border); box-shadow: var(--shadow-2);
+  display: none; align-items: center; justify-content: center; gap: 0;
   cursor: pointer; z-index: 20;
-  border: 1px solid var(--grey);
-  font-size:var(--fs-sm); font-weight:var(--fw-regular); font-family: var(--font);
-  transition: all .2s;
+  font-family: var(--font); font-size: var(--fs-sm); font-weight: var(--fw-regular);
 }
-.fab-search.visible { display: flex; }
-.fab-search-input {
+.search-fab.visible, .fab-search.visible, .cl-fab-search.visible,
+.st-fab-search.visible, .ing-fab-search.visible { display: flex; }
+
+.search-fab-input, .fab-search-input, .cl-fab-search-input, .st-fab-search-input {
   background: transparent; border: none; outline: none;
-  color: var(--text); font-family: var(--font); font-size:var(--fs-sm); font-weight:var(--fw-regular);
-  width: 0; transition: width .25s ease;
-  padding: 0;
+  color: var(--c-text); font-family: var(--font);
+  font-size: var(--fs-sm); font-weight: var(--fw-regular);
+  width: 0; padding: 0; transition: width .25s ease;
 }
-.fab-search-input.expanded { width: 160px; }
-.fab-search-input::placeholder { color: var(--grey-d); }
+.search-fab-input.expanded, .fab-search-input.expanded,
+.cl-fab-search-input.expanded, .st-fab-search-input.expanded { width: 160px; margin-left: var(--sp-2); }
+.search-fab-input::placeholder, .fab-search-input::placeholder,
+.cl-fab-search-input::placeholder, .st-fab-search-input::placeholder { color: var(--c-text-3); }
 /* type="search" sur les champs de recherche (BL-23) : on neutralise le style
    natif et la croix d'effacement pour que l'apparence reste identique. */
 .fab-search-input, .cl-fab-search-input, .st-fab-search-input,
@@ -792,6 +808,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   width: 22px; height: 22px; border-radius: 50%; border: none;
   background: var(--grey); color: var(--text2); font-size: 11px;
   cursor: pointer; flex-shrink: 0; line-height: 1; padding: 0;
+  margin-left: var(--sp-2);
 }
 .fab-search-input.expanded    ~ .fab-clear-btn,
 .cl-fab-search-input.expanded ~ .fab-clear-btn,
@@ -1180,40 +1197,17 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-sel-chk   { width:22px;height:22px;border-radius:var(--r-sm);border:2px solid var(--grey);
                 flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer; }
 .cl-sel-chk.on{ background:var(--orange);border-color:var(--orange);color:var(--c-on-primary);font-size:var(--fs-xs);font-weight:var(--fw-heavy); }
-/* fab-search courses */
-.cl-fab-search{ position:absolute;bottom:calc(var(--bottom-h) + 16px);left:16px;
-                height:46px;border-radius:var(--r-lg);background:var(--c-surface);color:var(--text2);
-                display:none;align-items:center;gap:8px;padding:0 16px 0 12px;
-                box-shadow:var(--shadow-1);cursor:pointer;z-index:20;
-                border:1px solid var(--grey);font-size:var(--fs-sm);font-weight:var(--fw-regular);font-family:var(--font); }
-.cl-fab-search.visible{ display:flex; }
-.cl-fab-search-input{ background:transparent;border:none;outline:none;color:var(--text);
-                      font-family:var(--font);font-size:var(--fs-sm);font-weight:var(--fw-regular);
-                      width:0;transition:width .25s ease;padding:0; }
-.cl-fab-search-input.expanded{ width:160px; }
-.cl-fab-search-input::placeholder{ color:var(--grey-d); }
-/* fab-search stock */
-.st-fab-search{ position:absolute;bottom:calc(var(--bottom-h) + 16px);left:16px;
-                height:46px;border-radius:var(--r-lg);background:var(--c-surface);color:var(--text2);
-                display:none;align-items:center;gap:8px;padding:0 16px 0 12px;
-                box-shadow:var(--shadow-1);cursor:pointer;z-index:20;
-                border:1px solid var(--grey);font-size:var(--fs-sm);font-weight:var(--fw-regular);font-family:var(--font); }
-.st-fab-search.visible{ display:flex; }
 .st-fab-search.open{ cursor:text; }
-.st-fab-search-input{ background:transparent;border:none;outline:none;color:var(--text);
-                      font-family:var(--font);font-size:var(--fs-sm);font-weight:var(--fw-regular);
-                      width:0;transition:width .25s ease;padding:0; }
-.st-fab-search-input.expanded{ width:160px; }
-.st-fab-search-input::placeholder{ color:var(--grey-d); }
-/* bouton scan-recherche stock */
-.st-fab-scan-search{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
+/* Le bouton de scan se pose au-dessus du bouton de recherche : sa hauteur
+   plus les deux marges (BL-207, le bouton est passe de 46 a 56 px). */
+.st-fab-scan-search{ position:absolute;bottom:calc(var(--bottom-h) + var(--fab-size) + var(--sp-5));left:16px;
                      width:42px;height:42px;border-radius:50%;background:var(--c-surface);
                      display:none;align-items:center;justify-content:center;
                      box-shadow:var(--shadow-1);cursor:pointer;z-index:20;
                      border:1.5px solid var(--grey); }
 .st-fab-scan-search.visible{ display:flex; }
 /* Suggestions autocomplétion Courses */
-.cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + 70px);left:16px;
+.cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + var(--fab-size) + var(--sp-5));left:16px;
   background:var(--c-surface);border-radius:var(--r-md);box-shadow:var(--shadow-2);
   z-index:21;min-width:220px;max-width:280px;overflow:hidden;
   display:none;flex-direction:column;border:1px solid var(--grey); }
@@ -1458,7 +1452,7 @@ textarea.rv-einput { resize:none;min-height:60px; }
 .detail-ctx { position:absolute;right:14px;top:62px;background:var(--c-surface);border-radius:var(--r-md);border:1px solid var(--grey);z-index:90;min-width:200px;overflow:hidden;box-shadow:var(--shadow-2);display:none; }
 .detail-ctx.open{ display:block; }
 
-.p-scroll   { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch; }
+.p-scroll   { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--fab-clear); }
 .p-scroll::-webkit-scrollbar{ display:none; }
 
 .d-topbar   { display:flex;align-items:center;justify-content:space-between;padding:10px 16px 6px;flex-shrink:0; }
@@ -2078,36 +2072,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   #page-ingredients .empty-state p { font-size: 15px; font-weight:var(--fw-regular); }
   #page-ingredients .empty-state span { font-size: 13px; font-weight:var(--fw-regular); }
 
-  /* ── FAB SEARCH (page ingrédients — préfixé ing-) ── */
-  .ing-fab-search {
-    position: fixed; bottom: calc(var(--bottom-h) + 12px); left: 16px; z-index: 90;
-    background: var(--c-surface); border: none; border-radius:var(--r-lg);
-    box-shadow: var(--shadow-lg);
-    padding: 10px 18px 10px 14px;
-    display: none; align-items: center; gap: 8px;
-    cursor: pointer;
-    transition: left 0.25s cubic-bezier(0.34,1.2,0.64,1),
-                right 0.25s cubic-bezier(0.34,1.2,0.64,1),
-                box-shadow 0.2s, background 0.2s;
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px; font-weight:var(--fw-bold); color: var(--text2);
-  }
-  .ing-fab-search.visible { display: flex; }
-  .ing-fab-search:not(.open):hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
-  .ing-fab-search .icon { font-size: 18px; flex-shrink: 0; }
-  .ing-fab-search.open { cursor: text; }
-
-  /* ── FAB SEARCH EXPANDED ── */
+  /* ── FAB SEARCH (page ingrédients) ──
+     L'apparence vient du composant .search-fab (BL-207). Seule l'ouverture
+     est particuliere : le champ prend toute la largeur, avec un bouton de
+     creation et un bouton de fermeture. */
   .ing-fab-search.open {
-    background: var(--c-surface);
-    left: 16px; right: 16px;
-    padding: 10px 14px;
-    border-radius:var(--r-lg);
-    box-shadow: var(--shadow-2);
-    gap: 8px;
+    left: var(--sp-4); right: var(--sp-4);
+    justify-content: flex-start; gap: var(--sp-2);
+    cursor: text;
   }
   .ing-fab-search.open .icon { color: var(--orange); }
-  .ing-fab-search.open .fab-label { display: none; }
   .ing-fab-search-input {
     display: none; flex: 1; border: none; outline: none;
     font-family: 'Nunito', sans-serif;
@@ -2918,7 +2892,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       </div>
 
       <!-- fab-search courses -->
-      <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()">
+      <div class="cl-fab-search" id="cl-fab-search" onclick="clToggleSearch()" role="button" aria-label="Rechercher">
         <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
         <input class="cl-fab-search-input" id="cl-search-input" type="search" placeholder="Ajouter un article…"
           autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
@@ -3331,7 +3305,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
   </div>
 
-  <div class="fab-search" id="fab-search" onclick="toggleSearch()">
+  <div class="fab-search" id="fab-search" onclick="toggleSearch()" role="button" aria-label="Rechercher">
     <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <input class="fab-search-input" id="search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Rechercher…" onclick="event.stopPropagation()" oninput="searchRecettes(this.value)">
     <button class="fab-clear-btn" onclick="event.stopPropagation();toggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
@@ -3341,7 +3315,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <div class="st-fab-scan-search" id="st-fab-scan-search" onclick="stockOpenScanSearch()" title="Rechercher par code-barres" role="button" aria-label="Rechercher par code-barres"><svg class="icon" aria-hidden="true"><use href="#i-barcode"></use></svg></div>
 
   <!-- fab-search stock -->
-  <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()">
+  <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()" role="button" aria-label="Rechercher">
     <span class="st-fab-search-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
     <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
@@ -3794,9 +3768,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- ══ OVERLAYS PAGE INGRÉDIENTS ═══════════════════════════════════════════ -->
   <!-- FAB SEARCH ingrédients (préfixé ing-) -->
-  <div class="ing-fab-search" id="ing-fabSearch" onclick="ingOpenSearch()">
+  <div class="ing-fab-search" id="ing-fabSearch" onclick="ingOpenSearch()" role="button" aria-label="Rechercher">
     <span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
-    <span class="fab-label">Rechercher</span>
     <input class="ing-fab-search-input" id="ing-searchInput" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Chercher ou créer un ingrédient…" oninput="ingOnSearchInput(this.value)" onkeydown="if(event.key==='Enter')ingCreateFromSearch()">
     <button class="ing-fab-search-add" onclick="ingCreateFromSearch()" title="Créer cet ingrédient">+</button>
     <button class="ing-fab-search-close" onclick="ingCloseSearch(event)" aria-label="Fermer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
