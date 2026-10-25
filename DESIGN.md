@@ -176,6 +176,8 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 ## 4. Structure d'écran
 
 - Header `--c-primary`, hauteur `--header-h`, titre `--fs-xl` / `--fw-heavy`.
+- **Actions du header** : burger à gauche, tri / recherche / trois points à droite. Toutes sont le même bouton `.header-icon` — 44 × 44 px (`--tap`), rond, fond transparent, **icône du sprite en `--icon-md`**, couleur `--c-on-primary`, `aria-label` explicite. **Rien n'est dessiné à la main et rien n'est un caractère typographique** : un burger en trois `<span>` et un « ⋮ » rendu par la police n'ont aucune taille commune, c'est exactement ce qui les faisait paraître différents.
+- **« Plus d'options », c'est `dots-vertical`, partout** — header, panneau, ligne de liste, carte. Jamais « ⋮ » ni « ••• » écrits en texte, ni la version horizontale de l'icône.
 - Bottom-nav (hauteur `--bottom-h`), 3 à 5 entrées, icône + libellé court.
 - **Couleurs de la bottom-nav** : onglet inactif = icône **et** libellé en `--c-text-3` ; onglet actif = icône et libellé en `--c-primary`, avec une pastille `--c-primary-soft` (rayon `--r-pill`, environ 56 × 32 px) derrière l'icône. **Aucune icône de la bottom-nav n'hérite de `--c-text`** : une barre d'icônes noires se lit comme une barre d'outils, pas comme une navigation.
 - Seul le contenu défile.

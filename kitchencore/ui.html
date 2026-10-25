@@ -274,20 +274,17 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   position: relative;
   z-index: 10;
 }
-.header-burger {
-  width: 40px; height: 40px;
-  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
-  cursor: pointer; border-radius:var(--r-md);
-  transition: background .15s;
-  flex-shrink: 0;
-}
-.header-burger:active { background: var(--c-scrim-light-soft); }
-.header-burger span { display: block; width: 22px; height: 2.5px; background: var(--c-surface); border-radius:var(--r-pill); }
 .header-title { font-size:var(--fs-xl); font-weight:var(--fw-heavy); color: var(--c-on-primary); flex: 1; }
+/* Actions du header (BL-209, charte section 4) : burger a gauche, tri et
+   trois points a droite — toutes le MEME bouton, 44x44 (--tap), icone du
+   sprite en --icon-md, couleur --c-on-primary. Le burger etait dessine en
+   CSS et les trois points etaient le caractere « ⋮ » : deux dessins, deux
+   tailles, d'ou l'ecart visible. */
 .header-icon {
-  width: 40px; height: 40px; display: grid; place-items: center;
-  cursor: pointer; border-radius:var(--r-md); transition: background .15s;
-  color: var(--c-on-primary); font-size:var(--fs-xl);
+  width: var(--tap); height: var(--tap); display: grid; place-items: center;
+  cursor: pointer; border-radius: 50%; transition: background .15s;
+  color: var(--c-on-primary); flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 .header-icon:active { background: var(--c-scrim-light-soft); }
 
@@ -2848,9 +2845,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-burger" onclick="toggleDrawer()">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="header-icon" onclick="toggleDrawer()" role="button" aria-label="Menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg></div>
     <div class="header-title" id="header-title">Stock Cuisine</div>
     <div class="btn-tod" id="btn-tod" onclick="mToday()"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-today"></use></svg> Aujourd'hui</div>
     <div class="tag-header-actions" id="tag-headerActions">
@@ -2858,7 +2853,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
     <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
     <div class="header-icon" id="ing-sf-header-btn" style="display:none" onclick="ingSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
-    <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()">⋮</div>
+    <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()" role="button" aria-label="Plus d'options"><svg class="icon" aria-hidden="true"><use href="#i-more"></use></svg></div>
   </div>
 
   <!-- CONTENT -->
@@ -3179,7 +3174,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <div class="panel-head">
       <button class="p-back" onclick="closeDetail()" aria-label="Retour"><svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg></button>
       <div class="p-title" id="detail-title"></div>
-      <button class="p-more-btn" onclick="detailMenuToggle(event)">⋮</button>
+      <button class="p-more-btn" onclick="detailMenuToggle(event)" aria-label="Plus d'options"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-more"></use></svg></button>
     </div>
     <div class="detail-ctx" id="detail-ctx">
       <div class="ctx-item" id="ctx-cook" onclick="cookModeToggle();detailMenuClose()"><span><svg class="icon" aria-hidden="true"><use href="#i-cookmode"></use></svg></span> <span id="ctx-cook-lbl">Mode cuisine</span></div>
@@ -7576,7 +7571,7 @@ function clItemHTML(item) {
         <span class="cl-qnum">${qLabel}</span>
         <button class="cl-qbtn" onclick="clQty('${item.id}',1)">+</button>
       </div>
-      <div class="cl-more-btn" onclick="clOpenCtx(event,'${item.id}')">•••</div>
+      <div class="cl-more-btn" onclick="clOpenCtx(event,'${item.id}')" role="button" aria-label="Plus d'options">${ico('more','icon-sm')}</div>
     </div>
   </div>`;
 }
@@ -8488,7 +8483,7 @@ function renderList() {
         <div class="rcard-foot">
           <div class="rcard-stars">${[1,2,3,4,5].map(i=>`<span class="rstar${i<=(r.note||0)?' on':''}">${ico('star','icon-sm')}</span>`).join('')}</div>
           <span class="rcard-fav${r.favori?' on':''}">${ico(r.favori?'fav-on':'fav','icon-sm')}</span>
-          <div class="rcard-more" onclick="openCtx(event,'${r.id}')">•••</div>
+          <div class="rcard-more" onclick="openCtx(event,'${r.id}')" role="button" aria-label="Plus d'options">${ico('more','icon-sm')}</div>
         </div>
       </div>
     </div>`;
