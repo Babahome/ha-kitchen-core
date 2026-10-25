@@ -92,6 +92,9 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 - Aucun emoji dans l'interface : ni boutons, ni titres, ni onglets, ni états vides.
 - Jeu unique : Material Design Icons (mdi), le même que Home Assistant.
 - Intégration : sprite SVG en haut du body (`symbol id="i-delete"`…), utilisé via `svg class="icon"` + `use href="#i-delete"`. Pas de CDN : l'appli doit marcher hors ligne.
+- **Identifiants par le sens, pas par le nom de l'icône** : `i-delete` et non `i-delete-outline`, pour pouvoir changer d'icône sans toucher aux appels. Le sprite est généré depuis le paquet `@mdi/svg` et n'embarque **que** les icônes utilisées.
+- **Ce qui n'est pas une icône** : un emoji choisi par l'utilisateur (icône d'un ingrédient, emoji d'un repas, d'un rayon, d'un marchand, d'une zone de stockage créée à la main) est une **donnée** et reste tel quel. Seules les valeurs par défaut livrées avec l'app peuvent devenir des icônes.
+- **Limite du HTML** : une `<option>` de `<select>` n'accepte pas de SVG. L'emoji y reste.
 - Style : `.icon { width: var(--icon-md); height: var(--icon-md); fill: currentColor; flex-shrink: 0; }`. La couleur vient du texte parent.
 - Une action = une icône, partout.
 
@@ -111,6 +114,16 @@ Journal des ajouts : les trois `--c-meal-*` ont été ajoutés pendant l'étape 
 | Photo | camera-outline |
 | Avertissement | alert-outline |
 | Menu | menu |
+| Retour | arrow-left |
+| Enregistrer | content-save |
+| Retirer / moins | minus |
+| Lier à un élément | link-variant |
+| Pastille d'état | circle |
+| Image | image-outline |
+| Indéterminé | help-circle-outline |
+| Lampe du scanner | flashlight |
+| Changer de caméra | camera-flip-outline |
+| Zones de stockage | archive-outline |
 
 Spécifique KitchenCore : `package-variant` (stock), `cart-outline` (courses), `silverware-fork-knife` (recettes), `calendar-month-outline` (menu), `fridge-outline`, `snowflake` (congélateur), `cupboard-outline`.
 

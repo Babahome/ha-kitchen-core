@@ -122,6 +122,22 @@
   }
 }
 
+/* Pastille d'etat d'expiration (BL-198) : une seule icone, trois couleurs.
+   Le libelle a cote porte deja l'information, la couleur n'est qu'un rappel. */
+.sf-dot--expired { color: var(--c-danger); }
+.sf-dot--soon    { color: var(--c-warning); }
+.sf-dot--ok      { color: var(--c-success); }
+
+/* Icones (BL-198) : la couleur vient du texte parent, d'ou currentColor.
+   vertical-align:-.15em aligne l'icone sur la ligne de base du texte a cote. */
+.icon {
+  width: var(--icon-md); height: var(--icon-md);
+  fill: currentColor; flex-shrink: 0;
+  vertical-align: -.15em;
+}
+.icon-sm { width: var(--icon-sm); height: var(--icon-sm); }
+.icon-lg { width: var(--icon-lg); height: var(--icon-lg); }
+
 /* ── RESET ─────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; background: var(--white); }
@@ -2732,6 +2748,43 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 </head>
 <body>
 
+<!-- Sprite d'icones Material Design Icons (BL-198, charte section 2).
+     Les traces viennent du paquet @mdi/svg et sont EMBARQUES : l'add-on doit
+     fonctionner sans internet. Seules les icones utilisees sont presentes.
+     L'identifiant dit le SENS (i-delete) et non le nom de l'icone, pour
+     pouvoir changer d'icone sans toucher aux appels. -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></symbol>
+  <symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4,6H6V18H4V6M7,6H8V18H7V6M9,6H12V18H9V6M13,6H14V18H13V6M16,6H18V18H16V6M19,6H20V18H19V6M2,4V8H0V4A2,2 0 0,1 2,2H6V4H2M22,2A2,2 0 0,1 24,4V8H22V4H18V2H22M2,16V20H6V22H2A2,2 0 0,1 0,20V16H2M22,20V16H24V20A2,2 0 0,1 22,22H18V20H22Z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M20,4H16.83L15,2H9L7.17,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4M20,18H4V6H8.05L9.88,4H14.12L15.95,6H20V18M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15Z"/></symbol>
+  <symbol id="i-camera-flip" viewBox="0 0 24 24"><path d="M20 5H16.83L15 3H9L7.17 5H4C2.9 5 2 5.9 2 7V19C2 20.11 2.9 21 4 21H20C21.11 21 22 20.11 22 19V7C22 5.9 21.11 5 20 5M20 19H4V7H8.05L9.88 5H14.12L16 7H20V19M5 12H7.1C7.65 9.29 10.29 7.55 13 8.1C13.76 8.25 14.43 8.59 15 9L13.56 10.45C13.11 10.17 12.58 10 12 10C10.74 10 9.6 10.8 9.18 12H11L8 15L5 12M16.91 14C16.36 16.71 13.72 18.45 11 17.9C10.25 17.74 9.58 17.41 9 17L10.44 15.55C10.9 15.83 11.43 16 12 16C13.27 16 14.41 15.2 14.83 14H13L16 11L19 14H16.91Z"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></symbol>
+  <symbol id="i-cook" viewBox="0 0 24 24"><path d="M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z"/></symbol>
+  <symbol id="i-cupboard" viewBox="0 0 24 24"><path d="M7 2C5.9 2 5 2.9 5 4V19C5 20.11 5.9 21 7 21V22H9V21H15V22H17V21C18.11 21 19 20.11 19 19V4C19 2.9 18.11 2 17 2H7M7 4H17V7H7V4M7 9H17V12H7V9M7 14H11V19H7V14M13 14H17V19H13V14M8 15V18H10V15H8M14 15V18H16V15H14Z"/></symbol>
+  <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/></symbol>
+  <symbol id="i-dot" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M6,13H18V11H6M3,6V8H21V6M10,18H14V16H10V18Z"/></symbol>
+  <symbol id="i-freezer" viewBox="0 0 24 24"><path d="M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z"/></symbol>
+  <symbol id="i-fridge" viewBox="0 0 24 24"><path d="M9,21V22H7V21A2,2 0 0,1 5,19V4A2,2 0 0,1 7,2H17A2,2 0 0,1 19,4V19A2,2 0 0,1 17,21V22H15V21H9M7,4V9H17V4H7M7,19H17V11H7V19M8,12H10V15H8V12M8,6H10V8H8V6Z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M2,10.96C1.5,10.68 1.35,10.07 1.63,9.59L3.13,7C3.24,6.8 3.41,6.66 3.6,6.58L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.66,6.72 20.82,6.88 20.91,7.08L22.36,9.6C22.64,10.08 22.47,10.69 22,10.96L21,11.54V16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V10.96C2.7,11.13 2.32,11.14 2,10.96M12,4.15V4.15L12,10.85V10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V12.69L14,15.59C13.67,15.77 13.3,15.76 13,15.6V19.29L19,15.91M13.85,13.36L20.13,9.73L19.55,8.72L13.27,12.35L13.85,13.36Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z"/></symbol>
+  <symbol id="i-torch" viewBox="0 0 24 24"><path d="M9,10L6,5H18L15,10H9M18,4H6V2H18V4M9,22V11H15V22H9M12,13A1,1 0 0,0 11,14A1,1 0 0,0 12,15A1,1 0 0,0 13,14A1,1 0 0,0 12,13Z"/></symbol>
+  <symbol id="i-undefined" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/></symbol>
+  <symbol id="i-zones" viewBox="0 0 24 24"><path d="M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"/></symbol>
+</svg>
+
 <div class="frame" id="app">
 
   <!-- HEADER -->
@@ -2758,9 +2811,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <!-- Filtres zones (générés dynamiquement par _stockLoadZones) -->
       <div class="stock-filters">
         <div class="filter-pill active" onclick="stockFilterZone(this,'all')">Tout</div>
-        <div class="filter-pill" onclick="stockFilterZone(this,'Frigo')">🧊 Frigo</div>
-        <div class="filter-pill" onclick="stockFilterZone(this,'Freezer')">❄️ Freezer</div>
-        <div class="filter-pill" onclick="stockFilterZone(this,'Placard')">🚪 Placard</div>
+        <div class="filter-pill" onclick="stockFilterZone(this,'Frigo')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-fridge"></use></svg> Frigo</div>
+        <div class="filter-pill" onclick="stockFilterZone(this,'Freezer')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-freezer"></use></svg> Freezer</div>
+        <div class="filter-pill" onclick="stockFilterZone(this,'Placard')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-cupboard"></use></svg> Placard</div>
       </div>
 
       <!-- Contenu dynamique généré par _stockLoad() -->
@@ -3247,7 +3300,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockOrGpRender()">
-    <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer">✕</button>
+    <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
   </div>
 
   <!-- STOCK TRI/FILTRE BOTTOM SHEET -->
@@ -3257,7 +3310,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="stock-sf-handle"></div>
       <div class="stock-sf-header">
         <div class="stock-sf-title">Trier &amp; Filtrer</div>
-        <button class="stock-sf-close" onclick="stockSfClose()">✕</button>
+        <button class="stock-sf-close" onclick="stockSfClose()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
       </div>
       <div class="stock-sf-tabs">
         <div class="stock-sf-tab active" id="stock-sf-tab-sort" onclick="stockSfSwitchTab('sort')">Trier</div>
@@ -3297,16 +3350,16 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <div class="stock-sf-section">
           <div class="stock-sf-label">Ingrédient lié</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-inglink="with" onclick="stockSfPickIngLink(this,'with')"><span class="sf-check">✓</span> 🔗 Avec ingrédient</div>
-            <div class="stock-sf-opt" data-inglink="without" onclick="stockSfPickIngLink(this,'without')"><span class="sf-check">✓</span> ✕ Sans ingrédient</div>
+            <div class="stock-sf-opt" data-inglink="with" onclick="stockSfPickIngLink(this,'with')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-link"></use></svg> Avec ingrédient</div>
+            <div class="stock-sf-opt" data-inglink="without" onclick="stockSfPickIngLink(this,'without')"><span class="sf-check">✓</span> <svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg> Sans ingrédient</div>
           </div>
         </div>
         <div class="stock-sf-section">
           <div class="stock-sf-label">Expiration</div>
           <div class="stock-sf-options">
-            <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> 🔴 Expiré</div>
-            <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check">✓</span> 🟠 Bientôt (&lt;7j)</div>
-            <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check">✓</span> 🟢 OK</div>
+            <div class="stock-sf-opt" data-fexp="expired" onclick="stockSfToggleFexp(this,'expired')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--expired" aria-hidden="true"><use href="#i-dot"></use></svg> Expiré</div>
+            <div class="stock-sf-opt" data-fexp="soon" onclick="stockSfToggleFexp(this,'soon')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--soon" aria-hidden="true"><use href="#i-dot"></use></svg> Bientôt (&lt;7j)</div>
+            <div class="stock-sf-opt" data-fexp="ok" onclick="stockSfToggleFexp(this,'ok')"><span class="sf-check">✓</span> <svg class="icon icon-sm sf-dot sf-dot--ok" aria-hidden="true"><use href="#i-dot"></use></svg> OK</div>
             <div class="stock-sf-opt" data-fexp="none" onclick="stockSfToggleFexp(this,'none')"><span class="sf-check">✓</span> Sans date</div>
           </div>
         </div>
@@ -3490,11 +3543,11 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
     <!-- Header -->
     <div class="scanner-header">
-      <div class="scanner-close" onclick="closeScanner()">✕</div>
+      <div class="scanner-close" onclick="closeScanner()" role="button" aria-label="Fermer le scanner"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></div>
       <div class="scanner-title">Scanner un produit</div>
       <div class="scanner-mode-btn" id="scanner-mode-btn" onclick="toggleScannerMode()" style="display:none" title="Changer de moteur de scan">NATIVE</div>
-      <div class="scanner-torch" id="flip-btn" onclick="flipCamera()" title="Changer de caméra">🔄</div>
-      <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()">🔦</div>
+      <div class="scanner-torch" id="flip-btn" onclick="flipCamera()" title="Changer de caméra" role="button" aria-label="Changer de caméra"><svg class="icon" aria-hidden="true"><use href="#i-camera-flip"></use></svg></div>
+      <div class="scanner-torch" id="torch-btn" onclick="toggleTorch()" role="button" aria-label="Lampe"><svg class="icon" aria-hidden="true"><use href="#i-torch"></use></svg></div>
     </div>
 
     <!-- Caméra -->
@@ -3535,7 +3588,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div id="scan-list"></div>
     </div>
     <button class="scan-validate-fab" id="scan-validate-fab" onclick="validateScanList()">
-      ✓ Ajouter au stock
+      Ajouter au stock
     </button>
 
   </div>
@@ -3680,8 +3733,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'marchands','Marchands')"><div class="d-icon">🏪</div> Marchands</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'suggestion-config','Suggestions')"><div class="d-icon">🎲</div> Suggestions aléatoires</div>
       <div class="drawer-sep"></div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon">🗂</div> Zones de stock</div>
-      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'produits','Gestion des produits')"><div class="d-icon">📦</div> Gestion des produits</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'zones-stock','Zones de stock')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-zones"></use></svg></div> Zones de stock</div>
+      <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'produits','Gestion des produits')"><div class="d-icon"><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></div> Gestion des produits</div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'tags','Tags recettes')"><div class="d-icon">🏷</div> Tags recettes</div>
       <div class="drawer-sep"></div>
       <div class="drawer-item" onclick="toggleDrawer();switchPage(null,'backup','Sauvegarde')"><div class="d-icon">💾</div> Import / Export</div>
@@ -3706,10 +3759,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- MENU ⋮ STOCK (unique, contextuel) -->
   <div class="m-hdmenu" id="stock-main-hdmenu" onclick="event.stopPropagation()">
     <div class="m-hdmenu-item" id="stock-hd-sel-label" style="pointer-events:none;color:var(--grey-d);font-size:.8rem;padding:8px 14px 4px;display:none">0 sélectionné(s)</div>
-    <div class="m-hdmenu-item" id="stock-hd-courses" style="display:none" onclick="stockAddSelectedToCourses();stockHideMainHdmenu()"><span>🛒</span><span>Ajouter aux courses</span></div>
-    <div class="m-hdmenu-item" id="stock-hd-cook" style="display:none" onclick="stockCookWith();stockHideMainHdmenu()"><span>🍳</span><span>Cuisiner avec</span></div>
-    <div class="m-hdmenu-item" id="stock-hd-zone" style="display:none" onclick="stockOpenZonePicker();stockHideMainHdmenu()"><span>📦</span><span>Changer de zone</span></div>
-    <div class="m-hdmenu-item danger" id="stock-hd-delete" style="display:none" onclick="stockDeleteSelected();stockHideMainHdmenu()"><span>🗑</span><span>Supprimer</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-courses" style="display:none" onclick="stockAddSelectedToCourses();stockHideMainHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-cart"></use></svg></span><span>Ajouter aux courses</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-cook" style="display:none" onclick="stockCookWith();stockHideMainHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-cook"></use></svg></span><span>Cuisiner avec</span></div>
+    <div class="m-hdmenu-item" id="stock-hd-zone" style="display:none" onclick="stockOpenZonePicker();stockHideMainHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-package"></use></svg></span><span>Changer de zone</span></div>
+    <div class="m-hdmenu-item danger" id="stock-hd-delete" style="display:none" onclick="stockDeleteSelected();stockHideMainHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-delete"></use></svg></span><span>Supprimer</span></div>
   </div>
 
   <!-- BOTTOM SHEET — changer zone stock multiselect -->
@@ -4008,7 +4061,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <!-- ══ PANEL CRÉATION PRODUIT ════════════════════════════════════════════ -->
   <div id="panel-new-produit">
     <div class="pnp-header">
-      <div class="pnp-back" onclick="closeNewProduit()">←</div>
+      <div class="pnp-back" onclick="closeNewProduit()" role="button" aria-label="Retour"><svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg></div>
       <div class="pnp-title">Nouveau produit</div>
       <div class="pnp-save" onclick="saveNewProduit()">Enregistrer</div>
     </div>
@@ -4032,9 +4085,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="pnp-field">
         <div class="pnp-label">Zone de stockage</div>
         <div class="pnp-zone-row" id="pnp-zone-row">
-          <div class="pnp-zone-btn active" onclick="pnpZone(this,'Frigo')">🧊 Frigo</div>
-          <div class="pnp-zone-btn" onclick="pnpZone(this,'Freezer')">❄️ Freezer</div>
-          <div class="pnp-zone-btn" onclick="pnpZone(this,'Placard')">🚪 Placard</div>
+          <div class="pnp-zone-btn active" onclick="pnpZone(this,'Frigo')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-fridge"></use></svg> Frigo</div>
+          <div class="pnp-zone-btn" onclick="pnpZone(this,'Freezer')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-freezer"></use></svg> Freezer</div>
+          <div class="pnp-zone-btn" onclick="pnpZone(this,'Placard')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-cupboard"></use></svg> Placard</div>
         </div>
       </div>
       <div class="pnp-field">
@@ -4199,12 +4252,21 @@ function toggleCheck(el) {
 // ════════════════════════════════════════════════════════════════════════════
 // STOCK — chargement et affichage dynamique
 // ════════════════════════════════════════════════════════════════════════════
+// Les trois zones par defaut sont des constantes de l'app : elles portent une
+// icone (BL-198). Une zone creee depuis la page Zones de stock n'en a pas et
+// affiche son emoji, qui est une donnee. `emoji` reste present comme repli si
+// le sprite venait a manquer.
 let STOCK_ZONES = [
-  { key: 'À définir', emoji: '❓' },
-  { key: 'Frigo',     emoji: '🧊' },
-  { key: 'Freezer',   emoji: '❄️' },
-  { key: 'Placard',   emoji: '🚪' },
+  { key: 'À définir', emoji: '❓', icon: 'undefined' },
+  { key: 'Frigo',     emoji: '🧊', icon: 'fridge' },
+  { key: 'Freezer',   emoji: '❄️', icon: 'freezer' },
+  { key: 'Placard',   emoji: '🚪', icon: 'cupboard' },
 ];
+
+// Pastille d'une zone : son icone si elle en a une, sinon son emoji.
+function _zoneIco(z) {
+  return (z && z.icon) ? ico(z.icon, 'icon-sm') : ((z && z.emoji) || '');
+}
 let _stockFilter      = 'all';
 let _stockGroupBy     = 'zone';
 let _stockSort        = 'zone';
@@ -4249,7 +4311,8 @@ async function _stockLoadZones() {
     const r = await fetch('/api/zones-stock');
     if (r.ok) {
       const zones = await r.json();
-      STOCK_ZONES = zones.map(z => ({ key: z.nom, emoji: z.emoji, id: z.id }));
+      const parDefaut = Object.fromEntries(STOCK_ZONES.filter(z => z.icon).map(z => [z.key, z.icon]));
+      STOCK_ZONES = zones.map(z => ({ key: z.nom, emoji: z.emoji, id: z.id, icon: parDefaut[z.nom] }));
     }
   } catch(e) {}
   // Mettre à jour les filtres pills
@@ -4258,7 +4321,7 @@ async function _stockLoadZones() {
   const zr = document.getElementById('pnp-zone-row');
   if (zr) {
     zr.innerHTML = STOCK_ZONES.map((z, i) =>
-      `<div class="pnp-zone-btn${i===0?' active':''}" data-zone="${z.key}" onclick="pnpZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`
+      `<div class="pnp-zone-btn${i===0?' active':''}" data-zone="${z.key}" onclick="pnpZone(this,'${z.key}')">${_zoneIco(z)} ${z.key}</div>`
     ).join('');
     if (STOCK_ZONES.length > 0) _pnpZone = STOCK_ZONES[0].key;
   }
@@ -4362,7 +4425,7 @@ function _stockRender() {
   if (!el) return;
 
   const baseItems = _stockSortItems(_stockFilterItems(_stockItems));
-  const emptyHtml = `<div class="stock-empty"><div class="stock-empty-icon">📦</div><div class="stock-empty-title">Stock vide</div><div class="stock-empty-hint">Scanne un produit avec le bouton + pour commencer</div></div>`;
+  const emptyHtml = `<div class="stock-empty"><div class="stock-empty-icon">${ico('package', 'icon-lg')}</div><div class="stock-empty-title">Stock vide</div><div class="stock-empty-hint">Scanne un produit avec le bouton + pour commencer</div></div>`;
 
   // Tri rayon → groupement par rayon
   if (_stockGroupBy === 'rayon') {
@@ -4414,7 +4477,7 @@ function _stockRender() {
       total += items.length;
       html += `<div class="zone-section">
         <div class="zone-header">
-          <div class="zone-title"><span>${zoneMeta.emoji}</span> ${zoneKey} <span class="zone-count">${items.length}</span></div>
+          <div class="zone-title"><span>${_zoneIco(zoneMeta)}</span> ${zoneKey} <span class="zone-count">${items.length}</span></div>
           <div class="zone-collapse" onclick="toggleZone(this)">−</div>
         </div>
         <div class="product-grid">${items.map(s => _stockCard(s)).join('')}</div>
@@ -4724,7 +4787,7 @@ function stockOpenZonePicker() {
   const chips  = document.getElementById('stock-zone-picker-chips');
   if (!picker || !chips) return;
   chips.innerHTML = STOCK_ZONES.filter(z => z.key !== 'À définir').map(z =>
-    `<div class="rayon-chip" onclick="stockChangeZoneSelected('${z.key}')">${z.emoji} ${z.key}</div>`
+    `<div class="rayon-chip" onclick="stockChangeZoneSelected('${z.key}')">${_zoneIco(z)} ${z.key}</div>`
   ).join('');
   picker.style.display = '';
 }
@@ -4801,7 +4864,7 @@ function _stockOpenDetail(id) {
   // Zone
   const zoneMeta = STOCK_ZONES.find(z => z.key === s.zone) || { emoji: '📦' };
   document.getElementById('stock-detailZone').innerHTML =
-    `<span class="rayon-chip active" style="pointer-events:none">${zoneMeta.emoji} ${s.zone || '—'}</span>`;
+    `<span class="rayon-chip active" style="pointer-events:none">${_zoneIco(zoneMeta)} ${s.zone || '—'}</span>`;
 
   // Ingrédient lié
   const ingSection = document.getElementById('stock-detailIngSection');
@@ -5016,7 +5079,7 @@ function _stockOpenEdit(id) {
   _stockEditZone = s.zone || (STOCK_ZONES[0] && STOCK_ZONES[0].key) || 'Frigo';
   document.getElementById('stock-editZoneGrid').innerHTML = STOCK_ZONES
     .filter(z => z.key !== 'À définir')
-    .map(z => `<div class="rayon-chip${z.key === _stockEditZone ? ' active' : ''}" onclick="stockEditPickZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`)
+    .map(z => `<div class="rayon-chip${z.key === _stockEditZone ? ' active' : ''}" onclick="stockEditPickZone(this,'${z.key}')">${_zoneIco(z)} ${z.key}</div>`)
     .join('');
 
   // Rayon chips (propre ou hérité de l'ingrédient)
@@ -5130,7 +5193,7 @@ function _stockRebuildFilterPills() {
     if (_stockFilter !== 'all' && !STOCK_ZONES.some(z => z.key === _stockFilter)) _stockFilter = 'all';
     const on = v => v === _stockFilter ? ' active' : '';
     pills = `<div class="filter-pill${on('all')}" onclick="stockFilterZone(this,'all')">Tout</div>` +
-      STOCK_ZONES.map(z => `<div class="filter-pill${on(z.key)}" onclick="stockFilterZone(this,'${z.key}')">${z.emoji} ${z.key}</div>`).join('');
+      STOCK_ZONES.map(z => `<div class="filter-pill${on(z.key)}" onclick="stockFilterZone(this,'${z.key}')">${_zoneIco(z)} ${z.key}</div>`).join('');
   } else {
     // Liste plate : aucune pastille, donc aucun filtre de zone/rayon ne doit rester actif
     _stockFilter = 'all';
@@ -5730,7 +5793,7 @@ function stockSfOpen() {
   // Peupler zones
   const fz = document.getElementById('stock-sf-f-zones');
   if (fz) fz.innerHTML = STOCK_ZONES.map(z =>
-    `<div class="stock-sf-opt${_stockFZones.has(z.key) ? ' active' : ''}" data-zone="${z.key}" onclick="stockSfToggleFzone(this,'${z.key}')"><span class="sf-check">✓</span> ${z.emoji} ${z.key}</div>`
+    `<div class="stock-sf-opt${_stockFZones.has(z.key) ? ' active' : ''}" data-zone="${z.key}" onclick="stockSfToggleFzone(this,'${z.key}')"><span class="sf-check">✓</span> ${_zoneIco(z)} ${z.key}</div>`
   ).join('');
   // Peupler rayons présents dans le stock
   const fr = document.getElementById('stock-sf-f-rayons');
@@ -6290,6 +6353,7 @@ async function openScanner() {
   // Peupler le dropdown des zones
   const sel = document.getElementById('scanner-zone-select');
   sel.innerHTML = '<option value="">— Automatique —</option>' +
+    // Une <option> n'accepte pas de SVG : ici l'emoji reste (limite HTML).
     STOCK_ZONES.map(z => `<option value="${z.key}">${z.emoji || ''} ${z.key}</option>`).join('');
   sel.value = '';
   _scannerMode = 'native';
@@ -6316,7 +6380,7 @@ async function openScanner() {
 
     await _startScanner();
   } catch(err) {
-    document.querySelector('.scanner-hint').textContent = '📷 Caméra non disponible — saisir le code ci-dessous';
+    document.querySelector('.scanner-hint').textContent = 'Caméra non disponible — saisir le code ci-dessous';
     console.warn('Scanner error:', err.message);
   }
 }
@@ -6501,7 +6565,7 @@ async function _startScanner() {
 
   // ── Fallback : ZXing + prétraitement canvas ──
   if (!window.ZXing) {
-    document.querySelector('.scanner-hint').textContent = '⚠️ Scanner non disponible — saisir le code manuellement';
+    document.querySelector('.scanner-hint').textContent = 'Scanner non disponible — saisir le code manuellement';
     return;
   }
 
@@ -6741,7 +6805,7 @@ function _renderScanList() {
   fab.classList.toggle('visible', readyItems.length > 0);
   fab.textContent = _scanTarget === 'courses'
     ? `✓ Ajouter ${totalQty} aux courses`
-    : `✓ Ajouter ${totalQty} au stock`;
+    : `Ajouter ${totalQty} au stock`;
 
   list.innerHTML = _scanList.map((item, idx) => {
     const photoSrc = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/') || item.photo.startsWith('data:')) ? item.photo : null);
@@ -7651,6 +7715,12 @@ function clToggleSearch() {
 // (tbm=isch), le but etant de trouver une photo (BL-194).
 function _googleSearchUrl(q, images){
   return 'https://www.google.com/search?' + (images ? 'tbm=isch&' : '') + 'q=' + encodeURIComponent(q);
+}
+
+// Icone pour le HTML construit en JS (BL-198). `cls` ajoute une taille
+// (icon-sm / icon-lg) ou une couleur.
+function ico(id, cls) {
+  return '<svg class="icon' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + id + '"></use></svg>';
 }
 
 function clNorm(s){ return String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
