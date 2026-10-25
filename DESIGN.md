@@ -160,6 +160,10 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
 - **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
 
+**Vignette** — `.thumb`, le carré qui représente un objet ayant une photo : `--thumb-size` (40 px en liste, 64 px en carte avec `.thumb--lg`), rayon `--r-sm`, `object-fit: cover`, `loading="lazy"`.
+- Sans photo, **le même carré** en `--c-primary-soft` porte les **initiales** du nom, ou l'icône `silverware-fork-knife` quand il n'y a pas de nom. L'alignement des lignes est conservé dans les deux cas, et les initiales distinguent deux objets là où une icône générique ne distinguerait rien.
+- **Jamais d'emoji pour représenter un objet.** Un emoji nomme une catégorie (« un plat ») ; il ne dit pas *quelle* recette. Un emoji que l'utilisateur a lui-même choisi pour un rayon, un magasin ou une note libre reste une donnée et n'est pas concerné.
+
 **Bouton de recherche flottant** — `.search-fab`, un seul pour toute l'appli : au repos un **rond de `--fab-size`** en bas à gauche, au-dessus de la bottom-nav, fond `--c-surface`, bordure 1 px `--c-border`, ombre `--shadow-2`, icône `magnify` en `--icon-md` / `--c-text-2`, **aucun libellé visible**, `aria-label` « Rechercher ». Le FAB d'action reste en bas à droite, même diamètre.
 - À l'ouverture, **le même bouton s'allonge** en pilule pour loger le champ ; ce n'est jamais un second élément qui apparaît. `--r-pill` donne le cercle à 56 px et les bouts arrondis une fois allongé, sans bascule de style.
 - **Aucun `gap` tant qu'il est fermé** : l'écart entre la loupe et le champ se porte sur le champ lui-même. Un `gap` de flex compte aussi pour un enfant de largeur nulle et suffit à transformer le rond en ovale.

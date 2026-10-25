@@ -208,6 +208,24 @@
   width: var(--tap); height: var(--tap); transform: translate(-50%, -50%);
 }
 
+/* Vignette d'un objet qui a une photo (BL-206, charte section 3).
+   Carre de --thumb-size : 40 px en liste, 64 px en carte (.thumb--lg). La
+   photo est recadree pour remplir le carre. Sans photo, le meme carre en
+   --c-primary-soft porte les initiales du nom, ou l'icone du couvert quand
+   il n'y a pas de nom : dans les deux cas l'alignement des lignes est
+   conserve. JAMAIS d'emoji pour representer un objet - un emoji nomme une
+   categorie (« un plat »), il ne distingue pas deux recettes. */
+.thumb {
+  width: var(--thumb-size, 40px); height: var(--thumb-size, 40px);
+  flex-shrink: 0; border-radius: var(--r-sm); overflow: hidden;
+  background: var(--c-primary-soft); color: var(--c-primary);
+  display: grid; place-items: center;
+  font-size: var(--fs-sm); font-weight: var(--fw-heavy);
+  letter-spacing: -.02em; text-transform: uppercase;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb--lg { --thumb-size: 64px; font-size: var(--fs-lg); }
+
 /* Bouton rond d'une rangee d'actions (BL-208, charte section 3).
    Le « + », le « - » et la poubelle d'une meme ligne sont le MEME bouton :
    seule l'icone change. Le diametre vient de --btn-round-size, pose par la
@@ -1628,9 +1646,6 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-hero-fab:active { opacity:.75; }
 
 /* Picker emoji */
-.ev3-emoji-panel { background:var(--c-surface); border-bottom:1px solid var(--grey); padding:10px 14px; display:none; flex-wrap:wrap; gap:6px; flex-shrink:0; }
-.ev3-emoji-opt { width:36px; height:36px; border-radius:var(--r-sm); border:1.5px solid var(--grey); background:var(--c-surface); font-size:var(--fs-xl); cursor:pointer; display:grid; place-items:center; transition:all .15s; }
-.ev3-emoji-opt.sel { border-color:var(--orange); background:var(--orange-l); }
 
 /* Méta */
 .ev3-meta { padding:14px 16px 0; background:var(--c-surface); }
@@ -2327,7 +2342,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     padding: 8px 12px; background: var(--c-surface); border-radius:var(--r-md);
     font-size: 14px; font-weight:var(--fw-regular);
   }
-  .ing-panel-recipe-emoji { font-size: 18px; }
 
   /* Recherche d'image (BL-194) */
   .ing-img-search-hint { color: var(--grey-d); font-size: 12px; font-weight:var(--fw-regular); margin-top: 6px; }
@@ -7793,6 +7807,25 @@ document.addEventListener('keydown', e => {
   }, { passive: true });
 })();
 
+// Vignette d'une recette (BL-206) : sa photo, sinon ses initiales, sinon
+// l'icone du couvert. Jamais son emoji, qui ne distingue pas deux recettes.
+// Les initiales sont reduites aux lettres et chiffres avant d'entrer dans le
+// onerror : un nom comme « L'omelette » y glisserait une apostrophe qui
+// casserait l'attribut.
+function _thumbRecette(r, cls) {
+  const nom = (r && (r.nom || r.name) || '').trim();
+  const ini = nom.slice(0, 2).toUpperCase().replace(/[^0-9A-ZÀ-ÖØ-Þ]/g, '');
+  const vide = ini || ico('cook', 'icon-sm');
+  const c = 'thumb' + (cls ? ' ' + cls : '');
+  if (!r || !r.photo) return '<div class="' + c + '">' + vide + '</div>';
+  // _escHtml appartient a la portee du module Ingredients : invisible depuis
+  // une fonction globale (meme piege qu'en v0.10.280, BL-193). On echappe
+  // donc l'URL sur place.
+  const src = String(r.photo).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return '<div class="' + c + '"><img src="' + src + '" alt="" loading="lazy"' +
+         ' onerror="this.parentElement.textContent=\'' + ini + '\'"></div>';
+}
+
 // Icone pour le HTML construit en JS (BL-198). `cls` ajoute une taille
 // (icon-sm / icon-lg) ou une couleur.
 function ico(id, cls) {
@@ -8293,11 +8326,9 @@ let _searchOpen= false;
 
 let _allTags = [];
 const UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
-const EMOJIS= ['🍽️','🫕','🍲','🥘','🍝','🥗','🍜','🍛','🍱','🥙','🌮','🥪','🍳','🧁','🍰','🥧','🍮','🍩','🎂','🫔','🥞','🧆','🫙'];
 
 let _eNote   = 0;
 let _eFavori = false;
-let _eEmoji  = '🍽️';
 let _eSelTags = [];
 
 // Un seul chargement en vol a la fois : plusieurs appelants peuvent attendre
@@ -8888,22 +8919,6 @@ function ev3ToggleFav() {
   const btn = document.getElementById('ev3-fav-btn');
   btn.innerHTML = ico(_eFavori ? 'fav-on' : 'fav');
   btn.classList.toggle('on', _eFavori);
-}
-
-// ── Emoji v3 ─────────────────────────────────────────────────────────────────
-function ev3ToggleEmojiPanel() {
-  const p = document.getElementById('ev3-emoji-panel');
-  const show = p.style.display !== 'flex';
-  if(show){
-    p.innerHTML = EMOJIS.map(e=>`<div class="ev3-emoji-opt${e===_eEmoji?' sel':''}" onclick="ev3PickEmoji('${e}')">${e}</div>`).join('');
-    p.style.display = 'flex';
-  } else p.style.display = 'none';
-}
-function ev3PickEmoji(e) {
-  _eEmoji = e;
-  document.getElementById('ev3-hero-emoji-bg').textContent    = e;
-  document.getElementById('ev3-hero-emoji-badge').textContent = e;
-  document.getElementById('ev3-emoji-panel').style.display = 'none';
 }
 
 // ── Photo v3 ─────────────────────────────────────────────────────────────────
@@ -11416,8 +11431,8 @@ function _ingRenderRecipeList(containerId, labelId, linked, deplie) {
   }
   const visibles = deplie ? linked : linked.slice(0, _ING_RECIPES_REPLI);
   let html = visibles.map(r =>
-    '<div class="ing-panel-recipe"><span class="ing-panel-recipe-emoji">' +
-    _escHtml(r.emoji || '🍽') + '</span>' + _escHtml(r.nom || r.name || '?') + '</div>'
+    '<div class="ing-panel-recipe">' + _thumbRecette(r) +
+    '<span>' + _escHtml(r.nom || r.name || '?') + '</span></div>'
   ).join('');
   const reste = linked.length - visibles.length;
   if (reste > 0) {
