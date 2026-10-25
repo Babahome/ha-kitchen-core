@@ -1008,6 +1008,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .toast.ok   { background: var(--c-success); }
 .toast.warn { background: var(--c-warning); }
 @keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+.toast-ico { margin-right: var(--sp-2); }
 /* Bouton « Annuler » dans un toast (BL-190) */
 .toast-action { margin-left:12px; background:var(--c-scrim-light-soft); border:1px solid var(--c-scrim-light);
                 color:var(--c-surface); font-family:inherit; font-size:var(--fs-xs); font-weight:var(--fw-heavy); border-radius:var(--r-sm);
@@ -2767,19 +2768,25 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   <symbol id="i-delete" viewBox="0 0 24 24"><path d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z"/></symbol>
   <symbol id="i-dot" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/></symbol>
   <symbol id="i-filter" viewBox="0 0 24 24"><path d="M6,13H18V11H6M3,6V8H21V6M10,18H14V16H10V18Z"/></symbol>
   <symbol id="i-freezer" viewBox="0 0 24 24"><path d="M20.79,13.95L18.46,14.57L16.46,13.44V10.56L18.46,9.43L20.79,10.05L21.31,8.12L19.54,7.65L20,5.88L18.07,5.36L17.45,7.69L15.45,8.82L13,7.38V5.12L14.71,3.41L13.29,2L12,3.29L10.71,2L9.29,3.41L11,5.12V7.38L8.5,8.82L6.5,7.69L5.92,5.36L4,5.88L4.47,7.65L2.7,8.12L3.22,10.05L5.55,9.43L7.55,10.56V13.45L5.55,14.58L3.22,13.96L2.7,15.89L4.47,16.36L4,18.12L5.93,18.64L6.55,16.31L8.55,15.18L11,16.62V18.88L9.29,20.59L10.71,22L12,20.71L13.29,22L14.7,20.59L13,18.88V16.62L15.5,15.17L17.5,16.3L18.12,18.63L20,18.12L19.53,16.35L21.3,15.88L20.79,13.95M9.5,10.56L12,9.11L14.5,10.56V13.44L12,14.89L9.5,13.44V10.56Z"/></symbol>
   <symbol id="i-fridge" viewBox="0 0 24 24"><path d="M9,21V22H7V21A2,2 0 0,1 5,19V4A2,2 0 0,1 7,2H17A2,2 0 0,1 19,4V19A2,2 0 0,1 17,21V22H15V21H9M7,4V9H17V4H7M7,19H17V11H7V19M8,12H10V15H8V12M8,6H10V8H8V6Z"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></symbol>
+  <symbol id="i-ingredient" viewBox="0 0 24 24"><path d="M16,10L15.8,11H13.5A0.5,0.5 0 0,0 13,11.5A0.5,0.5 0 0,0 13.5,12H15.6L14.6,17H12.5A0.5,0.5 0 0,0 12,17.5A0.5,0.5 0 0,0 12.5,18H14.4L14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20L9,15H10.5A0.5,0.5 0 0,0 11,14.5A0.5,0.5 0 0,0 10.5,14H8.8L8,10C8,8.8 8.93,7.77 10.29,7.29L8.9,5.28C8.59,4.82 8.7,4.2 9.16,3.89C9.61,3.57 10.23,3.69 10.55,4.14L11,4.8V3A1,1 0 0,1 12,2A1,1 0 0,1 13,3V5.28L14.5,3.54C14.83,3.12 15.47,3.07 15.89,3.43C16.31,3.78 16.36,4.41 16,4.84L13.87,7.35C15.14,7.85 16,8.85 16,10Z"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><path d="M19,13H5V11H19V13Z"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"/></symbol>
+  <symbol id="i-new" viewBox="0 0 24 24"><path d="M20,4C21.11,4 22,4.89 22,6V18C22,19.11 21.11,20 20,20H4C2.89,20 2,19.11 2,18V6C2,4.89 2.89,4 4,4H20M8.5,15V9H7.25V12.5L4.75,9H3.5V15H4.75V11.5L7.3,15H8.5M13.5,10.26V9H9.5V15H13.5V13.75H11V12.64H13.5V11.38H11V10.26H13.5M20.5,14V9H19.25V13.5H18.13V10H16.88V13.5H15.75V9H14.5V14A1,1 0 0,0 15.5,15H19.5A1,1 0 0,0 20.5,14Z"/></symbol>
   <symbol id="i-package" viewBox="0 0 24 24"><path d="M2,10.96C1.5,10.68 1.35,10.07 1.63,9.59L3.13,7C3.24,6.8 3.41,6.66 3.6,6.58L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.66,6.72 20.82,6.88 20.91,7.08L22.36,9.6C22.64,10.08 22.47,10.69 22,10.96L21,11.54V16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V10.96C2.7,11.13 2.32,11.14 2,10.96M12,4.15V4.15L12,10.85V10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V12.69L14,15.59C13.67,15.77 13.3,15.76 13,15.6V19.29L19,15.91M13.85,13.36L20.13,9.73L19.55,8.72L13.27,12.35L13.85,13.36Z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></symbol>
+  <symbol id="i-sheet" viewBox="0 0 24 24"><path d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24"><path d="M18.36 9L18.96 12H5.04L5.64 9H18.36M20 4H4V6H20V4M20 7H4L3 12V14H4V20H14V14H18V20H20V14H21V12L20 7M6 18V14H12V18H6Z"/></symbol>
   <symbol id="i-sort" viewBox="0 0 24 24"><path d="M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M21,9L17,5V8H10V10H17V13M7,11L3,15L7,19V16H14V14H7V11Z"/></symbol>
   <symbol id="i-torch" viewBox="0 0 24 24"><path d="M9,10L6,5H18L15,10H9M18,4H6V2H18V4M9,22V11H15V22H9M12,13A1,1 0 0,0 11,14A1,1 0 0,0 12,15A1,1 0 0,0 13,14A1,1 0 0,0 12,13Z"/></symbol>
   <symbol id="i-undefined" viewBox="0 0 24 24"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/></symbol>
   <symbol id="i-zones" viewBox="0 0 24 24"><path d="M20 21H4V10H6V19H18V10H20V21M3 3H21V9H3V3M9.5 11H14.5C14.78 11 15 11.22 15 11.5V13H9V11.5C9 11.22 9.22 11 9.5 11M5 5V7H19V5H5Z"/></symbol>
@@ -2835,12 +2842,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
       <!-- Menu contextuel ••• -->
       <div class="cl-ctx-menu" id="cl-ctx-menu">
-        <div class="cl-ctx-item" id="cl-ctx-fiche" onclick="clCtxFiche()"><span>📄</span> Voir la fiche</div>
-        <div class="cl-ctx-item" onclick="clCtxLink()"><span>🔗</span> Voir sur le site</div>
-        <div class="cl-ctx-item" onclick="clCtxMarchand()"><span>🔄</span> Changer de marchand</div>
-        <div class="cl-ctx-item" onclick="clCtxEdit()"><span>✏️</span> <span id="cl-ctx-edit-lbl">Modifier qté / unité</span></div>
-        <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span>🥕</span> Créer comme ingrédient</div>
-        <div class="cl-ctx-item danger" onclick="clCtxDel()"><span>🗑</span> Supprimer</div>
+        <div class="cl-ctx-item" id="cl-ctx-fiche" onclick="clCtxFiche()"><span><svg class="icon" aria-hidden="true"><use href="#i-sheet"></use></svg></span> Voir la fiche</div>
+        <div class="cl-ctx-item" onclick="clCtxLink()"><span><svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg></span> Voir sur le site</div>
+        <div class="cl-ctx-item" onclick="clCtxMarchand()"><span><svg class="icon" aria-hidden="true"><use href="#i-swap"></use></svg></span> Changer de marchand</div>
+        <div class="cl-ctx-item" onclick="clCtxEdit()"><span><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg></span> <span id="cl-ctx-edit-lbl">Modifier qté / unité</span></div>
+        <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span><svg class="icon" aria-hidden="true"><use href="#i-ingredient"></use></svg></span> Créer comme ingrédient</div>
+        <div class="cl-ctx-item danger" onclick="clCtxDel()"><span><svg class="icon" aria-hidden="true"><use href="#i-delete"></use></svg></span> Supprimer</div>
       </div>
 
       <!-- Modal marchand -->
@@ -5954,7 +5961,10 @@ function toggleZone(btn) {
 function showToast(msg, type = 'ok', action = null) {
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  t.textContent = (type === 'ok' ? '✓ ' : '⚠ ') + msg;
+  // Le prefixe est une icone (BL-198) : textContent l'effacerait, d'ou innerHTML.
+  // `msg` vient toujours du code de l'app, jamais d'une saisie.
+  t.innerHTML = ico(type === 'ok' ? 'check' : 'alert', 'icon-sm toast-ico') + '<span></span>';
+  t.lastChild.textContent = msg;
   const avecAction = !!(action && typeof action.onClick === 'function');
   if (avecAction) {
     const b = document.createElement('button');
@@ -6804,7 +6814,7 @@ function _renderScanList() {
   const totalQty   = readyItems.reduce((s, i) => s + i.qty, 0);
   fab.classList.toggle('visible', readyItems.length > 0);
   fab.textContent = _scanTarget === 'courses'
-    ? `✓ Ajouter ${totalQty} aux courses`
+    ? `Ajouter ${totalQty} aux courses`
     : `Ajouter ${totalQty} au stock`;
 
   list.innerHTML = _scanList.map((item, idx) => {
@@ -6818,7 +6828,7 @@ function _renderScanList() {
     const detail = toCourses ? (item.rayon || '') : (item.zone || '');
     const sub = item.status === 'loading' ? `<span style="color:var(--c-text-3)">recherche…</span>`
       : item.status === 'unknown' ? `<span style="color:var(--c-danger);font-weight:700">❓ Inconnu</span>`
-      : item.status === 'new'     ? `<span style="color:var(--c-warning);font-weight:700">✦ ${toCourses ? 'Nouveau produit' : 'Nouveau — sera créé'}</span>`
+      : item.status === 'new'     ? `<span style="color:var(--c-warning);font-weight:700">${ico('new','icon-sm')} ${toCourses ? 'Nouveau produit' : 'Nouveau — sera créé'}</span>`
       : `<span>${item.marque || ''}${item.marque && detail ? ' · ' : ''}${detail}</span>`;
 
     const qtyHtml = item.status !== 'loading' ? `
@@ -7406,7 +7416,7 @@ async function _clLoad(){
       }
       localStorage.removeItem('kc_courses');
       localStorage.removeItem('kc_cl_recipes');
-      showToast('Courses migrées ✓','ok');
+      showToast('Courses migrées','ok');
     }
   } catch(e) {}
   clBuildMarchandTabs();
@@ -7502,8 +7512,8 @@ function clItemHTML(item) {
   const isSel = _clSelected.has(item.id);
   return `<div class="cl-item${item.done?' done':''}${isSel?' sel-checked':''}" id="cli-${item.id}" ${_clSelMode?`onclick="clToggleSel('${item.id}')"`:''}>
     ${_clSelMode
-      ? `<div class="cl-sel-chk${isSel?' on':''}" onclick="clToggleSel('${item.id}')">${isSel?'✓':''}</div>`
-      : `<div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?'✓':''}</div>`
+      ? `<div class="cl-sel-chk${isSel?' on':''}" onclick="clToggleSel('${item.id}')">${isSel?ico('check','icon-sm'):''}</div>`
+      : `<div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?ico('check','icon-sm'):''}</div>`
     }
     <div class="cl-emoji">${icoContent}</div>
     <div class="cl-body">
@@ -7539,7 +7549,7 @@ function clRenderAll(byM) {
       <span class="cl-sec-count">${n} à prendre</span></div>`;
     items.forEach(i => h += clItemHTML(i));
   });
-  if(!h) h = '<div class="cl-empty">🛒 Liste vide</div>';
+  if(!h) h = `<div class="cl-empty">${ico('cart','icon-lg')}<div>Liste vide</div></div>`;
   h += clRecipesSectionHTML();
   el.innerHTML = h;
 }
@@ -7598,7 +7608,7 @@ function clRecipesSectionHTML() {
       <div class="cl-rl-ingr">${chips}</div>
     </div>`;
   }).join('');
-  return `<div class="cl-rl-wrap"><div class="cl-rl-title">🍴 Recettes liées</div>${cards}</div>`;
+  return `<div class="cl-rl-wrap"><div class="cl-rl-title">${ico('cook','icon-sm')} Recettes liées</div>${cards}</div>`;
 }
 
 function clRecipePortions(recipeId, delta) {
@@ -8119,7 +8129,7 @@ function clOpenMmodal(id) {
       <div class="cl-mopt-ico">${logoHTML}</div>
       <div><div class="cl-mopt-name">${m.nom}</div></div>
       ${sel?'<span class="cl-mopt-cur">Actuel</span>':''}
-      ${searchUrl?`<a href="${searchUrl}" target="_blank" onclick="event.stopPropagation()" class="cl-mopt-link">🔍 Voir</a>`:''}
+      ${searchUrl?`<a href="${searchUrl}" target="_blank" onclick="event.stopPropagation()" class="cl-mopt-link">${ico('search','icon-sm')} Voir</a>`:''}
     </div>`;
   }).join('');
   document.getElementById('cl-mmodal').classList.add('on');
@@ -10266,7 +10276,7 @@ async function mFreeIngConfirm(){
     }catch(e){}
   }
   if(typeof clRender === 'function') clRender();
-  showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
+  showToast(''+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
   mFreeIngClose();
 }
 
@@ -10294,7 +10304,7 @@ async function mIngConfirm(){
     }
   }
   clRender();
-  showToast('✓ '+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
+  showToast(''+nbAdded+' ingrédient'+(nbAdded>1?'s':'')+' ajouté'+(nbAdded>1?'s':'')+' aux courses','ok');
   mIngClose();
   if(_mSelMode) mSelExit();
 }
@@ -13173,16 +13183,16 @@ async function _mchSaveMarchand() {
   try {
     if (_mchEditId) {
       await fetch(`/api/marchands/${_mchEditId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image, search_url}) });
-      showToast('Marchand modifié ✓', 'ok');
+      showToast('Marchand modifié', 'ok');
     } else {
       const created = await fetch('/api/marchands', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nom, image}) }).then(r => r.json());
       if (templateKey && _MCH_TEMPLATES[templateKey]) {
         for (const r of _MCH_TEMPLATES[templateKey]) {
           await fetch(`/api/marchands/${created.id}/rayons`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(r) });
         }
-        showToast(`Marchand ajouté avec ${_MCH_TEMPLATES[templateKey].length} rayons ✓`, 'ok');
+        showToast(`Marchand ajouté avec ${_MCH_TEMPLATES[templateKey].length} rayons`, 'ok');
       } else {
-        showToast('Marchand ajouté ✓', 'ok');
+        showToast('Marchand ajouté', 'ok');
       }
     }
     _mchCloseModalMarchand();
