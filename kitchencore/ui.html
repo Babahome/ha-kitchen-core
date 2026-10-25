@@ -1067,7 +1067,7 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
    BURGER DRAWER
 ══════════════════════════════════════════════════════════════════════════════ */
 .drawer-overlay {
-  
+  position: absolute; inset: 0; background: var(--c-overlay);
   z-index: 50; opacity: 0; pointer-events: none;
   transition: opacity .25s;
 }
@@ -1587,13 +1587,13 @@ textarea.einput{ resize:none;min-height:60px; }
 .tag-name { flex:1; font-weight:var(--fw-bold); font-size:var(--fs-md); }
 .tag-name input { font-family:inherit; font-size:var(--fs-md); font-weight:var(--fw-bold); border:none; border-bottom:2px solid var(--orange); outline:none; background:transparent; width:100%; }
 .tag-count { background:var(--grey-l); border-radius:var(--r-lg); padding:3px 10px; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--grey-d); flex-shrink:0; }
-.tag-merge-sheet { position:absolute; inset:auto 0 0 0;  padding:0 0 env(safe-area-inset-bottom); box-shadow:var(--shadow-2); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; display:none; }
+.tag-merge-sheet { position:absolute; inset:auto 0 0 0; background:var(--c-surface); border-radius:var(--r-lg) var(--r-lg) 0 0; padding:0 0 env(safe-area-inset-bottom); box-shadow:var(--shadow-2); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; display:none; }
 .tag-merge-sheet.open { display:block; transform:translateY(0); }
 .tag-merge-sheet-head { padding:18px 20px 10px; font-weight:var(--fw-heavy); font-size:var(--fs-md); }
 .tag-merge-option { padding:14px 20px; display:flex; align-items:center; gap:10px; font-size:var(--fs-md); cursor:pointer; }
 .tag-merge-option:active { background:var(--grey-l); }
 .tag-merge-option.selected-target { background:var(--orange-l); font-weight:var(--fw-bold); color:var(--orange); }
-.tag-backdrop {  display:none; z-index:119; }
+.tag-backdrop { position:absolute; inset:0; background:var(--c-overlay); display:none; z-index:119; }
 .tag-backdrop.open { display:block; }
 
 /* ══ PANEL EDIT v3 ══════════════════════════════════════════════════════════ */
@@ -1637,7 +1637,7 @@ textarea.einput{ resize:none;min-height:60px; }
 .ev3-hero-placeholder { font-size:var(--fs-2xl);font-weight:var(--fw-heavy);color:var(--orange);opacity:.5;
                         letter-spacing:-.02em;text-transform:uppercase;line-height:1;
                         position:relative;z-index:1; }
-.ev3-hero-overlay {  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
+.ev3-hero-overlay { position:absolute; inset:0; background:var(--c-overlay); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; opacity:0; transition:opacity .2s; z-index:4; pointer-events:none; }
 .ev3-hero-overlay span { color:var(--c-on-primary); font-size:var(--fs-sm); font-weight:var(--fw-bold); }
 .ev3-hero-overlay-icon { font-size:var(--fs-2xl); }
 .ev3-hero:hover .ev3-hero-overlay, .ev3-hero.touching .ev3-hero-overlay { opacity:1; }
@@ -2140,10 +2140,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     max-height: 90%; overflow-y: auto; display: none;
   }
   .frame > .ing-bottom-sheet.open { display: block; transform: translateY(0); }
-  .frame > .ing-bottom-sheet .sheet-handle {
-    width: 40px; height: 4px; border-radius:var(--r-pill);
-    background: var(--grey); margin: 12px auto 0;
-  }
   .frame > .ing-bottom-sheet .sheet-header {
     padding: 16px 20px 0;
     display: flex; align-items: center; justify-content: space-between;
@@ -2172,7 +2168,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   }
   .frame > .stock-sf-overlay.open { display: block; }
   .stock-sf-scrollable { overflow-y: auto; flex: 1; }
-  .stock-sf-handle { width: 40px; height: 4px; border-radius:var(--r-pill); background: var(--grey); margin: 12px auto 0; }
+  /* La poignee des feuilles qui ne passent pas par .sheet (celui-ci la
+   dessine en ::before). Une seule regle pour les trois (BL-200). */
+.sheet-handle { width: 40px; height: 4px; border-radius: var(--r-pill); background: var(--c-border); margin: var(--sp-3) auto 0; }
   .stock-sf-header { padding: 14px 20px 0; display: flex; align-items: center; justify-content: space-between; }
   .stock-sf-title { font-size: 17px; font-weight:var(--fw-heavy); }
   .stock-sf-close { background: var(--grey-l); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; color: var(--text2); display: flex; align-items: center; justify-content: center; }
@@ -2290,7 +2288,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     user-select: none;
   }
   .ing-panel-hero-overlay {
-    
+    position: absolute; inset: 0; background: var(--c-overlay);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px; color: var(--c-on-primary); font-size:var(--fs-xs); font-weight:var(--fw-bold); cursor: pointer;
   }
@@ -3345,10 +3343,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- STOCK TRI/FILTRE BOTTOM SHEET -->
-  <div class="stock-sf-overlay" id="stock-sf-overlay" onclick="stockSfClose()"></div>
-  <div class="stock-sf-sheet" id="stock-sf-sheet">
+  <div class="stock-sf-overlay" id="stock-sf-overlay" data-voile onclick="stockSfClose()"></div>
+  <div class="stock-sf-sheet" id="stock-sf-sheet" data-feuille="stock-sf-overlay">
     <div class="stock-sf-scrollable">
-      <div class="stock-sf-handle"></div>
+      <div class="sheet-handle"></div>
       <div class="stock-sf-header">
         <div class="stock-sf-title">Trier &amp; Filtrer</div>
         <button class="stock-sf-close" onclick="stockSfClose()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
@@ -3439,10 +3437,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- INGRÉDIENTS TRI/FILTRE BOTTOM SHEET (même pattern que Stock/Produits) -->
-  <div class="stock-sf-overlay" id="ing-sf-overlay" onclick="ingSfClose()"></div>
-  <div class="stock-sf-sheet" id="ing-sf-sheet">
+  <div class="stock-sf-overlay" id="ing-sf-overlay" data-voile onclick="ingSfClose()"></div>
+  <div class="stock-sf-sheet" id="ing-sf-sheet" data-feuille="ing-sf-overlay">
     <div class="stock-sf-scrollable">
-      <div class="stock-sf-handle"></div>
+      <div class="sheet-handle"></div>
       <div class="stock-sf-header">
         <div class="stock-sf-title">Trier &amp; Filtrer</div>
         <button class="stock-sf-close" onclick="ingSfClose()" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
@@ -3828,8 +3826,9 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- MERGE SHEET TAGS -->
-  <div class="tag-backdrop" id="tag-backdrop" onclick="tagCloseMergeSheet()"></div>
-  <div class="tag-merge-sheet" id="tag-mergeSheet">
+  <div class="tag-backdrop" id="tag-backdrop" data-voile onclick="tagCloseMergeSheet()"></div>
+  <div class="tag-merge-sheet" id="tag-mergeSheet" data-feuille="tag-backdrop">
+    <div class="sheet-handle"></div>
     <div class="tag-merge-sheet-head">Choisir le tag à conserver</div>
     <div id="tag-mergeOptions"></div>
     <div style="padding:12px 20px 16px;display:flex;gap:10px">
@@ -3856,7 +3855,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- BACKDROP (absolute dans frame) -->
-  <div class="ing-sheet-backdrop" id="ing-sheetBackdrop" onclick="ingCloseAllSheets()"></div>
+  <div class="ing-sheet-backdrop" id="ing-sheetBackdrop" data-voile onclick="ingCloseAllSheets()"></div>
 
   <!-- DETAIL PANEL -->
   <div class="ing-detail-panel" id="ing-detailPanel">
@@ -3985,7 +3984,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   </div>
 
   <!-- MERGE SHEET -->
-  <div class="ing-bottom-sheet" id="ing-mergeSheet">
+  <div class="ing-bottom-sheet" id="ing-mergeSheet" data-feuille="ing-sheetBackdrop">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Fusionner les ingrédients</span>
@@ -4010,7 +4009,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
   </div>
   <!-- RAYON SHEET (multi-sélection) -->
-  <div class="ing-bottom-sheet" id="ing-rayonSheet">
+  <div class="ing-bottom-sheet" id="ing-rayonSheet" data-feuille="ing-sheetBackdrop">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-rayon"></use></svg> Changer le rayon</span>
@@ -4024,7 +4023,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     </div>
   </div>
   <!-- SHEET CHANGER SAISON (multi-sélection) -->
-  <div class="ing-bottom-sheet" id="ing-saisonSheet">
+  <div class="ing-bottom-sheet" id="ing-saisonSheet" data-feuille="ing-sheetBackdrop">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <span class="sheet-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-season"></use></svg> Changer la saison</span>
@@ -7793,11 +7792,15 @@ document.addEventListener('keydown', e => {
 (function () {
   let depart = null, cible = null, defilant = null;
   document.addEventListener('touchstart', e => {
-    const feuille = e.target.closest && e.target.closest('.sheet');
+    const feuille = e.target.closest && e.target.closest('.sheet, [data-feuille]');
     if (!feuille) return;
-    const voile = feuille.closest('.sheet-overlay');
+    // Le voile est le parent pour une feuille du composant ; pour celles qui
+    // s'animent par transform, c'est un frere designe par data-feuille.
+    const voile = feuille.dataset.feuille
+      ? document.getElementById(feuille.dataset.feuille)
+      : feuille.closest('.sheet-overlay');
     if (!voile) return;
-    defilant = e.target.closest('[style*="overflow"], .sheet') || feuille;
+    defilant = e.target.closest('[style*="overflow"], .sheet, [data-feuille]') || feuille;
     if (defilant.scrollTop > 0) return;
     depart = e.touches[0].clientY; cible = voile;
   }, { passive: true });

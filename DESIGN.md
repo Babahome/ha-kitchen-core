@@ -174,6 +174,8 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - Le glissement ne démarre que si le contenu est **déjà en haut**, sinon on empêcherait de faire défiler la feuille.
 - **Une seule exception centrée, validée** : la **confirmation de suppression**. Une confirmation est faite pour arrêter net ; la coller en bas avec les formulaires la banaliserait. Elle n'est pas une feuille, donc elle porte `data-voile` pour garder tout de même le tap sur le voile et Échap. Tout formulaire, lui, est une feuille.
 - **Un voile sans `onclick` ne réagit à rien**, pas même à Échap : les deux gestes globaux simulent un clic dessus. Une nouvelle feuille porte donc toujours `onclick="if(event.target===this)fermer()"`.
+- **Quand le voile est un frère et non un parent** (feuille qui s'anime par `transform` au lieu d'apparaître), la feuille porte `data-feuille="<id du voile>"` et le voile `data-voile`. Les trois gestes marchent alors sans changer sa structure ni son animation.
+- **Poignée** : `.sheet` la dessine lui-même en `::before`. Les feuilles qui ne passent pas par le composant utilisent la classe `.sheet-handle`, et il n'y en a qu'une.
 
 **Carte** — `.card` : fond `--c-surface`, rayon `--r-md`, ombre `--shadow-1`, padding `--sp-4`.
 
