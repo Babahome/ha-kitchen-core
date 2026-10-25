@@ -153,7 +153,9 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 
 **Supprimer** — une seule apparence, sur toutes les pages :
 
-- **Dans une liste ou une carte** : `.btn-del`, fond transparent, pas de bordure, icône `delete-outline` en `--icon-md`, couleur `--c-text-3` au repos et `--c-danger` au survol ou à l'appui, `aria-label` « Supprimer ». **Pas de rouge permanent** : sur un écran dense, une action qui crie en rouge alors qu'elle n'est pas plus fréquente que les autres fatigue la lecture.
+- **Dans une liste ou une carte** : `.btn-del`, posé sur `.btn-icon--round`. Au repos, **rigoureusement le même bouton que le « + » de sa ligne** — rond, même diamètre, fond `--c-surface`, bordure 1 px `--c-border`, icône `delete-outline` en `--c-text-2`, `aria-label` « Supprimer ». **À l'appui seulement**, bordure et icône passent à `--c-danger` ; le fond ne se remplit pas, alors que le « + » et le « − » se remplissent en `--c-primary`. **Pas de rouge permanent** : sur un écran dense, une action qui crie en rouge alors qu'elle n'est pas plus fréquente que les autres fatigue la lecture.
+- **Une rangée d'actions = un seul composant.** `.btn-icon--round` porte toute l'apparence ; chaque rangée ne fixe que son diamètre via `--btn-round-size` (tuile Stock 20 px, carte Menu 24 px, ligne Courses 26 px, scanner 28 px), parce qu'une tuile serrée et une ligne de liste n'ont pas la même place. Aucun style propre à la poubelle en dehors de l'état appuyé.
+- Le bouton « … » fait exception et garde son fond plein `--c-primary-soft` sans bordure : il n'agit pas sur la ligne, il ouvre un menu.
 - **Dans une sheet ou un détail** : `.btn .btn--danger` avec un libellé explicite.
 - **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
 - **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
