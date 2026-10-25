@@ -160,6 +160,12 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 - **Place** : à droite de la ligne, **sauf** quand la poubelle remplace une autre commande (dans un sélecteur de quantité, elle prend la place du « moins » dès qu'on ne peut plus descendre). Là, c'est la même commande qui change de sens : la déplacer casserait le geste.
 - **La croix ne supprime jamais.** `close` ferme ou annule ; supprimer, c'est `delete-outline`.
 
+**Contrôles posés sur une photo** — `.hero-bar`, barre absolue en haut de l'image (le conteneur est en `position: relative`). Elle **ne prend aucune hauteur** : c'est tout son intérêt.
+- Lisibilité : dégradé `--c-scrim-dark` vers transparent. Il **fonce ce qu'il y a dessous**, donc le blanc reste lisible sur une photo claire comme sur le fond pâle d'un objet sans photo. Un dégradé trop léger ne suffit pas : mesuré à l'écran, à 45 % d'opacité les étoiles vides devenaient invisibles sur l'orange pâle.
+- `pointer-events: none` sur la barre et `auto` sur ses enfants : la photo dessous reste cliquable partout sauf sur les contrôles.
+- **`stopPropagation` obligatoire** quand la photo porte elle-même un `onclick` (ouvrir le sélecteur de fichier, zoomer…) : régler une note ne doit pas le déclencher.
+- Le `z-index` passe **au-dessus** des voiles de survol de la photo, sinon un appui recouvre les contrôles.
+
 **Vignette** — `.thumb`, le carré qui représente un objet ayant une photo : `--thumb-size` (40 px en liste, 64 px en carte avec `.thumb--lg`), rayon `--r-sm`, `object-fit: cover`, `loading="lazy"`.
 - Sans photo, **le même carré** en `--c-primary-soft` porte les **initiales** du nom, ou l'icône `silverware-fork-knife` quand il n'y a pas de nom. L'alignement des lignes est conservé dans les deux cas, et les initiales distinguent deux objets là où une icône générique ne distinguerait rien.
 - **Jamais d'emoji pour représenter un objet.** Un emoji nomme une catégorie (« un plat ») ; il ne dit pas *quelle* recette. Un emoji que l'utilisateur a lui-même choisi pour un rayon, un magasin ou une note libre reste une donnée et n'est pas concerné.
