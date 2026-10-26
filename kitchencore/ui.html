@@ -3104,6 +3104,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <div id="bk-result" style="display:none" class="bk-result"></div>
         </div>
 
+        <div class="bk-card">
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-merge"></use></svg> Unités des recettes</div>
+          <div class="bk-desc">Les recettes importées apportent leur propre écriture des unités
+            (« c.à.soupe », « cuillère à soupe », « tbsp »…). Cette liste montre ce qui est écrit
+            dans vos recettes et ce que ça deviendrait. <strong>Rien n'est modifié tant que vous
+            n'appuyez pas sur le bouton</strong> — et téléchargez d'abord une sauvegarde ci-dessus.</div>
+          <button class="btn btn--secondary btn--block" onclick="unVoir()">Voir mes unités</button>
+          <div id="un-liste" class="bk-file-summary" style="display:none"></div>
+          <button class="btn btn--primary btn--block" id="un-appliquer" style="display:none;margin-top:8px" onclick="unAppliquer()">Harmoniser</button>
+        </div>
+
       </div>
     </div>
 
@@ -7998,6 +8009,51 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ── Unités des recettes (BL-220) ─────────────────────────────────
+// On regarde d'abord, on agit ensuite, et jamais au démarrage : c'est une
+// écriture sur les recettes de Baptiste.
+async function unVoir() {
+  const div = document.getElementById('un-liste');
+  const btn = document.getElementById('un-appliquer');
+  div.style.display = 'block';
+  div.textContent = 'Lecture…';
+  try {
+    const l = await (await fetch('/api/unites/inventaire')).json();
+    if (!l.length) { div.textContent = 'Aucune unité utilisée dans vos recettes.'; btn.style.display = 'none'; return; }
+    const aChanger = l.filter(x => x.change);
+    const inconnues = l.filter(x => !x.connue);
+    let html = '<div style="font-weight:800;margin-bottom:6px">' + l.length + ' écriture(s) trouvée(s)</div>';
+    html += l.map(x => {
+      const n = x.n + '×';
+      if (x.change) return '<div>' + n + ' <strong>' + _escTexte(x.unite) + '</strong> → ' + _escTexte(x.canon) + '</div>';
+      if (!x.connue) return '<div style="color:var(--c-warning)">' + n + ' ' + _escTexte(x.unite) + ' — inconnue, laissée telle quelle</div>';
+      return '<div style="color:var(--c-text-3)">' + n + ' ' + _escTexte(x.unite) + '</div>';
+    }).join('');
+    if (inconnues.length) html += '<div style="margin-top:8px;color:var(--c-text-2)">Les unités inconnues ne sont jamais devinées : elles restent telles quelles.</div>';
+    div.innerHTML = html;
+    btn.style.display = aChanger.length ? '' : 'none';
+    btn.textContent = aChanger.length ? ('Harmoniser ' + aChanger.reduce((t, x) => t + x.n, 0) + ' ligne(s)') : 'Harmoniser';
+  } catch (e) { div.textContent = 'Erreur de lecture : ' + e.message; }
+}
+
+async function unAppliquer() {
+  const btn = document.getElementById('un-appliquer');
+  btn.disabled = true;
+  try {
+    const r = await (await fetch('/api/unites/normaliser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
+    if (r.error) throw new Error(r.error);
+    showToast(r.corrigees + ' ligne(s) harmonisée(s)', 'ok');
+    await unVoir();
+  } catch (e) { showToast('Erreur : ' + e.message, 'err'); }
+  btn.disabled = false;
+}
+
+// Echappement local : _escHtml appartient au module Ingredients, invisible
+// d'ici (meme piege qu'en BL-193 et BL-206).
+function _escTexte(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Vignette d'une recette (BL-206) : sa photo, sinon ses initiales, sinon
 // l'icone du couvert. Jamais son emoji, qui ne distingue pas deux recettes.
 // Les initiales sont reduites aux lettres et chiffres avant d'entrer dans le
@@ -8516,7 +8572,22 @@ let _chipsSig   = ''; // selection au dernier rendu des pastilles (voir renderCh
 let _searchOpen= false;
 
 let _allTags = [];
-const UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
+// Liste officielle des unites (BL-220). La vraie source est la table
+// `unites` cote serveur ; ce tableau n'est qu'un repli si l'appel echoue,
+// pour ne jamais laisser le champ sans suggestions. Il est rempli par
+// _unitesCharger() au demarrage.
+let UNITS = ['','g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet'];
+
+async function _unitesCharger() {
+  try {
+    const r = await fetch('/api/unites');
+    if (!r.ok) return;
+    const l = await r.json();
+    const labels = l.map(u => u.label).filter(Boolean);
+    if (labels.length) UNITS = ['', ...labels];
+  } catch (_) {}
+}
+_unitesCharger();
 
 let _eNote   = 0;
 let _eFavori = false;

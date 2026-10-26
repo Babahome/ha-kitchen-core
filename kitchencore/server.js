@@ -404,11 +404,64 @@ if (db.prepare('SELECT COUNT(*) as n FROM zones_stock').get().n === 0) {
   [['Frigo','🧊',0],['Freezer','❄️',1],['Placard','🚪',2]].forEach(([n,e,o]) => ins.run(n,e,o));
 }
 
+// ── Unités : une seule écriture par unité (BL-220) ───────────────────────
+// Le champ unité d'une ligne d'ingrédient est du texte libre, et rien
+// n'empêche deux écritures de la même unité. Les variantes viennent des
+// recettes IMPORTÉES (Mealie, JSON collé), qui apportent leur propre
+// orthographe. L'écriture officielle est celle que l'app utilise depuis le
+// début, en abréviations : c'est la liste amorcée dans `unites`.
+//
+// La clé de comparaison retire tout ce qui n'est ni lettre ni chiffre, donc
+// les points, les espaces et les apostrophes : « c.à.s », « c. à s. » et
+// « càs » donnent tous « cas ». norm() ayant déjà enlevé les accents, pas
+// besoin de lister les variantes accentuées.
+function normUnite(s) { return norm(s).replace(/[^a-z0-9]/g, ''); }
+
+const UNITE_SYNONYMES = {
+  'g':       ['gr', 'grs', 'gramme', 'grammes'],
+  'kg':      ['kilo', 'kilos', 'kilogramme', 'kilogrammes'],
+  'ml':      ['millilitre', 'millilitres'],
+  'cl':      ['centilitre', 'centilitres'],
+  'L':       ['l', 'litre', 'litres'],
+  'c.à.s':   ['cas', 'cs', 'c a s', 'c a soupe', 'cuillere a soupe', 'cuilleres a soupe',
+                'cuillere de soupe', 'cuillere soupe', 'cuilleres soupe', 'tbsp', 'tbs'],
+  'c.à.c':   ['cac', 'cc', 'c a c', 'c a cafe', 'cuillere a cafe', 'cuilleres a cafe',
+                'cuillere de cafe', 'cuillere cafe', 'cuilleres cafe', 'tsp'],
+  'pièce':   ['piece', 'pieces', 'pc', 'pcs', 'unite', 'unites'],
+  'pincée':  ['pincee', 'pincees'],
+  'bouquet': ['bouquets'],
+  'sachet':  ['sachets'],
+  'tranche': ['tranches'],
+  'gousse':  ['gousses'],
+  'brin':    ['brins'],
+  'boîte':   ['boite', 'boites', 'bte'],
+  'paquet':  ['paquets', 'pqt'],
+};
+
+const UNITES_CANON = Object.keys(UNITE_SYNONYMES);
+
+const _UNITE_INDEX = (() => {
+  const m = new Map();
+  for (const canon of UNITES_CANON) {
+    m.set(normUnite(canon), canon);
+    UNITE_SYNONYMES[canon].forEach(v => m.set(normUnite(v), canon));
+  }
+  return m;
+})();
+
+// Une unité inconnue n'est JAMAIS perdue ni devinée : on la rend telle
+// quelle, simplement débarrassée des espaces de bord. Déformer une recette
+// vaudrait bien pire qu'une unité mal écrite.
+function uniteCanon(u) {
+  const cle = normUnite(u);
+  if (!cle) return (u || '').trim();
+  return _UNITE_INDEX.get(cle) || String(u).trim();
+}
+
 // Seed unités de base si vide
 if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
   const ins = db.prepare('INSERT OR IGNORE INTO unites(label) VALUES(?)');
-  ['g','kg','ml','cl','L','pièce','c.à.c','c.à.s','pincée','bouquet','sachet','tranche','gousse','brin','boîte','paquet']
-    .forEach(u => ins.run(u));
+  UNITES_CANON.forEach(u => ins.run(u));
 }
 
 app.use(express.json({ limit: '50mb' }));
@@ -942,6 +995,54 @@ app.get('/api/mouvements', (_req, res) => {
 app.get('/api/unites', (_req, res) => {
   res.json(db.prepare('SELECT * FROM unites ORDER BY label').all());
 });
+// Inventaire des unités réellement écrites en base, avec leur nombre
+// d'utilisations et ce qu'elles deviendraient. NE MODIFIE RIEN : la fiche
+// demande que Baptiste valide la correspondance sur ses vraies données
+// avant qu'on y touche.
+app.get('/api/unites/inventaire', (_req, res) => {
+  try {
+    const lignes = db.prepare(`
+      SELECT unite, COUNT(*) AS n
+      FROM recette_ingredients
+      WHERE TRIM(COALESCE(unite,'')) <> ''
+      GROUP BY unite
+      ORDER BY n DESC, unite
+    `).all();
+    res.json(lignes.map(l => {
+      const canon = uniteCanon(l.unite);
+      return {
+        unite: l.unite,
+        n: l.n,
+        canon,
+        change: canon !== l.unite,
+        connue: _UNITE_INDEX.has(normUnite(l.unite)),
+      };
+    }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Applique la correspondance sur l'existant. Déclenché à la main depuis la
+// page Sauvegarde, jamais au démarrage : c'est une écriture sur les
+// recettes de Baptiste, elle doit être voulue.
+app.post('/api/unites/normaliser', (_req, res) => {
+  try {
+    const lignes = db.prepare(`
+      SELECT unite, COUNT(*) AS n FROM recette_ingredients
+      WHERE TRIM(COALESCE(unite,'')) <> '' GROUP BY unite
+    `).all();
+    const maj = db.prepare('UPDATE recette_ingredients SET unite=? WHERE unite=?');
+    const faits = [];
+    const tx = db.transaction(() => {
+      lignes.forEach(l => {
+        const canon = uniteCanon(l.unite);
+        if (canon !== l.unite) { maj.run(canon, l.unite); faits.push({ de: l.unite, vers: canon, n: l.n }); }
+      });
+    });
+    tx();
+    res.json({ ok: true, corrigees: faits.reduce((t, f) => t + f.n, 0), details: faits });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/unites', (req, res) => {
   const { label } = req.body;
   if (!label?.trim()) return res.status(400).json({ error: 'label requis' });
@@ -1047,7 +1148,10 @@ function saveIngredients(recetteId, ingredients) {
         }
       }
     }
-    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', ing.unite||'', ing.sous_recette_id||null, ing.note||'', ingredient_id||null);
+    // Point unique de normalisation (BL-220) : les trois appelants de cette
+    // fonction sont l'import Mealie, la création et la modification d'une
+    // recette, donc tout ce qui entre passe ici.
+    ins.run(recetteId, i, ing.type||'ingredient', ing.nom||'', ing.qty||'', uniteCanon(ing.unite), ing.sous_recette_id||null, ing.note||'', ingredient_id||null);
   });
 }
 
