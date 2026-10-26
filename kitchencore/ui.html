@@ -8028,17 +8028,49 @@ async function _photoReduireCorps(texte) {
   return sortie;
 }
 
+// URL de la vignette d'une photo. Le repli est fait par le serveur : si la
+// vignette n'existe pas (photo d'avant la v0.10.313), il sert la grande
+// image. On peut donc l'appeler partout sans filet côté navigateur.
+function _vignette(url) {
+  if (!url || typeof url !== 'string' || !url.startsWith('/photos/')) return url;
+  return url.replace(/\.[^.\/]+$/, '') + '.t.jpg';
+}
+
 (function () {
   const fetchOrigine = window.fetch.bind(window);
+
+  // Le serveur répond avec l'URL du fichier qu'il vient d'écrire : on y
+  // dépose la vignette dans la foulée. C'est le seul moment où l'on tient
+  // à la fois l'image d'origine et son nom définitif.
+  async function _deposerVignette(reponse, source) {
+    try {
+      const copie = reponse.clone();
+      const txt = await copie.text();
+      const m = txt.match(/\/photos\/([A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|webp|gif))/i);
+      if (!m) return;
+      const petite = await _photoReduire(source, PHOTO_VIGNETTE, 0.75);
+      if (petite === source) return;         // image minuscule : inutile
+      await fetchOrigine('/api/photos/vignette', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom: m[1], data: petite }),
+      });
+    } catch (_) {}                            // une vignette manquante n'est jamais bloquante
+  }
+
   window.fetch = async function (ressource, options) {
+    let source = null;
     try {
       const url = typeof ressource === 'string' ? ressource : (ressource && ressource.url) || '';
       const corps = options && options.body;
       if (typeof corps === 'string' && corps.includes('data:image/') && !PHOTO_ROUTES_EXCLUES.test(url)) {
+        const trouvees = corps.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g);
+        if (trouvees && trouvees.length === 1) source = trouvees[0];   // une seule photo : on sait laquelle
         options = { ...options, body: await _photoReduireCorps(corps) };
       }
     } catch (_) {}
-    return fetchOrigine(ressource, options);
+    const reponse = await fetchOrigine(ressource, options);
+    if (source && reponse.ok) _deposerVignette(reponse, source);       // sans attendre
+    return reponse;
   };
 })();
 
@@ -8143,7 +8175,7 @@ function _thumbRecette(r, cls) {
   // _escHtml appartient a la portee du module Ingredients : invisible depuis
   // une fonction globale (meme piege qu'en v0.10.280, BL-193). On echappe
   // donc l'URL sur place.
-  const src = String(r.photo).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const src = String(_vignette(r.photo)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   return '<div class="' + c + '"><img loading="lazy" decoding="async" src="' + src + '" alt="" loading="lazy"' +
          ' onerror="this.parentElement.textContent=\'' + ini + '\'"></div>';
 }
@@ -8814,7 +8846,7 @@ function renderList() {
     return `
     <div class="rcard" onclick="openDetail('${r.id}')">
       <div class="rcard-img">
-        ${r.photo?`<img loading="lazy" decoding="async" src="${r.photo}" onerror="this.style.display='none'">`:''}
+        ${r.photo?`<img loading="lazy" decoding="async" src="${_vignette(r.photo)}" onerror="this.style.display='none'">`:''}
         ${!r.photo?`<span class="rcard-initials">${initials}</span>`:''}
       </div>
       <div class="rcard-body">
@@ -10019,7 +10051,7 @@ function mBuild(scrollY){
       const photo=r.photo||(rvMatch&&rvMatch.photo)||null;
       const ini=r.n.trim().substring(0,2).toUpperCase();
       const thumbHtml=photo
-        ?`<div class="m-thumb"><img loading="lazy" decoding="async" src="${photo}" onerror="this.parentElement.innerHTML='<div class=\\'m-thumb-ini\\'>${ini}</div>'"></div>`
+        ?`<div class="m-thumb"><img loading="lazy" decoding="async" src="${_vignette(photo)}" onerror="this.parentElement.innerHTML='<div class=\\'m-thumb-ini\\'>${ini}</div>'"></div>`
         :rvMatch
           ?`<div class="m-thumb"><div class="m-thumb-ini">${ini}</div></div>`
           :`<div class="m-thumb"><div class="m-thumb-emo">${r.e||'🍽️'}</div></div>`;
@@ -10180,7 +10212,7 @@ function mSrch(v){
   const mkThumb=r=>{
     const ini=r.nom.trim().substring(0,2).toUpperCase();
     return r.photo
-      ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${r.photo}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+      ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${_vignette(r.photo)}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
       :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
   };
   w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}',${r.id})">

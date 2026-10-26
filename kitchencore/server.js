@@ -504,6 +504,41 @@ app.use((req, res, next) => {
   next();
 });
 
+// Vignette déposée par le navigateur juste après l'envoi d'une photo
+// (BL-221). Aucune bibliothèque d'image côté serveur : une dépendance de
+// plus au build Docker peut rendre l'add-on indémarrable, et le canvas du
+// navigateur fait le travail aussi bien.
+app.post('/api/photos/vignette', (req, res) => {
+  try {
+    const { nom, data } = req.body || {};
+    // `nom` vient du client : on ne garde que le nom de fichier, et
+    // seulement s'il ressemble à ce que nous écrivons nous-mêmes. Sans ça,
+    // un « ../ » suffirait à écrire n'importe où.
+    const base = path.basename(String(nom || ''));
+    if (!/^[A-Za-z0-9_.-]+\.(jpg|jpeg|png|webp|gif)$/i.test(base)) return res.status(400).json({ error: 'nom invalide' });
+    const m = String(data || '').match(/^data:image\/[a-zA-Z0-9.+-]+;base64,([\s\S]+)$/);
+    if (!m) return res.status(400).json({ error: 'image invalide' });
+    const cible = base.replace(/\.[^.]+$/, '') + '.t.jpg';
+    fs.writeFileSync(path.join(PHOTOS_DIR, cible), Buffer.from(m[1], 'base64'));
+    res.json({ ok: true, url: '/photos/' + cible });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Le repli est fait ICI, pas dans le navigateur : une vignette qui n'existe
+// pas sert la grande image. Le front peut donc demander la vignette partout
+// sans se soucier des photos d'avant cette version, et sans enchaîner un
+// onerror dans chacun des rendus.
+app.use('/photos', (req, res, next) => {
+  const m = req.path.match(/^\/(.+)\.t\.jpg$/i);
+  if (!m) return next();
+  if (fs.existsSync(path.join(PHOTOS_DIR, path.basename(req.path)))) return next();
+  for (const ext of ['jpg', 'jpeg', 'png', 'webp', 'gif']) {
+    const grande = path.basename(m[1]) + '.' + ext;
+    if (fs.existsSync(path.join(PHOTOS_DIR, grande))) { req.url = '/' + grande; return next(); }
+  }
+  next();
+});
+
 // Les photos ne changent jamais sous un nom donné : chaque envoi écrit un
 // fichier horodaté (`prod_12_1699….jpg`). Un cache d'un an est donc sûr et
 // ne peut pas rejouer le défaut BL-184 (photo qui ne se rafraîchit pas).
