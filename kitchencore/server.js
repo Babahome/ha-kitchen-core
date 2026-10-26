@@ -465,7 +465,49 @@ if (db.prepare('SELECT COUNT(*) as n FROM unites').get().n === 0) {
 }
 
 app.use(express.json({ limit: '50mb' }));
-app.use('/photos', express.static(PHOTOS_DIR));
+
+// ── Compression des réponses texte (BL-221) ─────────────────────────
+// Mesuré avant d'écrire une ligne : ui.html fait 741 Ko brut et 173 Ko
+// compressé (-77 %), et les réponses de l'API gagnent de 52 à 94 %. C'est
+// de loin le plus gros gain pour le moins de risque.
+// Pas de paquet `compression` ajouté : `zlib` est dans Node, et une
+// dépendance de plus veut dire un `npm install` de plus au build Docker,
+// dont l'échec rendrait l'add-on indémarrable.
+const zlib = require('zlib');
+const COMPRESS_MIN = 1024;   // en dessous, l'en-tête coûte plus que le gain
+
+app.use((req, res, next) => {
+  const accepte = String(req.headers['accept-encoding'] || '');
+  const algo = /\bbr\b/.test(accepte) ? 'br' : /\bgzip\b/.test(accepte) ? 'gzip' : null;
+  if (!algo) return next();
+  const envoi = res.send.bind(res);
+  res.send = (corps) => {
+    try {
+      // Seules les chaînes passent ici : du HTML ou du JSON. Les photos sont
+      // servies par express.static, qui n'utilise pas res.send — et elles
+      // sont déjà compressées de toute façon.
+      if (res.getHeader('Content-Encoding') || typeof corps !== 'string') return envoi(corps);
+      const brut = Buffer.from(corps, 'utf8');
+      if (brut.length < COMPRESS_MIN) return envoi(corps);
+      // On pose le type nous-mêmes : Express le devinerait à partir du Buffer
+      // compressé et annoncerait application/octet-stream.
+      if (!res.getHeader('Content-Type')) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      const zip = algo === 'br'
+        ? zlib.brotliCompressSync(brut, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } })
+        : zlib.gzipSync(brut, { level: 6 });
+      res.setHeader('Content-Encoding', algo);
+      res.setHeader('Vary', 'Accept-Encoding');
+      res.removeHeader('Content-Length');
+      return envoi(zip);
+    } catch (_) { return envoi(corps); }
+  };
+  next();
+});
+
+// Les photos ne changent jamais sous un nom donné : chaque envoi écrit un
+// fichier horodaté (`prod_12_1699….jpg`). Un cache d'un an est donc sûr et
+// ne peut pas rejouer le défaut BL-184 (photo qui ne se rafraîchit pas).
+app.use('/photos', express.static(PHOTOS_DIR, { maxAge: '365d', immutable: true }));
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

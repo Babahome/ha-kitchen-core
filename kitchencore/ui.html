@@ -3245,7 +3245,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
            onclick="ev3TriggerPhoto()"
            ontouchstart="this.classList.add('touching')"
            ontouchend="this.classList.remove('touching')">
-        <img id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
+        <img loading="lazy" decoding="async" id="ev3-hero-img" src="" style="display:none" onerror="this.style.display='none'">
         <div id="ev3-hero-placeholder" class="ev3-hero-placeholder"></div>
         <div class="ev3-hero-overlay">
           <span class="ev3-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
@@ -4284,7 +4284,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="ing-panel-section">
         <label class="ing-panel-label">Ingrédient associé (optionnel)</label>
         <div class="prod-row-ing">
-          <img id="stock-editIngImg" class="prod-ing-img" style="display:none" onerror="this.style.display='none'">
+          <img loading="lazy" decoding="async" id="stock-editIngImg" class="prod-ing-img" style="display:none" onerror="this.style.display='none'">
           <input class="ing-panel-input prod-ing-search" id="stock-editIngSearch" placeholder="Rechercher un ingrédient…" autocomplete="off" oninput="stockSearchIng(this.value)">
           <button class="prod-ing-add" onclick="pnpCreateIng('edit')" title="Créer cet ingrédient">+</button>
         </div>
@@ -4731,7 +4731,7 @@ function _stockCard(s) {
   const statusEmoji = ico('dot', 'icon-sm');   // la couleur vient de .prod-status
   const initiales = (s.produit_nom || s.ingredient_nom || '?').substring(0, 2).toUpperCase();
   const imgHtml = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'))
-    ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--c-text-3)\\'>${initiales}</div>'">`
+    ? `<img loading="lazy" decoding="async" src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.parentNode.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--c-text-3)\\'>${initiales}</div>'">`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--c-text-3)">${initiales}</div>`;
   const sel = _stockSelectedIds.has(s.produit_id);
   const cbHtml = `<div class="stock-checkbox${sel ? ' checked' : ''}" data-cb-id="${s.produit_id}" onclick="stockToggleCard(${s.produit_id},event)">${sel ? ico('check','icon-sm') : ''}</div>`;
@@ -4963,7 +4963,7 @@ function _stockOpenDetail(id) {
   const hero = document.getElementById('stock-detailHero');
   const hasPhoto = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'));
   hero.innerHTML = hasPhoto
-    ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    ? `<img loading="lazy" decoding="async" src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
        <span class="ing-panel-initials" style="display:none">${initials}</span>`
     : `<span class="ing-panel-initials">${initials}</span>`;
 
@@ -4978,7 +4978,7 @@ function _stockOpenDetail(id) {
     const ingHasPhoto = s.ingredient_icone && (s.ingredient_icone.startsWith('http') || s.ingredient_icone.startsWith('/'));
     document.getElementById('stock-detailIng').innerHTML =
       `<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="stockCloseDetail();setTimeout(()=>{ switchPage(null,'ingredients','Ingrédients'); window.__ingLoadData().then(()=>window.ingOpenDetailPanel(String(${s.ingredient_id}))); },150)">` +
-      (ingHasPhoto ? `<img src="${s.ingredient_icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : '') +
+      (ingHasPhoto ? `<img loading="lazy" decoding="async" src="${s.ingredient_icone}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">` : '') +
       `<span class="rayon-chip active" style="pointer-events:none">${s.ingredient_nom}</span>` +
       `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>` +
       `</div>`;
@@ -5167,7 +5167,7 @@ function _stockOpenEdit(id) {
   const hasPhoto = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'));
   const overlayLabel = hasPhoto ? 'Changer la photo' : 'Ajouter une photo';
   if (hasPhoto) {
-    hero.innerHTML = `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    hero.innerHTML = `<img loading="lazy" decoding="async" src="${s.icone}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <span class="ing-panel-initials" style="display:none">${initials}</span>
       <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
         <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
@@ -5370,7 +5370,7 @@ async function stockSearchIng(q) {
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}','${(i.icone||'').replace(/'/g,"\\'")}')">
       ${i.icone && (i.icone.startsWith('http') || i.icone.startsWith('/'))
-        ? `<img src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">`
+        ? `<img loading="lazy" decoding="async" src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">`
         : ''}${i.nom}
     </div>`
   ).join('');
@@ -5409,7 +5409,7 @@ function stockHandlePhotoFile(input) {
   const nom = document.getElementById('stock-editNom').value || '?';
   const initials = nom.slice(0, 2).toUpperCase();
   document.getElementById('stock-editHero').innerHTML =
-    `<img src="${url}" style="width:100%;height:100%;object-fit:cover">
+    `<img loading="lazy" decoding="async" src="${url}" style="width:100%;height:100%;object-fit:cover">
      <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
        <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
        <span>Changer la photo</span>
@@ -5537,7 +5537,7 @@ function _gpRender() {
     const statusColor = qty === 0 ? 'var(--c-danger)' : qty <= 1 ? 'var(--c-warning)' : 'var(--c-success)';
     const initiales = (s.produit_nom || s.ingredient_nom || '?').substring(0, 2).toUpperCase();
     const imgHtml = s.icone && (s.icone.startsWith('http') || s.icone.startsWith('/'))
-      ? `<img src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`
+      ? `<img loading="lazy" decoding="async" src="${s.icone}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`
       : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:var(--c-text-3)">${initiales}</div>`;
     return `<div onclick="_stockOpenDetail(${s.produit_id})" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-l);cursor:pointer">
       <div class="gp-thumb" style="width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--grey-l);flex-shrink:0">${imgHtml}</div>
@@ -6976,7 +6976,7 @@ function _renderScanList() {
   list.innerHTML = _scanList.map((item, idx) => {
     const photoSrc = item.photoOFF || (item.photo && (item.photo.startsWith('http') || item.photo.startsWith('/') || item.photo.startsWith('data:')) ? item.photo : null);
     const photoHtml = photoSrc
-      ? `<img src="${photoSrc}">`
+      ? `<img loading="lazy" decoding="async" src="${photoSrc}">`
       : ico('package','icon-lg');
 
     // En destination « courses » on ne crée aucun produit : on range par rayon, pas par zone
@@ -7405,7 +7405,7 @@ async function pnpSearchIng(q) {
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="pnpPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
-      ${i.icone && i.icone.startsWith('http') ? `<img src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">` : ''}${i.nom}
+      ${i.icone && i.icone.startsWith('http') ? `<img loading="lazy" decoding="async" src="${i.icone}" style="width:18px;height:18px;object-fit:cover;border-radius:3px;margin-right:6px;vertical-align:middle">` : ''}${i.nom}
     </div>`
   ).join('');
   box.style.display = 'block';
@@ -7616,7 +7616,7 @@ function clBuildMarchandTabs() {
     tabsEl.appendChild(tab);
     // — Panel —
     const logoHTML = m.image
-      ? `<img src="${m.image}" class="cl-logo">`
+      ? `<img loading="lazy" decoding="async" src="${m.image}" class="cl-logo">`
       : `<div class="cl-logo-ph">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
     const panel = document.createElement('div');
     panel.className = 'cl-marchand';
@@ -7660,7 +7660,7 @@ function clItemHTML(item) {
   const recIni = recipe ? (recipe.nom||'?').trim().slice(0,2).toUpperCase() : '';
   const recPhoto = recipe && recipe.photo && (recipe.photo.startsWith('http') || recipe.photo.startsWith('/') || recipe.photo.startsWith('data:'));
   const badgeContent = recPhoto
-    ? `<img src="${recipe.photo}" class="cl-cover" onerror="this.parentElement.textContent='${recIni}'">`
+    ? `<img loading="lazy" decoding="async" src="${recipe.photo}" class="cl-cover" onerror="this.parentElement.textContent='${recIni}'">`
     : recIni;
   const badge  = recipe
     ? `<div class="cl-recipe-badge" onclick="clShowBadge(event,'${item.recipeId}')">${badgeContent}</div>`
@@ -7668,7 +7668,7 @@ function clItemHTML(item) {
   const ini    = (item.n||'?').trim().slice(0,2).toUpperCase();
   const icone  = item.icone;
   const icoContent = (icone && (icone.startsWith('http') || icone.startsWith('/')))
-    ? `<img src="${icone}" class="cl-cover" onerror="this.parentNode.innerHTML='<span class=\\'cl-ini\\'>${ini}</span>'">`
+    ? `<img loading="lazy" decoding="async" src="${icone}" class="cl-cover" onerror="this.parentNode.innerHTML='<span class=\\'cl-ini\\'>${ini}</span>'">`
     : `<span class="cl-ini">${ini}</span>`;
   const isSel = _clSelected.has(item.id);
   return `<div class="cl-item${item.done?' done':''}${isSel?' sel-checked':''}" id="cli-${item.id}" ${_clSelMode?`onclick="clToggleSel('${item.id}')"`:''}>
@@ -7702,7 +7702,7 @@ function clRenderAll(byM) {
     const items = byM[k]||[]; if(!items.length) return;
     const n = items.filter(i=>!i.done).length;
     const icoHTML = m.image
-      ? `<img src="${m.image}" class="cl-sec-ico">`
+      ? `<img loading="lazy" decoding="async" src="${m.image}" class="cl-sec-ico">`
       : `<span class="cl-ini accent">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</span>`;
     h += `<div class="cl-sec-hd">
       ${icoHTML}
@@ -7747,7 +7747,7 @@ function clRecipesSectionHTML() {
     const chips = items.map(i=>`<span class="cl-rl-chip${i.done?' done':''}">${i.n}</span>`).join('');
     const rIni  = (rec.nom||'?').trim().slice(0,2).toUpperCase();
     const rIco  = (rec.photo && (rec.photo.startsWith('http') || rec.photo.startsWith('/') || rec.photo.startsWith('data:')))
-      ? `<img src="${rec.photo}" class="cl-cover" onerror="this.parentElement.innerHTML='<span class=\\'cl-ini on-primary\\'>${rIni}</span>'">`
+      ? `<img loading="lazy" decoding="async" src="${rec.photo}" class="cl-cover" onerror="this.parentElement.innerHTML='<span class=\\'cl-ini on-primary\\'>${rIni}</span>'">`
       : `<span class="cl-ini on-primary">${rIni}</span>`;
     return `<div class="cl-rl-card">
       <div class="cl-rl-top">
@@ -8069,7 +8069,7 @@ function _thumbRecette(r, cls) {
   // une fonction globale (meme piege qu'en v0.10.280, BL-193). On echappe
   // donc l'URL sur place.
   const src = String(r.photo).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-  return '<div class="' + c + '"><img src="' + src + '" alt="" loading="lazy"' +
+  return '<div class="' + c + '"><img loading="lazy" decoding="async" src="' + src + '" alt="" loading="lazy"' +
          ' onerror="this.parentElement.textContent=\'' + ini + '\'"></div>';
 }
 
@@ -8140,7 +8140,7 @@ function clShowSuggestions(items, q) {
     const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
     const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
     const avatar = isUrl
-      ? `<img src="${it.icone}" class="cl-cover round" onerror="this.parentNode.innerHTML='<span class=\\'cl-ini\\'>${ini}</span>'">`
+      ? `<img loading="lazy" decoding="async" src="${it.icone}" class="cl-cover round" onerror="this.parentNode.innerHTML='<span class=\\'cl-ini\\'>${ini}</span>'">`
       : `<span class="cl-ini">${ini}</span>`;
     return `<div class="cl-suggest-item" onclick="clPickSuggestionIdx(${idx})">
       <div class="cl-suggest-av">${avatar}</div>
@@ -8438,7 +8438,7 @@ function clOpenMmodalBulk() {
   document.getElementById('cl-mopts').innerHTML = _clMarchands.map(m => {
     const k = String(m.id);
     const logoHTML = m.image
-      ? `<img src="${m.image}" class="cl-mlogo">`
+      ? `<img loading="lazy" decoding="async" src="${m.image}" class="cl-mlogo">`
       : `<div class="cl-mlogo-ph">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
     return `<div class="cl-mopt" onclick="clSetMarchandBulk('${k}')">
       <div class="cl-mopt-ico">${logoHTML}</div>
@@ -8468,7 +8468,7 @@ function clOpenMmodal(id) {
     const k = String(m.id);
     const sel = String(item.m)===k;
     const logoHTML = m.image
-      ? `<img src="${m.image}" class="cl-mlogo">`
+      ? `<img loading="lazy" decoding="async" src="${m.image}" class="cl-mlogo">`
       : `<div class="cl-mlogo-ph">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</div>`;
     const searchUrl = m.search_url ? m.search_url.replace('{q}', encodeURIComponent(item.n)) : null;
     return `<div class="cl-mopt${sel?' sel':''}" onclick="clSetMarchand('${id}','${k}')">
@@ -8710,7 +8710,7 @@ function _rvStepThumb(name, iconMap) {
   const isUrl = icone && (icone.startsWith('http') || icone.startsWith('/') || icone.startsWith('data:'));
   const initials = (name || '?').trim().slice(0, 2).toUpperCase();
   return isUrl
-    ? `<div class="d-step-thumb"><img src="${icone}" onerror="this.parentElement.textContent='${initials}'"></div>`
+    ? `<div class="d-step-thumb"><img loading="lazy" decoding="async" src="${icone}" onerror="this.parentElement.textContent='${initials}'"></div>`
     : `<div class="d-step-thumb">${initials}</div>`;
 }
 
@@ -8739,7 +8739,7 @@ function renderList() {
     return `
     <div class="rcard" onclick="openDetail('${r.id}')">
       <div class="rcard-img">
-        ${r.photo?`<img src="${r.photo}" onerror="this.style.display='none'">`:''}
+        ${r.photo?`<img loading="lazy" decoding="async" src="${r.photo}" onerror="this.style.display='none'">`:''}
         ${!r.photo?`<span class="rcard-initials">${initials}</span>`:''}
       </div>
       <div class="rcard-body">
@@ -8917,13 +8917,13 @@ async function openDetail(id) {
       subRecId = subRec?.id || null;
       const subIni = (i.nom||'?').slice(0,2).toUpperCase();
       photoHtml = subRec?.photo
-        ? `<div class="d-ingr-photo sub"><img src="${subRec.photo}" onerror="this.parentNode.textContent='${subIni}'"></div>`
+        ? `<div class="d-ingr-photo sub"><img loading="lazy" decoding="async" src="${subRec.photo}" onerror="this.parentNode.textContent='${subIni}'"></div>`
         : `<div class="d-ingr-photo sub">${subIni}</div>`;
     } else {
       const icone = i.ingredient_icone;
       const isUrl = icone && (icone.startsWith('http') || icone.startsWith('/'));
       photoHtml = isUrl
-        ? `<div class="d-ingr-photo"><img src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
+        ? `<div class="d-ingr-photo"><img loading="lazy" decoding="async" src="${icone}" onerror="this.parentNode.textContent='${(i.nom||'?').slice(0,2).toUpperCase()}'"></div>`
         : `<div class="d-ingr-photo">${(i.nom||'?').slice(0,2).toUpperCase()}</div>`;
     }
     const qtyNum = parseFloat(i.qty);
@@ -8976,7 +8976,7 @@ async function openDetail(id) {
   document.getElementById('detail-body').innerHTML = `
     <div class="d-hero">
       ${r.photo
-        ? `<img src="${r.photo}" onerror="this.style.display='none'">`
+        ? `<img loading="lazy" decoding="async" src="${r.photo}" onerror="this.style.display='none'">`
         : `<span class="rcard-initials d-hero-initials">${initials}</span>`}
       <div class="hero-bar">
         <div class="d-stars">${stars}</div>
@@ -9329,7 +9329,7 @@ function _ev3IngThumbHtml(x){
   const ic  = (ing && ing.icone) || (!ing && row.ingredient_icone) || '';
   const isUrl = ic && (ic.startsWith('http') || ic.startsWith('/'));
   if(!n) return `<div class="ev3-ith" id="ev3-ith-${x}"></div>`;
-  if(isUrl) return `<div class="ev3-ith" id="ev3-ith-${x}" title="${ev3Esc(ing?ing.nom:n)}"><img src="${ev3Esc(ic)}" onerror="this.parentElement.textContent='${ini}'"></div>`;
+  if(isUrl) return `<div class="ev3-ith" id="ev3-ith-${x}" title="${ev3Esc(ing?ing.nom:n)}"><img loading="lazy" decoding="async" src="${ev3Esc(ic)}" onerror="this.parentElement.textContent='${ini}'"></div>`;
   if(ing)   return `<div class="ev3-ith" id="ev3-ith-${x}" title="${ev3Esc(ing.nom)}">${ini}</div>`;
   // Catalogue non chargé (erreur réseau) : pas de badge « nouveau », on ne sait rien
   if(!_evIngs.length) return `<div class="ev3-ith" id="ev3-ith-${x}">${ini}</div>`;
@@ -9352,7 +9352,7 @@ function renderIngrs() {
       const subPhoto = matchedRec?.photo;
       const subIni = (i.nom||'?').slice(0,2).toUpperCase();
       const subThumb = subPhoto
-        ? `<img src="${subPhoto}" class="ev3-sub-thumb" onerror="this.style.display='none'">`
+        ? `<img loading="lazy" decoding="async" src="${subPhoto}" class="ev3-sub-thumb" onerror="this.style.display='none'">`
         : `<div style="width:28px;height:28px;border-radius:6px;background:var(--c-info-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--c-info)">${subIni}</div>`;
       // Miniature ingrédient normal (image catalogue / initiales / « + » si inconnu)
       const ingThumb = _ev3IngThumbHtml(x);
@@ -9670,7 +9670,7 @@ async function rvMealieLoad() {
       <div class="rv-mealie-card" id="rv-mc-${item.slug}">
         <div class="rv-mealie-card-img">
           ${item.photo
-            ? `<img src="${item.photo}" onerror="this.style.display='none'">`
+            ? `<img loading="lazy" decoding="async" src="${item.photo}" onerror="this.style.display='none'">`
             : `<span>🍽️</span>`}
         </div>
         <div class="rv-mealie-card-info">
@@ -9944,7 +9944,7 @@ function mBuild(scrollY){
       const photo=r.photo||(rvMatch&&rvMatch.photo)||null;
       const ini=r.n.trim().substring(0,2).toUpperCase();
       const thumbHtml=photo
-        ?`<div class="m-thumb"><img src="${photo}" onerror="this.parentElement.innerHTML='<div class=\\'m-thumb-ini\\'>${ini}</div>'"></div>`
+        ?`<div class="m-thumb"><img loading="lazy" decoding="async" src="${photo}" onerror="this.parentElement.innerHTML='<div class=\\'m-thumb-ini\\'>${ini}</div>'"></div>`
         :rvMatch
           ?`<div class="m-thumb"><div class="m-thumb-ini">${ini}</div></div>`
           :`<div class="m-thumb"><div class="m-thumb-emo">${r.e||'🍽️'}</div></div>`;
@@ -9985,7 +9985,7 @@ function mBuild(scrollY){
           const ingId = it.ingredient_id || '';
           const dlcFmt = it.dlc.split('-').reverse().slice(0,2).join('/');
           const inner = (icone && (icone.startsWith('http') || icone.startsWith('/')))
-            ? `<img src="${icone}" onerror="this.parentElement.innerHTML='<div class=\\'m-dlc-ini\\'>${ini}</div>'">`
+            ? `<img loading="lazy" decoding="async" src="${icone}" onerror="this.parentElement.innerHTML='<div class=\\'m-dlc-ini\\'>${ini}</div>'">`
             : `<div class="m-dlc-ini">${ini}</div>`;
           return `<button class="m-dlc-btn" title="${nom} — périme le ${dlcFmt}" onclick="mOpenExpiringIng(${ingId||'null'},'${nom.replace(/'/g,"\\'")}')">` + inner + `</button>`;
         }).join('')}</div>`
@@ -10105,7 +10105,7 @@ function mSrch(v){
   const mkThumb=r=>{
     const ini=r.nom.trim().substring(0,2).toUpperCase();
     return r.photo
-      ?`<div class="m-si2-th"><img src="${r.photo}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+      ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${r.photo}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
       :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
   };
   w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}',${r.id})">
@@ -10126,7 +10126,7 @@ async function mSrchIng(v, w){
         const ini=(it.nom||'?').trim().slice(0,2).toUpperCase();
         const isUrl=it.icone&&(it.icone.startsWith('http')||it.icone.startsWith('/'));
         const thumb=isUrl
-          ?`<div class="m-si2-th"><img src="${it.icone}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+          ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${it.icone}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
           :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
         const nomE=it.nom.replace(/'/g,"\\'"); const iconeE=(it.icone||'').replace(/'/g,"\\'");
         return `<div class="m-si2" onclick="mPkIng('${nomE}','${iconeE}')">
@@ -10556,7 +10556,7 @@ function mFreeIngRenderList(items){
     for(const [nom, it] of _mFreeSelected){
       const ini = nom.trim().slice(0,2).toUpperCase();
       const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
-      const avatar = isUrl ? `<img src="${it.icone}" onerror="this.parentNode.innerHTML='<span class=\\'m-ing-ini\\'>${ini}</span>'">` : `<span class="m-ing-ini">${ini}</span>`;
+      const avatar = isUrl ? `<img loading="lazy" decoding="async" src="${it.icone}" onerror="this.parentNode.innerHTML='<span class=\\'m-ing-ini\\'>${ini}</span>'">` : `<span class="m-ing-ini">${ini}</span>`;
       const nomJ = JSON.stringify(nom);
       html += `<div class="m-ing-row">
         <div class="m-ing-check on" onclick="mFreeIngToggle(${nomJ})">${ico('check','icon-sm')}</div>
@@ -10572,7 +10572,7 @@ function mFreeIngRenderList(items){
     filtered.forEach(it=>{
       const ini = (it.nom||'?').trim().slice(0,2).toUpperCase();
       const isUrl = it.icone && (it.icone.startsWith('http')||it.icone.startsWith('/'));
-      const avatar = isUrl ? `<img src="${it.icone}" onerror="this.parentNode.innerHTML='<span class=\\'m-ing-ini\\'>${ini}</span>'">` : `<span class="m-ing-ini">${ini}</span>`;
+      const avatar = isUrl ? `<img loading="lazy" decoding="async" src="${it.icone}" onerror="this.parentNode.innerHTML='<span class=\\'m-ing-ini\\'>${ini}</span>'">` : `<span class="m-ing-ini">${ini}</span>`;
       const nomJ = JSON.stringify(it.nom); const rayonJ = JSON.stringify(it.rayon_nom||''); const iconeJ = JSON.stringify(it.icone||'');
       html += `<div class="m-ing-row">
         <div class="m-ing-check" onclick="mFreeIngToggle(${nomJ},${rayonJ},${iconeJ})">✓</div>
@@ -11072,7 +11072,7 @@ function _ingRenderCard(ing, i, depth) {
   const hasImage = !!effImg.url;
   const initials = (ing.name || '?').slice(0, 2);
   const avatarContent = hasImage
-    ? `<img src="${effImg.url}" draggable="false" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img loading="lazy" decoding="async" src="${effImg.url}" draggable="false" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
       + `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#7a8694">${initials}</span>`
     : initials;
   const depthClass = depth > 0 ? ` ing-depth-${Math.min(depth,3)}` : '';
@@ -11277,7 +11277,7 @@ function _ingDupAvatarInner(ing) {
   const img = _ingGetEffectiveImage(ing).url;
   const emo = (ing.emoji || '🍽').replace(/'/g, '');
   return img
-    ? `<img src="${img.replace(/"/g,'&quot;')}" alt="" onerror="this.parentElement.textContent='${emo}'">`
+    ? `<img loading="lazy" decoding="async" src="${img.replace(/"/g,'&quot;')}" alt="" onerror="this.parentElement.textContent='${emo}'">`
     : emo;
 }
 
@@ -11613,7 +11613,7 @@ function _ingOpenDetailPanel(id) {
 
   const hero = document.getElementById('ing-detailHero');
   hero.innerHTML = ing.imageUrl
-    ? `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    ? `<img loading="lazy" decoding="async" src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
        <span class="ing-panel-initials" style="display:none">${initials}</span>`
     : `<span class="ing-panel-initials">${initials}</span>`;
 
@@ -11984,7 +11984,7 @@ function _ingOpenEditPanel(id, e) {
   const hero = document.getElementById('ing-editHero');
   const overlayText = document.getElementById('ing-editHeroOverlayText');
   if (ing.imageUrl) {
-    hero.innerHTML = `<img src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    hero.innerHTML = `<img loading="lazy" decoding="async" src="${ing.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <span class="ing-panel-initials" style="display:none">${initials}</span>
       <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
         <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
@@ -12206,7 +12206,7 @@ function _ingSetPendingPhoto(file) {
     const ing = _ingAll.find(i => i.id === _ingEditingId);
     const initials = ing ? (ing.name || '?').slice(0, 2) : '??';
     const hero = document.getElementById('ing-editHero');
-    hero.innerHTML = `<img src="${e.target.result}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    hero.innerHTML = `<img loading="lazy" decoding="async" src="${e.target.result}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <span class="ing-panel-initials" style="display:none">${initials}</span>
       <div class="ing-panel-hero-overlay" onclick="ingTriggerImageUpload()">
         <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
@@ -12253,7 +12253,7 @@ function _ingOpenMergeSheet() {
   document.getElementById('ing-mergeNameOptions').innerHTML = items.map(i => {
     const ini = (i.name || '?').slice(0, 2).toUpperCase();
     const avatar = i.imageUrl
-      ? `<div class="name-option-avatar"><img src="${i.imageUrl}" onerror="this.style.display='none';this.insertAdjacentText('afterend','${ini.replace(/'/g,"\\'")}')"></div>`
+      ? `<div class="name-option-avatar"><img loading="lazy" decoding="async" src="${i.imageUrl}" onerror="this.style.display='none';this.insertAdjacentText('afterend','${ini.replace(/'/g,"\\'")}')"></div>`
       : `<div class="name-option-avatar">${ini}</div>`;
     return `<div class="name-option" onclick="ingSelectMergeName(this)" data-name="${i.name.replace(/"/g, '&quot;')}">
       ${avatar}
@@ -12803,7 +12803,7 @@ const _ryCollapsed = new Set();
 function _ryCardHTML(r, level, hasChildren, collapsed) {
   const cls = level===0 ? 'ry-card' : level===1 ? 'ry-card child' : 'ry-card grandchild';
   const img = r.icone
-    ? `<div class="ry-img"><img src="${r.icone}" alt=""></div>`
+    ? `<div class="ry-img"><img loading="lazy" decoding="async" src="${r.icone}" alt=""></div>`
     : `<div class="ry-img">${r.emoji || '📦'}</div>`;
   const collapseBtn = (level===0 && hasChildren)
     ? `<button class="ry-btn" onclick="event.stopPropagation();_ryToggleCollapse(${r.id})" aria-label="Déplier">${collapsed?ico('chevron-right','icon-sm'):ico('chevron-down','icon-sm')}</button>`
@@ -13153,7 +13153,7 @@ function _ryUpdateImgPreview() {
   const btn     = document.getElementById('ry-img-remove');
   const src = _ryImg || _ryImgUrl;
   if (src) {
-    preview.innerHTML = `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+    preview.innerHTML = `<img loading="lazy" decoding="async" src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
     btn.style.display = 'block';
   } else {
     preview.innerHTML = ico('package','icon-lg');
@@ -13378,21 +13378,21 @@ function _mchToggleRayonGroup(mId, rId) {
 function _mchRenderRayon(mId, r, isChild, extra='') {
   return `<div class="mch-rayon-row${isChild ? ' mch-rayon-row-child' : ''}" data-rayon-id="${r.id}" data-marchand-id="${mId}">
     <div class="mch-rayon-handle">⠿</div>
-    <div class="mch-rayon-emoji">${r.icone ? `<img src="${r.icone}" style="width:${isChild?22:28}px;height:${isChild?22:28}px;object-fit:cover;border-radius:6px">` : (r.emoji || '📦')}</div>
+    <div class="mch-rayon-emoji">${r.icone ? `<img loading="lazy" decoding="async" src="${r.icone}" style="width:${isChild?22:28}px;height:${isChild?22:28}px;object-fit:cover;border-radius:6px">` : (r.emoji || '📦')}</div>
     <div class="mch-rayon-nom">${_mchEscH(r.nom)}</div>
     ${extra}
   </div>`;
 }
 
 function _mchLogoHTML(m) {
-  if (m.image) return `<img src="${m.image}" alt="${_mchEscH(m.nom)}">`;
+  if (m.image) return `<img loading="lazy" decoding="async" src="${m.image}" alt="${_mchEscH(m.nom)}">`;
   const initials = m.nom.trim().slice(0,2).toUpperCase();
   return `<span style="font-size:.9rem;font-weight:900;color:var(--orange)">${initials}</span>`;
 }
 
 function _rayonIcon(r, size=22) {
   if (!r) return '';
-  if (r.icone) return `<img src="${r.icone}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;vertical-align:middle">`;
+  if (r.icone) return `<img loading="lazy" decoding="async" src="${r.icone}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;vertical-align:middle">`;
   return r.emoji || '📦';
 }
 
@@ -13448,7 +13448,7 @@ function _mchUpdateImagePreview() {
   const preview   = document.getElementById('mch-img-preview');
   const removeBtn = document.getElementById('mch-img-remove');
   if (_mchCurrentImage) {
-    preview.innerHTML = `<img src="${_mchCurrentImage}" alt="aperçu">`;
+    preview.innerHTML = `<img loading="lazy" decoding="async" src="${_mchCurrentImage}" alt="aperçu">`;
     removeBtn.style.display = 'block';
   } else {
     preview.innerHTML = ico('shop','icon-lg');
@@ -13484,7 +13484,7 @@ function _mchRayUpdateImagePreview() {
   const removeBtn = document.getElementById('mch-ray-img-remove');
   const src = _mchRayCurrentImage || _mchRayCurrentImageUrl;
   if (src) {
-    preview.innerHTML = `<img src="${src}" alt="aperçu" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+    preview.innerHTML = `<img loading="lazy" decoding="async" src="${src}" alt="aperçu" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
     removeBtn.style.display = 'block';
   } else {
     preview.innerHTML = ico('package','icon-lg');
