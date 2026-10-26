@@ -146,6 +146,9 @@
 .sheet-overlay.on, .sheet-overlay.open { display: flex; }
 
 .sheet {
+  /* Le defilement d'une liste interne ne remonte ni a la feuille ni a la
+     page derriere (BL-214). */
+  overscroll-behavior: contain;
   background: var(--c-surface);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   max-height: 88%;
@@ -847,8 +850,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .cl-fab-search-input.expanded, .st-fab-search-input.expanded { width: 160px; margin-left: var(--sp-2); }
 .search-fab-input::placeholder, .fab-search-input::placeholder,
 .cl-fab-search-input::placeholder, .st-fab-search-input::placeholder { color: var(--c-text-3); }
-/* type="search" sur les champs de recherche (BL-23) : on neutralise le style
-   natif et la croix d'effacement pour que l'apparence reste identique. */
+/* type="search" : on neutralise le style natif et la croix d'effacement
+   pour que l'apparence reste identique (BL-23). La regle vaut pour TOUT
+   champ de recherche, pas seulement les six d'origine : depuis BL-213 un
+   champ peut en devenir un sans qu'on y pense (BL-213). */
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
 .fab-search-input, .cl-fab-search-input, .st-fab-search-input,
 .ing-fab-search-input, .m-free-ing-input, .rv-tag-search { -webkit-appearance:none; appearance:none; }
 .fab-search-input::-webkit-search-cancel-button,
@@ -1937,7 +1945,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-ing-head   { padding:14px 20px 12px;border-bottom:1px solid var(--grey);flex-shrink:0; }
 .m-ing-title  { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text); }
 .m-ing-sub    { font-size:var(--fs-sm);color:var(--grey-d);margin-top:3px; }
-.m-ing-list   { flex:1;overflow-y:auto;padding:8px 0; }
+.m-ing-list   { flex:1;overflow-y:auto;overscroll-behavior:contain;padding:8px 0; }
 .m-ing-list::-webkit-scrollbar { display:none; }
 .m-ing-recipe { padding:10px 20px 4px;font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--orange);text-transform:uppercase;letter-spacing:.06em; }
 .m-ing-row    { display:flex;align-items:center;padding:10px 20px;gap:12px; }
@@ -3321,7 +3329,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
         <button class="m-tb" data-t="a" onclick="mTyp(this)"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-other"></use></svg> Autre</button>
       </div>
       <div class="m-sr">
-        <input class="m-si" id="m-si" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
+        <input class="m-si" id="m-si" type="search" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
       </div>
       <div class="m-sg" id="m-sg"></div>
       <div class="m-actrow">
@@ -7892,6 +7900,22 @@ document.addEventListener('keydown', e => {
 // deja en haut, sinon on empecherait de faire defiler la feuille.
 (function () {
   let depart = null, cible = null, defilant = null;
+
+  // Remonte depuis le point touche jusqu'a la feuille et renvoie la premiere
+  // zone qui defile vraiment (contenu plus haut que sa boite ET overflow
+  // scrollable). null si le doigt s'est pose sur l'en-tete, la poignee ou
+  // le pied, ou l'on veut bien fermer d'un glissement.
+  const _feuilleZoneDefilante = (cible, feuille) => {
+    let el = cible;
+    while (el && el !== feuille && el.nodeType === 1) {
+      if (el.scrollHeight > el.clientHeight + 1) {
+        const ov = getComputedStyle(el).overflowY;
+        if (ov === 'auto' || ov === 'scroll') return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  };
   document.addEventListener('touchstart', e => {
     const feuille = e.target.closest && e.target.closest('.sheet, [data-feuille]');
     if (!feuille) return;
@@ -7901,7 +7925,14 @@ document.addEventListener('keydown', e => {
       ? document.getElementById(feuille.dataset.feuille)
       : feuille.closest('.sheet-overlay');
     if (!voile) return;
-    defilant = e.target.closest('[style*="overflow"], .sheet, [data-feuille]') || feuille;
+    // Le doigt se pose dans une zone qui defile : c'est un defilement, pas
+    // un geste de fermeture. On n'arme rien, quelle que soit la position
+    // dans la liste (BL-214). Chercher la zone par closest('[style*=...]')
+    // ne marchait pas : .m-ing-list defile par une regle CSS, pas par un
+    // attribut style=, donc la recherche remontait jusqu'a .sheet dont le
+    // scrollTop vaut toujours 0.
+    if (_feuilleZoneDefilante(e.target, feuille)) return;
+    defilant = feuille;
     if (defilant.scrollTop > 0) return;
     depart = e.touches[0].clientY; cible = voile;
   }, { passive: true });
@@ -7919,6 +7950,48 @@ document.addEventListener('keydown', e => {
     depart = null; cible = null; defilant = null;
   }, { passive: true });
 })();
+
+// Clavier en mode mot de passe (BL-213, suite de BL-23). Chrome et le
+// clavier Samsung devinent « champ de connexion » sur n'importe quel champ
+// texte et ouvrent leur bandeau de mots de passe ; autocomplete="off" seul
+// ne suffit pas. On coupe tous les signaux d'un coup, et EN UN SEUL
+// ENDROIT : modifier les 25 balises une par une laisserait de cote tous les
+// champs construits en JS par innerHTML.
+const _CHAMPS_SIGNAUX = {
+  autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off',
+  spellcheck: 'false', 'data-lpignore': 'true', 'data-1p-ignore': '',
+  'data-bwignore': 'true', 'data-form-type': 'other',
+};
+const _CHAMPS_IGNORES = ['file', 'hidden', 'radio', 'checkbox', 'range',
+                         'date', 'color', 'submit', 'button', 'image'];
+
+// Les <textarea> sont volontairement laisses de cote : le bandeau ne les
+// vise pas, et leur retirer la correction orthographique generait la saisie
+// des recettes.
+function _kcMarquerChamps(racine) {
+  if (!racine || racine.nodeType !== 1 && racine.nodeType !== 9) return;
+  const champs = (racine.matches && racine.matches('input')) ? [racine]
+               : (racine.querySelectorAll ? racine.querySelectorAll('input') : []);
+  champs.forEach(ch => {
+    if (ch.dataset.kcSignaux) return;
+    if (_CHAMPS_IGNORES.includes((ch.getAttribute('type') || 'text').toLowerCase())) return;
+    ch.dataset.kcSignaux = '1';
+    for (const cle in _CHAMPS_SIGNAUX) ch.setAttribute(cle, _CHAMPS_SIGNAUX[cle]);
+    // Sans `name`, le gestionnaire devine d'apres le placeholder : on lui
+    // donne un nom neutre qui ne ressemble a aucun champ de connexion.
+    if (!ch.getAttribute('name')) ch.setAttribute('name', 'kc-' + (ch.id || 'champ'));
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  _kcMarquerChamps(document);
+  const cadre = document.querySelector('.frame');
+  if (cadre && window.MutationObserver) {
+    new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(n => _kcMarquerChamps(n)));
+    }).observe(cadre, { childList: true, subtree: true });
+  }
+});
 
 // Vignette d'une recette (BL-206) : sa photo, sinon ses initiales, sinon
 // l'icone du couvert. Jamais son emoji, qui ne distingue pas deux recettes.
