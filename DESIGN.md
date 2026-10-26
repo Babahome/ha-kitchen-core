@@ -213,6 +213,7 @@ On ne crée pas de nouvelle classe de bouton, de modale ou de carte par page. On
 6. Cibles tactiles : 44 × 44 px minimum, 8 px entre deux cibles.
 7. Libellés : verbes d'action (« Ajouter au stock »), pas « OK ».
 8. Couleur jamais seule : un statut a aussi une icône ou un texte.
+9. **Pastille de filtre** : son contenu est son texte, et rien d'autre. **Pas de coche, et surtout pas de place réservée pour une coche** — un creux vide sur chaque pastille se voit plus que la coche elle-même. L'état choisi se lit à l'orange, et la pastille **ne change pas de taille** en passant de l'un à l'autre, donc rien ne se décale. Exception à la règle 8 assumée : ici la couleur est seule, parce que la pastille garde son libellé et que le choix vient d'être fait par l'utilisateur lui-même.
 
 ## 6. Règles de code
 
