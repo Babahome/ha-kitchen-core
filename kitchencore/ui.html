@@ -2733,6 +2733,15 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <button class="btn btn--primary btn--block" id="un-appliquer" style="display:none;margin-top:8px" onclick="unAppliquer()">Harmoniser</button>
         </div>
 
+        <div class="bk-card" id="sw-card" style="display:none">
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Cache hors-ligne</div>
+          <div class="bk-desc">Les photos déjà vues s'affichent sans réseau, ce qui rend la
+            deuxième ouverture beaucoup plus rapide en 4G. Le reste (vos données, la page)
+            passe toujours par le réseau quand il répond. <strong>Si l'application se comporte
+            bizarrement après une mise à jour</strong>, désactivez-le : tout repart du réseau.</div>
+          <button class="btn btn--secondary btn--block" onclick="swDesactiver()">Désactiver le cache hors-ligne</button>
+        </div>
+
         <div class="bk-card">
           <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Photos déjà enregistrées</div>
           <div class="bk-desc">Les photos ajoutées avant la mise à jour sont restées à leur taille
@@ -3943,6 +3952,27 @@ body[data-import-open="1"] #fab-search { display:none !important; }
     typeof url === 'string' && url.startsWith('/') ? base + url : url,
     opts
   );
+})();
+
+// ── Cache hors-ligne (BL-221, étape 3) ──────────────────────────
+// Le worker ne garde en cache que les photos ; la page et l'API passent
+// toujours par le réseau quand il répond, pour qu'une mise à jour de
+// l'add-on ne puisse jamais être masquée. Voir server.js, SW_SOURCE.
+//
+// Trois conditions, aucune négociable : un contexte sécurisé (en ingress
+// Home Assistant l'accès est en http, donc rien ne s'enregistre et l'app
+// marche comme avant), après le chargement (pour ne pas disputer la bande
+// passante au premier affichage, qui est justement ce qu'on optimise), et
+// sous try/catch (un worker qui refuse de s'installer ne doit jamais
+// empêcher l'app de fonctionner).
+(function () {
+  if (!window.isSecureContext || !('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
+    try {
+      const base = window._haIngressPath || '';
+      navigator.serviceWorker.register(base + '/sw.js').catch(() => {});
+    } catch (_) {}
+  });
 })();
 
 // ── Drawer ───────────────────────────────────────────────────────────────────
@@ -5787,6 +5817,7 @@ const PAGE_ENTREE = {
   'zones-stock':        () => _zsLoad(),
   tags:                 () => _tagLoad(),
   personnalisation:     () => _pzLoad(),
+  backup:               () => swEtat(),
 };
 
 // Ce qu'on range des qu'on n'est PLUS sur une page : modes selection, menus
@@ -7736,6 +7767,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }).observe(cadre, { childList: true, subtree: true });
   }
 });
+
+// ── Cache hors-ligne : l'interrupteur de secours (BL-221) ────────────
+// Un service worker est le seul morceau de l'app qui SURVIT à un
+// rechargement : un worker fautif ne se répare pas en fermant l'onglet, et
+// il n'y a pas d'outils de développement sur un téléphone. Ce bouton le
+// désinscrit, vide ses caches et recharge.
+async function swEtat() {
+  const carte = document.getElementById('sw-card');
+  if (!carte) return;
+  try {
+    const regs = ('serviceWorker' in navigator) ? await navigator.serviceWorker.getRegistrations() : [];
+    carte.style.display = regs.length ? '' : 'none';
+  } catch (_) { carte.style.display = 'none'; }
+}
+
+async function swDesactiver() {
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+    if (window.caches) {
+      const noms = await caches.keys();
+      await Promise.all(noms.map(n => caches.delete(n)));
+    }
+    showToast('Cache hors-ligne désactivé, rechargement…', 'ok');
+    setTimeout(() => location.reload(), 900);
+  } catch (e) { showToast('Erreur : ' + e.message, 'err'); }
+}
 
 // ── Photos déjà enregistrées (BL-221) ───────────────────────────
 // Le travail se fait dans le navigateur : c'est lui qui sait réduire une

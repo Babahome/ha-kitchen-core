@@ -650,6 +650,73 @@ const ADDON_VERSION = (() => {
   } catch (_) { return '?'; }
 })();
 const HTML = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
+// ── Cache hors-ligne (BL-221, étape 3) ───────────────────────────
+// Servi en clair plutôt qu'écrit dans un fichier à part : tout le code Node
+// vit dans server.js, et ça garantit que le worker porte toujours la même
+// version que l'add-on qui le sert.
+const SW_SOURCE = `
+// Service worker KitchenCore — version ${ADDON_VERSION}
+const CACHE = 'kitchencore-v${ADDON_VERSION}';
+
+// Une mise a jour de l'add-on change le nom du cache : le nouveau worker
+// prend la main tout de suite et efface les caches des versions passees.
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    const noms = await caches.keys();
+    await Promise.all(noms.filter(n => n !== CACHE).map(n => caches.delete(n)));
+    await self.clients.claim();
+  })());
+});
+
+// Cache d'abord : uniquement les photos. Leur nom change a chaque envoi,
+// donc une photo donnee ne change jamais de contenu.
+async function photo(req) {
+  const c = await caches.open(CACHE);
+  const vu = await c.match(req);
+  if (vu) return vu;
+  const rep = await fetch(req);
+  if (rep && rep.ok) c.put(req, rep.clone());
+  return rep;
+}
+
+// Reseau d'abord : la page et l'API. Sur un reseau qui repond, rien ne
+// change ; sans reseau, on ressort la derniere reponse connue. C'est ce
+// qui empeche le worker de masquer une mise a jour de l'add-on.
+async function reseauDabord(req) {
+  const c = await caches.open(CACHE);
+  try {
+    const rep = await fetch(req);
+    if (rep && rep.ok) c.put(req, rep.clone());
+    return rep;
+  } catch (err) {
+    const vu = await c.match(req);
+    if (vu) return vu;
+    throw err;
+  }
+}
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;                 // rien d'autre que la lecture
+  let url;
+  try { url = new URL(req.url); } catch (_) { return; }
+  if (url.origin !== self.location.origin) return;  // OpenFoodFacts & co : on laisse passer
+  if (url.pathname.endsWith('/sw.js')) return;      // jamais le worker lui-meme
+  if (url.pathname.includes('/photos/')) { e.respondWith(photo(req)); return; }
+  if (url.pathname.includes('/api/') || req.mode === 'navigate') { e.respondWith(reseauDabord(req)); return; }
+});
+`;
+
+app.get('/sw.js', (_req, res) => {
+  // Jamais de cache sur le worker lui-meme : un worker fige ne pourrait
+  // plus etre remplace, et c'est lui qui decide de tout le reste.
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.send(SW_SOURCE);
+});
+
 app.get('/', (req, res) => {
   const base = req.headers['x-ingress-path'] || '';
   // Sans Cache-Control, Chrome applique un cache heuristique et continue de servir
