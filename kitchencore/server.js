@@ -504,6 +504,95 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Reprise des photos déjà stockées (BL-221) ───────────────────────
+// Les colonnes qui portent une URL de photo sont vérifiées à l'appel :
+// certaines sont arrivées par migration (produits.icone, rayons.icone), et
+// une liste écrite en dur finirait par mentir.
+const PHOTO_COLONNES = [
+  ['ingredients', 'icone'], ['produits', 'icone'], ['rayons', 'icone'],
+  ['marchands', 'image'], ['recettes', 'photo'], ['menu', 'photo'],
+  ['courses_items', 'icone'], ['courses_recipes', 'photo'],
+];
+
+function photoColonnes() {
+  return PHOTO_COLONNES.filter(([t, c]) => {
+    try { return db.prepare(`PRAGMA table_info(${t})`).all().some(x => x.name === c); }
+    catch (_) { return false; }
+  });
+}
+
+// Toutes les URL /photos/... réellement citées en base.
+function photosReferencees() {
+  const vues = new Set();
+  photoColonnes().forEach(([t, c]) => {
+    try {
+      db.prepare(`SELECT DISTINCT ${c} AS v FROM ${t} WHERE ${c} LIKE '/photos/%'`)
+        .all().forEach(r => vues.add(path.basename(r.v)));
+    } catch (_) {}
+  });
+  return vues;
+}
+
+// NE MODIFIE RIEN : dit ce qu'il y a sur le disque.
+app.get('/api/photos/inventaire', (_req, res) => {
+  try {
+    const fichiers = fs.readdirSync(PHOTOS_DIR).filter(f => !/\.t\.jpg$/i.test(f));
+    const refs = photosReferencees();
+    let total = 0, sansVignette = 0, orphelines = 0, poidsOrphelines = 0;
+    const lourdes = [];
+    fichiers.forEach(f => {
+      let o = 0;
+      try { o = fs.statSync(path.join(PHOTOS_DIR, f)).size; } catch (_) { return; }
+      total += o;
+      const vignette = f.replace(/\.[^.]+$/, '') + '.t.jpg';
+      if (!fs.existsSync(path.join(PHOTOS_DIR, vignette))) sansVignette++;
+      if (!refs.has(f)) { orphelines++; poidsOrphelines += o; }
+      lourdes.push({ nom: f, octets: o, vignette: fs.existsSync(path.join(PHOTOS_DIR, vignette)), utilisee: refs.has(f) });
+    });
+    lourdes.sort((a, b) => b.octets - a.octets);
+    res.json({
+      fichiers: fichiers.length, octets: total,
+      sansVignette, orphelines, poidsOrphelines,
+      plusLourdes: lourdes.slice(0, 10),
+      aTraiter: lourdes.filter(x => x.utilisee).map(x => ({ nom: x.nom, octets: x.octets, vignette: x.vignette })),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remplace une photo par sa version réduite, sous un NOUVEAU nom, et
+// reporte le changement partout où l'ancienne était citée. Un nom neuf
+// évite le cache d'un an posé sur /photos (v0.10.311).
+app.post('/api/photos/remplacer', (req, res) => {
+  try {
+    const ancien = path.basename(String(req.body?.nom || ''));
+    const data = String(req.body?.data || '');
+    if (!/^[A-Za-z0-9_.-]+\.(jpg|jpeg|png|webp|gif)$/i.test(ancien)) return res.status(400).json({ error: 'nom invalide' });
+    const m = data.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,([\s\S]+)$/);
+    if (!m) return res.status(400).json({ error: 'image invalide' });
+    const brut = Buffer.from(m[1], 'base64');
+    // Si la « réduction » pese plus lourd, on ne touche a rien.
+    let avant = 0;
+    try { avant = fs.statSync(path.join(PHOTOS_DIR, ancien)).size; } catch (_) {}
+    if (avant && brut.length >= avant) return res.json({ ok: true, inchange: true, octets: avant });
+
+    const base = ancien.replace(/\.[^.]+$/, '');
+    const nouveau = `${base}_r${Date.now()}.jpg`;
+    fs.writeFileSync(path.join(PHOTOS_DIR, nouveau), brut);
+
+    const ancienneUrl = '/photos/' + ancien;
+    const nouvelleUrl = '/photos/' + nouveau;
+    let lignes = 0;
+    photoColonnes().forEach(([t, c]) => {
+      try { lignes += db.prepare(`UPDATE ${t} SET ${c}=? WHERE ${c}=?`).run(nouvelleUrl, ancienneUrl).changes; }
+      catch (_) {}
+    });
+    // L'ancienne photo et son ancienne vignette n'ont plus de référence.
+    try { fs.unlinkSync(path.join(PHOTOS_DIR, ancien)); } catch (_) {}
+    try { fs.unlinkSync(path.join(PHOTOS_DIR, base + '.t.jpg')); } catch (_) {}
+    res.json({ ok: true, url: nouvelleUrl, nom: nouveau, lignes, avant, apres: brut.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Vignette déposée par le navigateur juste après l'envoi d'une photo
 // (BL-221). Aucune bibliothèque d'image côté serveur : une dépendance de
 // plus au build Docker peut rendre l'add-on indémarrable, et le canvas du

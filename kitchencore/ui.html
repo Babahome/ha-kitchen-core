@@ -2733,6 +2733,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <button class="btn btn--primary btn--block" id="un-appliquer" style="display:none;margin-top:8px" onclick="unAppliquer()">Harmoniser</button>
         </div>
 
+        <div class="bk-card">
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-image"></use></svg> Photos déjà enregistrées</div>
+          <div class="bk-desc">Les photos ajoutées avant la mise à jour sont restées à leur taille
+            d'origine. Les réduire allège l'application sur réseau faible et crée au passage la
+            petite version utilisée dans les listes. <strong>Rien n'est modifié tant que vous
+            n'appuyez pas sur le bouton</strong> — et téléchargez d'abord une sauvegarde ci-dessus.</div>
+          <button class="btn btn--secondary btn--block" onclick="phVoir()">Voir mes photos</button>
+          <div id="ph-liste" class="bk-file-summary" style="display:none"></div>
+          <button class="btn btn--primary btn--block" id="ph-appliquer" style="display:none;margin-top:8px" onclick="phAppliquer()">Réduire</button>
+        </div>
+
       </div>
     </div>
 
@@ -7722,6 +7733,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }).observe(cadre, { childList: true, subtree: true });
   }
 });
+
+// ── Photos déjà enregistrées (BL-221) ───────────────────────────
+// Le travail se fait dans le navigateur : c'est lui qui sait réduire une
+// image, et aucune bibliothèque n'est ajoutée au serveur. On regarde
+// d'abord, on agit ensuite, et jamais au démarrage.
+let _phInv = null;
+
+function _phKo(o) { return (o / 1024).toFixed(0) + ' Ko'; }
+
+async function phVoir() {
+  const div = document.getElementById('ph-liste');
+  const btn = document.getElementById('ph-appliquer');
+  div.style.display = 'block';
+  div.textContent = 'Lecture…';
+  try {
+    _phInv = await (await fetch('/api/photos/inventaire')).json();
+    if (_phInv.error) throw new Error(_phInv.error);
+    if (!_phInv.fichiers) { div.textContent = 'Aucune photo enregistrée.'; btn.style.display = 'none'; return; }
+    let h = '<div style="font-weight:800;margin-bottom:6px">' + _phInv.fichiers + ' photo(s), ' +
+            (_phInv.octets / 1048576).toFixed(1) + ' Mo au total</div>';
+    h += '<div>' + _phInv.sansVignette + ' sans petite version</div>';
+    if (_phInv.orphelines) {
+      h += '<div style="color:var(--c-text-2)">' + _phInv.orphelines + ' fichier(s) que plus rien n\'utilise (' +
+           _phKo(_phInv.poidsOrphelines) + ') — laissés tels quels</div>';
+    }
+    h += '<div style="margin-top:8px;font-weight:800">Les plus lourdes</div>';
+    h += _phInv.plusLourdes.map(p => '<div>' + _phKo(p.octets) + ' — ' + _escTexte(p.nom) +
+         (p.vignette ? '' : ' <span style="color:var(--c-warning)">(sans petite version)</span>') + '</div>').join('');
+    div.innerHTML = h;
+    const n = (_phInv.aTraiter || []).length;
+    btn.style.display = n ? '' : 'none';
+    btn.textContent = 'Réduire ' + n + ' photo(s)';
+  } catch (e) { div.textContent = 'Erreur de lecture : ' + e.message; }
+}
+
+async function phAppliquer() {
+  if (!_phInv) return;
+  const div = document.getElementById('ph-liste');
+  const btn = document.getElementById('ph-appliquer');
+  const liste = _phInv.aTraiter || [];
+  btn.disabled = true;
+  let faites = 0, gagne = 0, rates = 0;
+  for (let i = 0; i < liste.length; i++) {
+    const p = liste[i];
+    div.textContent = 'Photo ' + (i + 1) + ' sur ' + liste.length + '…';
+    try {
+      const uri = await _phLireEnDataUri('/photos/' + p.nom);
+      if (!uri) { rates++; continue; }
+      // La grande d'abord : nouveau nom, references mises a jour.
+      const grande = await _photoReduire(uri, PHOTO_COTE_MAX, PHOTO_QUALITE);
+      let nom = p.nom;
+      if (grande !== uri) {
+        const r = await (await fetch('/api/photos/remplacer', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nom: p.nom, data: grande }),
+        })).json();
+        if (r.error) { rates++; continue; }
+        if (r.nom) { nom = r.nom; gagne += (r.avant || 0) - (r.apres || 0); }
+      }
+      // Puis la petite, sous le nom final.
+      const petite = await _photoReduire(uri, PHOTO_VIGNETTE, 0.75);
+      await fetch('/api/photos/vignette', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom, data: petite }),
+      });
+      faites++;
+    } catch (_) { rates++; }
+  }
+  showToast(faites + ' photo(s) traitée(s), ' + (gagne / 1048576).toFixed(1) + ' Mo gagnés' +
+            (rates ? ' — ' + rates + ' ignorée(s)' : ''), rates ? 'warn' : 'ok');
+  btn.disabled = false;
+  await phVoir();
+}
+
+// Le fetch de l'app est enveloppé pour réduire les photos à l'envoi ; ici on
+// ne fait que LIRE un fichier, donc rien ne s'y applique.
+function _phLireEnDataUri(url) {
+  return fetch(url).then(r => r.ok ? r.blob() : null).then(b => b ? new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => res(null);
+    fr.readAsDataURL(b);
+  }) : null).catch(() => null);
+}
 
 // ── Unités des recettes (BL-220) ─────────────────────────────────
 // On regarde d'abord, on agit ensuite, et jamais au démarrage : c'est une
