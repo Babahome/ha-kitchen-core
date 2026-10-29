@@ -299,6 +299,14 @@ try {
 // Détecte si l'ancienne colonne aliment_id existe (DB créée avant v0.9)
 // On ne copie PAS aliment_id → ingredient_id car les deux tables sont différentes (aliments ≠ ingredients)
 // Les anciens produits gardent ingredient_id=NULL et s'affichent via leur propre colonne `nom`
+// Reglages internes (cle -> valeur). Sert aux reprises qu'on ne peut pas
+// rendre idempotentes : une date ne dit pas si elle a deja ete corrigee.
+// Volontairement absente de BACKUP_TABLES, voir /api/menu/recaler-dates.
+try { db.exec(`CREATE TABLE IF NOT EXISTS reglages (
+  cle    TEXT PRIMARY KEY,
+  valeur TEXT
+)`); } catch(_) {}
+
 try { db.exec(`ALTER TABLE produits ADD COLUMN ingredient_id INTEGER REFERENCES ingredients(id)`); } catch(_) {}
 try { db.exec(`ALTER TABLE produits ADD COLUMN icone TEXT`); } catch(_) {}
 try { db.exec(`ALTER TABLE produits ADD COLUMN pourcentage INTEGER`); } catch(_) {}
@@ -1676,6 +1684,65 @@ app.post('/api/menu', (req, res) => {
   if (!date || !n) return res.status(400).json({ error: 'date et nom requis' });
   const r = db.prepare('INSERT INTO menu (date,nom,type,portions,emoji,note,photo,recette_id) VALUES (?,?,?,?,?,?,?,?)').run(date, n, t, portions, e || '🍽️', note || '', photo, rid || null);
   res.json({ id: r.lastInsertRowid });
+});
+
+// ── Reprise des dates du menu (BL-223) ───────────────────────────
+// Place AVANT /api/menu/:id : un segment fixe doit passer avant un parametre.
+function reglageLire(cle) {
+  try { return db.prepare('SELECT valeur FROM reglages WHERE cle=?').get(cle)?.valeur || null; }
+  catch (_) { return null; }
+}
+
+// Ne modifie rien : dit seulement ce qu'il y a et ce que ça deviendrait.
+app.get('/api/menu/inventaire-dates', (_req, res) => {
+  try {
+    const fait = reglageLire('menu_dates_recalees');
+    const lignes = db.prepare(`
+      SELECT date, COUNT(*) AS n FROM menu GROUP BY date ORDER BY date
+    `).all();
+    const total = lignes.reduce((t, l) => t + l.n, 0);
+    const decale = d => {
+      const [a, m, j] = String(d).split('-').map(Number);
+      if (!a || !m || !j) return null;                 // date illisible : on n'y touche pas
+      const t = new Date(Date.UTC(a, m - 1, j + 1));   // UTC : pas d'heure d'ete en jeu
+      return t.toISOString().slice(0, 10);
+    };
+    res.json({
+      deja_fait: fait,
+      total,
+      jours: lignes.length,
+      premier: lignes[0]?.date || null,
+      dernier: lignes[lignes.length - 1]?.date || null,
+      illisibles: lignes.filter(l => decale(l.date) === null).map(l => l.date),
+      exemples: lignes.slice(0, 8).map(l => ({ de: l.date, vers: decale(l.date), n: l.n })),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Applique le decalage de +1 jour. Déclenché à la main depuis la page
+// Sauvegarde, jamais au démarrage : c'est une écriture sur les données de
+// Baptiste, elle doit être voulue. Et une seule fois : voir l'en-tête.
+app.post('/api/menu/recaler-dates', (_req, res) => {
+  try {
+    const fait = reglageLire('menu_dates_recalees');
+    if (fait) return res.status(409).json({ error: 'déjà fait le ' + fait, deja_fait: fait });
+    const lignes = db.prepare('SELECT id, date FROM menu').all();
+    let corrigees = 0, ignorees = 0;
+    const maj = db.prepare('UPDATE menu SET date=? WHERE id=?');
+    const tx = db.transaction(() => {
+      lignes.forEach(l => {
+        const [a, m, j] = String(l.date).split('-').map(Number);
+        if (!a || !m || !j) { ignorees++; return; }
+        const t = new Date(Date.UTC(a, m - 1, j + 1));
+        maj.run(t.toISOString().slice(0, 10), l.id);
+        corrigees++;
+      });
+      db.prepare('INSERT OR REPLACE INTO reglages(cle, valeur) VALUES(?,?)')
+        .run('menu_dates_recalees', new Date().toISOString().slice(0, 10));
+    });
+    tx();
+    res.json({ ok: true, corrigees, ignorees });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/menu/:id', (req, res) => {

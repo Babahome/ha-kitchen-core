@@ -1590,6 +1590,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .am-day-sheet { padding:16px 18px 30px;animation:mup .25s cubic-bezier(.4,0,.2,1); }
 .am-day-title { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:14px;padding-right:10px; }
 .am-day-grid  { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
+.am-day-other { display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-4); }
+.am-day-otherlbl { font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-text-2);flex-shrink:0; }
+.am-day-input { flex:1;min-width:0;background:var(--grey-l);border:1.5px solid var(--c-border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-sm);font-family:var(--font);color:var(--c-text);outline:none; }
+.am-day-input:focus { border-color:var(--c-primary);background:var(--c-surface); }
 .am-day-btn   { display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:var(--r-md);border:2px solid var(--grey);background:var(--c-surface);font-family:var(--font);cursor:pointer;transition:all .15s; }
 .am-day-btn:active { background:var(--orange-l);border-color:var(--orange); }
 .am-day-dow   { font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--text2); }
@@ -2733,6 +2737,18 @@ body[data-import-open="1"] #fab-search { display:none !important; }
           <button class="btn btn--primary btn--block" id="un-appliquer" style="display:none;margin-top:8px" onclick="unAppliquer()">Harmoniser</button>
         </div>
 
+        <div class="bk-card">
+          <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-calendar"></use></svg> Dates du menu</div>
+          <div class="bk-desc">Jusqu'à la v0.10.318, un repas planifié était enregistré avec
+            <strong>un jour de retard</strong> (vous planifiez le jeudi, la base écrivait mercredi).
+            À l'écran ça ne se voyait pas, mais la date était fausse. Le calcul est corrigé ;
+            cette reprise recale les repas déjà enregistrés pour qu'ils restent au bon jour.
+            <strong>À ne lancer qu'une seule fois</strong>, et téléchargez d'abord une sauvegarde ci-dessus.</div>
+          <button class="btn btn--secondary btn--block" onclick="mdVoir()">Vérifier mes dates</button>
+          <div id="md-liste" class="bk-file-summary" style="display:none"></div>
+          <button class="btn btn--primary btn--block" id="md-appliquer" style="display:none;margin-top:8px" onclick="mdAppliquer()">Recaler d'un jour</button>
+        </div>
+
         <div class="bk-card" id="sw-card" style="display:none">
           <div class="bk-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-download"></use></svg> Cache hors-ligne</div>
           <div class="bk-desc">Les photos déjà vues s'affichent sans réseau, ce qui rend la
@@ -3005,6 +3021,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       
       <div class="am-day-title" id="am-day-title">Ajouter au menu</div>
       <div class="am-day-grid" id="am-day-list"></div>
+      <label class="am-day-other">
+        <span class="am-day-otherlbl">Une autre date</span>
+        <input class="am-day-input" type="date" id="am-day-date" onchange="amPickDate(this.value)">
+      </label>
     </div>
   </div>
 
@@ -4669,7 +4689,7 @@ function _stockOpenDetail(id) {
     quickDiv.style.display = 'flex';
     const makeChip = (label, days) => {
       const d2 = new Date(); d2.setDate(d2.getDate() + days);
-      const val = d2.toISOString().slice(0, 10);
+      const val = _dateLocale(d2);
       return `<button onclick="document.getElementById('stock-detailDlcInput').value='${val}'" style="background:var(--orange-l);color:var(--orange);border:1px solid var(--orange);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">${label}</button>`;
     };
     quickDiv.innerHTML = makeChip(`+${conservDays} j`, conservDays);
@@ -4847,7 +4867,7 @@ function _stockOpenEdit(id) {
     document.getElementById('stock-editDlc').value = s.dlc;
   } else if (s.ingredient_conservation_jours) {
     const d = new Date(); d.setDate(d.getDate() + s.ingredient_conservation_jours);
-    document.getElementById('stock-editDlc').value = d.toISOString().slice(0, 10);
+    document.getElementById('stock-editDlc').value = _dateLocale(d);
   } else {
     document.getElementById('stock-editDlc').value = '';
   }
@@ -7882,6 +7902,53 @@ function _phLireEnDataUri(url) {
 // ── Unités des recettes (BL-220) ─────────────────────────────────
 // On regarde d'abord, on agit ensuite, et jamais au démarrage : c'est une
 // écriture sur les recettes de Baptiste.
+// ── Reprise des dates du menu (BL-223) ────────────────────────
+async function mdVoir() {
+  const boite = document.getElementById('md-liste');
+  const bouton = document.getElementById('md-appliquer');
+  boite.style.display = 'block';
+  boite.textContent = 'Lecture\u2026';
+  bouton.style.display = 'none';
+  try {
+    const d = await fetch('/api/menu/inventaire-dates').then(r => r.json());
+    if (d.error) throw new Error(d.error);
+    if (d.deja_fait) {
+      boite.innerHTML = '<strong>D\u00e9j\u00e0 fait le ' + _escTexte(d.deja_fait) + '.</strong><br>'
+        + 'Rien \u00e0 refaire : les dates sont \u00e0 jour.';
+      return;
+    }
+    if (!d.total) { boite.textContent = 'Aucun repas planifi\u00e9 : rien \u00e0 recaler.'; return; }
+    let h = '<strong>' + d.total + ' repas</strong> sur ' + d.jours + ' jour(s), du '
+          + _escTexte(d.premier) + ' au ' + _escTexte(d.dernier) + '.<br>'
+          + 'Chaque date avancerait d\'un jour :<br>';
+    h += d.exemples.map(e => '\u00b7 ' + _escTexte(e.de) + ' \u2192 <strong>' + _escTexte(e.vers)
+          + '</strong> (' + e.n + ' repas)').join('<br>');
+    if (d.jours > d.exemples.length) h += '<br>\u2026 et ' + (d.jours - d.exemples.length) + ' autre(s) jour(s).';
+    if (d.illisibles?.length) h += '<br>Ignor\u00e9es (date illisible) : ' + d.illisibles.length;
+    boite.innerHTML = h;
+    bouton.style.display = '';
+  } catch (e) { boite.textContent = 'Erreur : ' + e.message; }
+}
+
+async function mdAppliquer() {
+  const boite = document.getElementById('md-liste');
+  const bouton = document.getElementById('md-appliquer');
+  bouton.disabled = true;
+  boite.textContent = 'Recalage\u2026';
+  try {
+    const r = await fetch('/api/menu/recaler-dates', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'erreur');
+    showToast(d.corrigees + ' repas recal\u00e9s', 'ok');
+    bouton.style.display = 'none';
+    await mdVoir();
+    if (typeof _mLoad === 'function') { try { await _mLoad(); } catch (_) {} }
+  } catch (e) {
+    boite.textContent = 'Erreur : ' + e.message;
+    showToast('Erreur : ' + e.message, 'error');
+  } finally { bouton.disabled = false; }
+}
+
 async function unVoir() {
   const div = document.getElementById('un-liste');
   const btn = document.getElementById('un-appliquer');
@@ -8698,7 +8765,18 @@ async function addToCourses(id) {
     mIngOpen();
   } catch(e) { showToast('Erreur lors de la récupération des ingrédients','error'); }
 }
-function addToMenu(id)    { const r=_rv.find(x=>x.id===id); if(r) amDayPickerOpen(r); }
+// Sans catalogue charge, l'ancienne version ne faisait RIEN, en silence :
+// le bouton semblait mort (BL-223). On charge au besoin, et si la recette
+// reste introuvable on le dit, plutot que de laisser croire a une panne.
+// La comparaison passe par String() : l'id vient parfois d'un attribut HTML
+// (`openDetail('${r.id}')`), donc sous forme de chaine.
+async function addToMenu(id) {
+  if (typeof _rvEnsureLoaded === 'function') { try { await _rvEnsureLoaded(); } catch (_) {} }
+  const liste = (typeof _rv !== 'undefined') ? _rv : [];
+  const r = liste.find(x => String(x.id) === String(id));
+  if (!r) { showToast('Recette introuvable \u2014 r\u00e9essayez dans un instant', 'error'); return; }
+  amDayPickerOpen(r);
+}
 
 // ── Ajouter au menu depuis Recettes : choix du jour parmi les 6 prochains ───
 let _amRecipe = null;
@@ -8718,8 +8796,26 @@ function amDayPickerOpen(r){
     </button>`;
   }
   document.getElementById('am-day-list').innerHTML=h;
-  document.getElementById('am-day-title').textContent='Ajouter "'+r.nom+'" au menu — quel jour ?';
+  document.getElementById('am-day-title').textContent='Ajouter "'+r.nom+'" au menu \u2014 quel jour ?';
+  // Les bornes suivent la frise du Menu (-30 / +60 jours) : une date au-dela
+  // serait enregistree sans qu'on puisse la voir.
+  const champ=document.getElementById('am-day-date');
+  if(champ){
+    const min=new Date(now); min.setDate(now.getDate()-30);
+    const max=new Date(now); max.setDate(now.getDate()+60);
+    champ.min=_dateLocale(min); champ.max=_dateLocale(max); champ.value='';
+  }
   document.getElementById('am-day-modal').classList.add('on');
+}
+// Une date choisie dans le selecteur du telephone. On reconstruit la Date en
+// parties locales : `new Date('2026-10-29')` serait interpretee en UTC et
+// rejouerait le decalage qu'on vient de corriger.
+function amPickDate(v){
+  if(!v) return;
+  const [a,m,j]=v.split('-').map(Number);
+  if(!a||!m||!j) return;
+  const d=new Date(a,m-1,j);
+  amPickDay(_dateLocale(d), MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()]);
 }
 function amDayClose(){ document.getElementById('am-day-modal').classList.remove('on'); }
 function amPickDay(k,label){
@@ -9750,7 +9846,16 @@ async function _pantrySet(ingId, valeur){
   return true;
 }
 
-function mdk(d){ return d.toISOString().split('T')[0]; }
+// Date du jour en parties LOCALES. Jamais `toISOString()` : il convertit en
+// UTC, donc minuit local en France (UTC+1 ou +2) tombe la veille a 22 ou
+// 23 h et la cle reculait d'un jour (BL-223). Un seul point de verite pour
+// tout le fichier.
+function _dateLocale(d){
+  return d.getFullYear() + '-'
+       + String(d.getMonth() + 1).padStart(2, '0') + '-'
+       + String(d.getDate()).padStart(2, '0');
+}
+function mdk(d){ return _dateLocale(d); }
 
 // Place la timeline sur aujourd'hui, sans animation. Sans effet si la page Menu
 // est masquee (scrollIntoView ignore un element invisible).
@@ -10039,7 +10144,7 @@ async function mRnd(){
   setTimeout(()=>{b.style.transform='';},420);
   try {
     // Jour de la semaine 0=Lun…6=Dim
-    const dateStr = _mKey || new Date().toISOString().slice(0,10);
+    const dateStr = _mKey || _dateLocale(new Date());
     const jsDay   = new Date(dateStr).getDay();
     const day     = (jsDay + 6) % 7;
     const meal    = _mT || 'n';
