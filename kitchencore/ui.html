@@ -1548,7 +1548,32 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 /* Modal ajout repas */
 .m-modal   { z-index:100;display:none;flex-direction:column;justify-content:flex-end; }
 .m-modal.on { display:flex; }
-.m-sh      { padding:16px 18px 40px;max-height:88vh;overflow-y:auto;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+/* Colonne flex : la liste (.m-sg) prend la place restante et defile seule,
+   au lieu de pousser le reste et de faire defiler toute la feuille.
+   `92%` et non `88vh` : `vh` ne retrecit pas a l'ouverture du clavier sur
+   iOS, un pourcentage suit `.frame` et donc le repli `_kcAjusterClavier()`
+   (meme raison qu'au bannissement du `dvh`, v0.10.255). */
+.m-sh      { padding:16px 18px 40px;max-height:92%;display:flex;flex-direction:column;overflow:hidden;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+/* Pendant la saisie on rend de la place a la liste. La classe est retiree
+   des qu'une recette est choisie, pour que portions et bouton Ajouter
+   redeviennent visibles sans defiler (BL-222). */
+/* La marge basse (40 px) protege la zone du bouton d'accueil ; pendant la
+   saisie le clavier couvre deja cette zone, donc on la rend a la liste. */
+/* Piege de la colonne flex : par defaut TOUS les enfants retrecissent, et la
+   rangee des types se retrouvait ecrasee (23 px pour 29 necessaires, mesure).
+   Seule la liste doit ceder de la place ; tout le reste garde sa hauteur. */
+.m-sh > *:not(.m-sg) { flex-shrink:0; }
+.m-sh.searching { padding-bottom:var(--sp-4); }
+.m-sh.searching .m-tt { display:none; }
+.m-sh.searching .m-dt { display:none; }
+.m-sh.searching .m-tr { display:none; }
+.m-sh.searching .m-actrow { display:none; }
+.m-sh.searching .m-resume { display:block; }
+/* Resume d'une ligne pendant la saisie : garde l'information (jour, repas,
+   portions) en rendant a la liste la hauteur des cinq pastilles de type.
+   Un appui dessus ramene l'en-tete complet. */
+.m-resume { display:none;font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-primary);margin-bottom:var(--sp-2);cursor:pointer;flex-shrink:0; }
+.m-resume:active { opacity:.75; }
 @keyframes mup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .m-tt      { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:3px; }
 .m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold);margin-bottom:14px; }
@@ -1562,14 +1587,28 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-si:focus{ border-color:var(--orange);background:var(--c-surface); }
 .m-rd      { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--orange-l);border:2px solid var(--orange);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-lg); }
 .m-rd:active{background:var(--orange)}
-.m-sg      { background:var(--c-surface);border:1px solid var(--grey);border-radius:var(--r-md);overflow:hidden;display:none;box-shadow:var(--shadow);margin-bottom:10px; }
+.m-sg      { background:var(--c-surface);border:1px solid var(--grey);border-radius:var(--r-md);display:none;box-shadow:var(--shadow);margin-bottom:10px;flex:1 1 auto;min-height:0;overflow-y:auto; }
 .m-sg.on   { display:block; }
-.m-si2     { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--grey-l); }
+.m-si2     { display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--grey-l); }
 .m-si2-th  { width:36px;height:36px;border-radius:var(--r-sm);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--c-border); }
 .m-si2-th img { width:100%;height:100%;object-fit:cover; }
 .m-si2-ini { font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-text-3);letter-spacing:-.02em; }
 .m-si2-emo { font-size:var(--fs-lg); }
 .m-si2:last-child{border-bottom:none}
+/* Ligne « note libre » : fixe sous le champ, pour qu'elle ne prenne jamais
+   l'une des trois places de resultat (point 3 de la fiche). */
+.m-note { display:none;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px dashed var(--c-border);border-radius:var(--r-md);cursor:pointer;font-size:var(--fs-xs);color:var(--c-text-2);flex-shrink:0; }
+.m-note.on { display:flex; }
+.m-note:active { background:var(--orange-l); }
+.m-note-q { font-weight:var(--fw-heavy);color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0; }
+/* Carte de la recette choisie : sa photo, pas son emoji (BL-206). */
+.m-pick { display:none;align-items:center;gap:var(--sp-3);padding:var(--sp-2);margin-bottom:var(--sp-2);background:var(--orange-l);border-radius:var(--r-md);flex-shrink:0; }
+.m-pick.on { display:flex; }
+.m-pick-th { width:56px;height:56px;border-radius:var(--r-sm);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--c-border); }
+.m-pick-th img { width:100%;height:100%;object-fit:cover;background:var(--c-surface); }
+.m-pick-ini { font-size:var(--fs-sm);font-weight:var(--fw-heavy);color:var(--c-text-3);letter-spacing:-.02em; }
+.m-pick-nom { flex:1;min-width:0;font-size:var(--fs-sm);font-weight:var(--fw-heavy);color:var(--c-text);overflow:hidden;text-overflow:ellipsis; }
+.m-pick-chg { flex-shrink:0;background:none;border:none;color:var(--c-primary);font-family:var(--font);font-size:var(--fs-xs);font-weight:var(--fw-heavy);cursor:pointer;padding:var(--sp-2); }
 .m-si2:active{background:var(--orange-l)}
 .m-ok      { width:100%;padding:.85rem;border-radius:var(--r-md);border:none;background:var(--orange);color:var(--c-on-primary);font-size:var(--fs-sm);font-weight:var(--fw-heavy);font-family:var(--font);cursor:pointer;margin-top:4px; }
 .m-ok:active{opacity:.85}.m-mode-sq { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--grey-l);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-xl);transition:all .15s; }
@@ -2986,6 +3025,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       
       <div class="m-tt" id="m-tt">Planifier un repas</div>
       <div class="m-dt" id="m-dt"></div>
+      <div class="m-resume" id="m-resume" onclick="mResumeOuvrir()"></div>
       <div class="m-tr" id="m-tr">
         <button class="m-tb" data-t="p" onclick="mTyp(this)"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-breakfast"></use></svg> Petit-déj</button>
         <button class="m-tb" data-t="d" onclick="mTyp(this)"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-lunch"></use></svg> Déjeuner</button>
@@ -2996,6 +3036,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
       <div class="m-sr">
         <input class="m-si" id="m-si" type="search" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
       </div>
+      <div class="m-note" id="m-note" onclick="mPkNote()"></div>
+      <div class="m-pick" id="m-pick"></div>
       <div class="m-sg" id="m-sg"></div>
       <div class="m-actrow">
         <div id="m-port-grp" style="display:flex;align-items:center;gap:8px">
@@ -10020,6 +10062,8 @@ function mSetMode(mode){
   document.getElementById('m-si').value = '';
   document.getElementById('m-sg').className = 'm-sg';
   _mP = null;
+  document.querySelector('.m-sh')?.classList.remove('searching');
+  mNoteRender(''); mPickRender();
   setTimeout(()=>document.getElementById('m-si').focus(), 100);
 }
 function mOpen(k,l){
@@ -10033,6 +10077,8 @@ function mOpen(k,l){
   _mMode='recipe';
   mSetMode('recipe');
   _mPortRender();
+  document.querySelector('.m-sh')?.classList.remove('searching');
+  mNoteRender(''); mPickRender();
   document.getElementById('m-modal').classList.add('on');
   setTimeout(()=>document.getElementById('m-si').focus(),200);
 }
@@ -10040,6 +10086,9 @@ function mEdit(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
   _mKey=k; _mEditIdx=x;
   _mP={n:item.n,e:item.e,rid:item.rid||null};
+  const _rvEd=(typeof _rv!=='undefined')?_rv:[];
+  const _reEd=_mP.rid!=null?_rvEd.find(r=>String(r.id)===String(_mP.rid)):null;
+  if(_reEd?.photo) _mP.photo=_reEd.photo;
   _mPortions = item.portions || 2;
   // Restaurer le mode depuis l'emoji de l'item (sans appeler mSetMode qui efface _mP et l'input)
   const isIng = item.e === '🥕';
@@ -10061,34 +10110,131 @@ function mEdit(k,x){
   document.getElementById('m-tt').textContent='Modifier le repas';
   document.getElementById('m-ok').textContent='Enregistrer';
   _mPortRender();
+  document.querySelector('.m-sh')?.classList.remove('searching');
+  mNoteRender(''); mPickRender();
   document.getElementById('m-modal').classList.add('on');
   setTimeout(()=>document.getElementById('m-si').focus(),200);
 }
-function mClose(){ document.getElementById('m-modal').classList.remove('on'); _mEditIdx=null; }
+function mClose(){
+  document.getElementById('m-modal').classList.remove('on');
+  _mEditIdx=null;
+  // `mAdd()` a deja lu `_mP` quand il appelle `mClose()` : on peut remettre
+  // a zero sans risque, et la recette precedente ne clignote plus a la
+  // reouverture du panneau.
+  _mP=null;
+  document.querySelector('.m-sh')?.classList.remove('searching');
+  mNoteRender(''); mPickRender();
+}
 function mTyp(b){ document.querySelectorAll('.m-tb').forEach(x=>x.classList.remove('on')); b.classList.add('on'); _mT=b.dataset.t; }
 function mSrch(v){
   if(_mP && v === _mP.n){
     // Valeur = sélection courante : masquer suggestions sans reset
     document.getElementById('m-sg').className='m-sg'; return;
   }
-  _mP=null;
+  _mP=null; mPickRender();
   const q=v.trim(); const w=document.getElementById('m-sg');
-  if(!q){w.className='m-sg';return;}
+  const sh=document.querySelector('.m-sh');
+  if(!q){ w.className='m-sg'; mNoteRender(''); sh?.classList.remove('searching'); return; }
+  sh?.classList.add('searching');   // rend la place a la liste
+  mResumeRender();
+  mNoteRender(q);
   if(_mMode==='ing'){ mSrchIng(v,w); return; }
   const rvList=(typeof _rv!=='undefined')?_rv:[];
-  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q.toLowerCase())).slice(0,5);
+  // Plus de coupe a 5 : la liste defile sur elle-meme (BL-222).
+  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q.toLowerCase()));
   const mkThumb=r=>{
-    const ini=r.nom.trim().substring(0,2).toUpperCase();
+    const ini=_escTexte(r.nom.trim().substring(0,2).toUpperCase());
     return r.photo
-      ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${_vignette(r.photo)}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+      ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${_escTexte(_vignette(r.photo))}"></div>`
       :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
   };
-  w.innerHTML=hits.map(r=>`<div class="m-si2" onclick="mPk('${r.nom.replace(/'/g,"\\'")}','${(r.emoji||'🍽️').replace(/'/g,"\\'")}',${r.id})">
-    ${mkThumb(r)}<span class="m-si2-nom">${r.nom}</span><span class="m-si2-tag">recette</span></div>`).join('')
-    +`<div class="m-si2" onclick="mPk('${v.trim().replace(/'/g,"\\'")}','📝')"><div class="m-si2-th"><span class="m-si2-emo">📝</span></div><span class="m-si2-nom">"${v.trim()}"</span><span class="m-si2-tag">Note libre</span></div>`;
+  // La ligne porte l'id de la recette, jamais son nom : un nom avec une
+  // apostrophe ou un chevron cassait l'onclick ET l'affichage. Un seul
+  // gestionnaire delegue (plus bas) retrouve l'objet depuis `_rv`.
+  w.innerHTML = hits.length
+    ? hits.map(r=>`<div class="m-si2" data-rid="${r.id}">${mkThumb(r)}<span class="m-si2-nom">${_escTexte(r.nom)}</span><span class="m-si2-tag">recette</span></div>`).join('')
+    : '<div class="m-si2"><span class="m-si2-empty">Aucune recette trouv\u00e9e</span></div>';
   w.className='m-sg on';
 }
-let _mSrchIngTimer = null;
+
+// ── Panneau de planification : note libre, recette choisie (BL-222) ────
+// Tout est construit par l'API DOM et `textContent` : rien a echapper, donc
+// rien a casser sur une apostrophe ou un chevron.
+// Le libelle du type est lu sur la pastille active : pas de table a tenir
+// a jour en double si un type est renomme.
+function mResumeRender(){
+  const el=document.getElementById('m-resume'); if(!el) return;
+  const jour=(document.getElementById('m-dt')?.textContent||'').trim();
+  const type=(document.querySelector('.m-tb.on')?.textContent||'').trim();
+  const bouts=[jour,type];
+  if(_mMode!=='ing') bouts.push(_mPortions+' portion'+(_mPortions>1?'s':''));
+  el.textContent=bouts.filter(Boolean).join(' \u00b7 ');
+}
+// Un appui sur le resume ramene l'en-tete complet : c'est le « modifiable
+// d'un appui » de la fiche. La liste reste affichee, elle retrecit.
+function mResumeOuvrir(){
+  document.querySelector('.m-sh')?.classList.remove('searching');
+}
+
+function mNoteRender(q){
+  const el=document.getElementById('m-note'); if(!el) return;
+  el.innerHTML='';
+  if(!q || _mMode==='ing' || _mP){ el.className='m-note'; return; }
+  const a=document.createElement('span'); a.textContent='Ajouter\u00a0';
+  const b=document.createElement('span'); b.className='m-note-q'; b.textContent='\u00ab\u00a0'+q+'\u00a0\u00bb';
+  const c=document.createElement('span'); c.textContent='\u00a0comme note libre';
+  el.appendChild(a); el.appendChild(b); el.appendChild(c);
+  el.className='m-note on';
+}
+// Un seul gestionnaire pour toute la liste : les lignes ne portent plus que
+// leur identifiant, donc plus aucun nom n'est injecte dans du HTML.
+document.addEventListener('DOMContentLoaded', () => {
+  const sg = document.getElementById('m-sg');
+  if (!sg) return;
+  sg.addEventListener('click', e => {
+    const ligne = e.target.closest('.m-si2'); if (!ligne) return;
+    if (ligne.dataset.rid) {
+      const r = (typeof _rv !== 'undefined' ? _rv : []).find(x => String(x.id) === ligne.dataset.rid);
+      if (r) mPk(r.nom, r.emoji || '\ud83c\udf7d\ufe0f', r.id);
+      return;
+    }
+    if (ligne.dataset.ingi) {
+      const it = _mSrchIngData[Number(ligne.dataset.ingi)];
+      if (it) mPkIng(it.nom, it.icone || '');
+    }
+  });
+});
+
+function mPkNote(){
+  const v=document.getElementById('m-si').value.trim();
+  if(v) mPk(v,'\ud83d\udcdd');
+}
+function mPickRender(){
+  const el=document.getElementById('m-pick'); if(!el) return;
+  el.innerHTML='';
+  if(!_mP){ el.className='m-pick'; return; }
+  const th=document.createElement('div'); th.className='m-pick-th';
+  const ini=String(_mP.n||'?').trim().substring(0,2).toUpperCase();
+  const poserIni=()=>{ th.innerHTML=''; const sp=document.createElement('span'); sp.className='m-pick-ini'; sp.textContent=ini; th.appendChild(sp); };
+  if(_mP.photo){
+    const img=document.createElement('img');
+    img.loading='lazy'; img.decoding='async';
+    img.onerror=poserIni;                 // photo supprimee entre-temps : initiales
+    img.src=_vignette(_mP.photo);         // vignette : la carte fait 56 px (BL-221)
+    th.appendChild(img);
+  } else poserIni();
+  const nom=document.createElement('div'); nom.className='m-pick-nom'; nom.textContent=_mP.n;
+  const chg=document.createElement('button'); chg.className='m-pick-chg'; chg.type='button';
+  chg.textContent='Changer'; chg.onclick=mPickChanger;
+  el.appendChild(th); el.appendChild(nom); el.appendChild(chg);
+  el.className='m-pick on';
+}
+function mPickChanger(){
+  _mP=null; mPickRender();
+  const si=document.getElementById('m-si');
+  si.focus(); si.select(); mSrch(si.value);
+}
+let _mSrchIngTimer = null, _mSrchIngData = [];
 async function mSrchIng(v, w){
   clearTimeout(_mSrchIngTimer);
   _mSrchIngTimer = setTimeout(async ()=>{
@@ -10097,15 +10243,17 @@ async function mSrchIng(v, w){
       if(!res.ok){ w.className='m-sg'; return; }
       const items = await res.json();
       if(!items.length){ w.innerHTML='<div class="m-si2"><span class="m-si2-empty">Aucun ingrédient trouvé</span></div>'; w.className='m-sg on'; return; }
-      w.innerHTML = items.slice(0,6).map(it=>{
-        const ini=(it.nom||'?').trim().slice(0,2).toUpperCase();
+      // L'index remplace le nom dans l'attribut : meme motif que
+      // `_clSuggestData` en Courses, et aucun echappement a tenir.
+      _mSrchIngData = items;
+      w.innerHTML = items.map((it,i)=>{
+        const ini=_escTexte((it.nom||'?').trim().slice(0,2).toUpperCase());
         const isUrl=it.icone&&(it.icone.startsWith('http')||it.icone.startsWith('/'));
         const thumb=isUrl
-          ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${it.icone}" onerror="this.parentElement.innerHTML='<span class=\\'m-si2-ini\\'>${ini}</span>'"></div>`
+          ?`<div class="m-si2-th"><img loading="lazy" decoding="async" src="${_escTexte(it.icone)}"></div>`
           :`<div class="m-si2-th"><span class="m-si2-ini">${ini}</span></div>`;
-        const nomE=it.nom.replace(/'/g,"\\'"); const iconeE=(it.icone||'').replace(/'/g,"\\'");
-        return `<div class="m-si2" onclick="mPkIng('${nomE}','${iconeE}')">
-          ${thumb}<span class="m-si2-nom">${it.nom}</span>${it.rayon_nom?`<span class="m-si2-tag">${it.rayon_nom}</span>`:''}
+        return `<div class="m-si2" data-ingi="${i}">
+          ${thumb}<span class="m-si2-nom">${_escTexte(it.nom)}</span>${it.rayon_nom?`<span class="m-si2-tag">${_escTexte(it.rayon_nom)}</span>`:''}
         </div>`;
       }).join('');
       w.className='m-sg on';
@@ -10114,14 +10262,24 @@ async function mSrchIng(v, w){
 }
 function mPkIng(nom, icone){
   const isUrl = icone && (icone.startsWith('http')||icone.startsWith('/'));
-  _mP = {n:nom, e:'🥕', photo: isUrl ? icone : null};
+  _mP = {n:nom, e:'\ud83e\udd55', photo: isUrl ? icone : null};
   document.getElementById('m-si').value = nom;
-  document.getElementById('m-sg').className = 'm-sg';
+  mApresChoix();
+}
+
+// Apres un choix : on referme le clavier et on rend la place a la rangee
+// des portions et au bouton Ajouter, qui doivent tenir a l'ecran sans
+// defiler. La LISTE RESTE VISIBLE (choix de Baptiste) pour changer d'avis
+// d'un seul appui.
+function mApresChoix(){
+  try { document.getElementById('m-si').blur(); } catch(_) {}
+  document.querySelector('.m-sh')?.classList.remove('searching');
+  mNoteRender('');
+  mPickRender();
 }
 function mPk(n,e,id){
   _mP={n,e};
   document.getElementById('m-si').value=n;
-  document.getElementById('m-sg').className='m-sg';
   const rvList=(typeof _rv!=='undefined')?_rv:[];
   // Priorite a l'id reel de la recette ; fallback par nom pour les appels sans id
   const rv=(id!=null?rvList.find(rr=>String(rr.id)===String(id)):null)
@@ -10129,6 +10287,7 @@ function mPk(n,e,id){
   if(rv?.id!=null) _mP.rid=rv.id;
   if(rv?.photo) _mP.photo=rv.photo;
   if(_mEditIdx===null&&rv?.portions){ _mPortions=rv.portions; _mPortRender(); }
+  mApresChoix();
 }
 // Sélecteur portions
 function mPortDelta(d){
