@@ -667,6 +667,21 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
    pour que l'apparence reste identique (BL-23). La regle vaut pour TOUT
    champ de recherche, pas seulement les six d'origine : depuis BL-213 un
    champ peut en devenir un sans qu'on y pense (BL-213). */
+/* Les champs de saisie sont des <textarea> d'une ligne (BL-224) : Android ne
+   propose pas de saisie automatique dessus. Il faut donc leur retirer tout ce
+   qui trahit une zone de texte — poignee de redimensionnement, defilement
+   vertical, retour a la ligne. */
+textarea[data-kc-champ] {
+  resize: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  font-family: var(--font);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+textarea[data-kc-champ]::-webkit-scrollbar { display: none; }
+
 input[type="search"] { -webkit-appearance: none; appearance: none; }
 input[type="search"]::-webkit-search-cancel-button,
 input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
@@ -838,13 +853,13 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
   border-radius:var(--r-md); padding: 10px 14px; margin: 0 20px;
   display: flex; align-items: center; gap: 8px;
 }
-.scanner-manual input {
+.scanner-manual input, .scanner-manual textarea {
   background: transparent; border: none; outline: none;
   color: var(--c-text); font-family: var(--font); font-size:var(--fs-md);
   font-weight:var(--fw-regular); letter-spacing: .1em; flex: 1;
   padding: 0;
 }
-.scanner-manual input::placeholder { color: var(--c-text-3); letter-spacing: 0; font-weight:var(--fw-regular); }
+.scanner-manual input::placeholder, .scanner-manual textarea::placeholder { color: var(--c-text-3); letter-spacing: 0; font-weight:var(--fw-regular); }
 .scanner-manual-label { font-size:var(--fs-xs); color: var(--c-text-2); flex-shrink: 0; }
 .scanner-manual-ok {
   background: var(--orange); color: var(--c-text); border: none; border-radius:var(--r-sm);
@@ -1290,7 +1305,7 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
 .tag-checkbox { width:22px; height:22px; border-radius:var(--r-sm); border:2px solid var(--grey-d); display:grid; place-items:center; font-size:var(--fs-sm); font-weight:var(--fw-heavy); flex-shrink:0; color:var(--orange); }
 .tag-card.selected .tag-checkbox { background:var(--orange); border-color:var(--orange); color:var(--c-on-primary); }
 .tag-name { flex:1; font-weight:var(--fw-bold); font-size:var(--fs-md); }
-.tag-name input { font-family:inherit; font-size:var(--fs-md); font-weight:var(--fw-bold); border:none; border-bottom:2px solid var(--orange); outline:none; background:transparent; width:100%; }
+.tag-name input, .tag-name textarea { font-family:inherit; font-size:var(--fs-md); font-weight:var(--fw-bold); border:none; border-bottom:2px solid var(--orange); outline:none; background:transparent; width:100%; }
 .tag-count { background:var(--grey-l); border-radius:var(--r-lg); padding:3px 10px; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--grey-d); flex-shrink:0; }
 .tag-merge-sheet { position:absolute; inset:auto 0 0 0; background:var(--c-surface); border-radius:var(--r-lg) var(--r-lg) 0 0; padding:0 0 env(safe-area-inset-bottom); box-shadow:var(--shadow-2); transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); z-index:120; display:none; }
 .tag-merge-sheet.open { display:block; transform:translateY(0); }
@@ -7803,13 +7818,40 @@ let _kcChampNo = 0;
 // Les <textarea> sont volontairement laisses de cote : le bandeau ne les
 // vise pas, et leur retirer la correction orthographique generait la saisie
 // des recettes.
+// Un <input> est remplissable aux yeux d'Android, pas un <textarea> : c'est
+// ce qui fait apparaitre ou non le bandeau (cle / carte / localisation)
+// au-dessus du clavier. Mesure de Baptiste sur son Samsung, variante n3 de
+// /test-clavier. Nos attributs anti-saisie, eux, n'y changent rien : le
+// champ « description d'une etape » n'en a aucun et n'a jamais eu le
+// bandeau, alors que la quantite les avait tous et l'avait.
+function _kcConvertirChamp(ch) {
+  const t = (ch.getAttribute('type') || 'text').toLowerCase();
+  if (t === 'number') return ch;              // pave numerique deja, rien a remplir
+  // Un <textarea> n'a PAS de liste de suggestions : convertir ces champs
+  // leur ferait perdre l'autocompletion (unites, noms d'ingredients).
+  if (ch.hasAttribute('list')) return ch;
+  const ta = document.createElement('textarea');
+  ta.rows = 1;
+  // On recopie tout : classes, id, placeholder, inputmode et les gestionnaires
+  // ecrits en attribut (`oninput`, `onkeydown`...), qui se rebranchent seuls.
+  for (const a of Array.from(ch.attributes)) {
+    if (a.name === 'type' || a.name === 'value') continue;
+    try { ta.setAttribute(a.name, a.value); } catch (_) {}
+  }
+  ta.value = ch.value;                        // `value` est un contenu, pas un attribut
+  ta.setAttribute('data-kc-champ', '1');
+  ch.replaceWith(ta);
+  return ta;
+}
+
 function _kcMarquerChamps(racine) {
   if (!racine || racine.nodeType !== 1 && racine.nodeType !== 9) return;
   const champs = (racine.matches && racine.matches('input')) ? [racine]
                : (racine.querySelectorAll ? racine.querySelectorAll('input') : []);
-  champs.forEach(ch => {
-    if (ch.dataset.kcSignaux) return;
-    if (_CHAMPS_IGNORES.includes((ch.getAttribute('type') || 'text').toLowerCase())) return;
+  Array.from(champs).forEach(brut => {
+    if (brut.dataset.kcSignaux) return;
+    if (_CHAMPS_IGNORES.includes((brut.getAttribute('type') || 'text').toLowerCase())) return;
+    const ch = _kcConvertirChamp(brut);
     ch.dataset.kcSignaux = '1';
     for (const cle in _CHAMPS_SIGNAUX) ch.setAttribute(cle, _CHAMPS_SIGNAUX[cle]);
     // Sans `name`, le gestionnaire devine d'apres le placeholder : on lui
@@ -7819,6 +7861,25 @@ function _kcMarquerChamps(racine) {
     if (!ch.getAttribute('name')) ch.setAttribute('name', 'kc-' + (ch.id || ('champ-' + (++_kcChampNo))));
   });
 }
+
+// Entree inserait un saut de ligne. On l'annule — les `onkeydown` deja en
+// place (ajouter un article, valider un alias...) tournent AVANT celui-ci,
+// sur l'element lui-meme, donc ils gardent leur action.
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (el && el.dataset && el.dataset.kcChamp && e.key === 'Enter' && !e.shiftKey) e.preventDefault();
+});
+
+// Un collage multiligne garderait ses sauts de ligne dans un champ d'une
+// ligne : on les remplace par des espaces, en gardant la position du curseur.
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || !el.dataset || !el.dataset.kcChamp) return;
+  if (el.value.indexOf('\n') < 0 && el.value.indexOf('\r') < 0) return;
+  const pos = el.selectionStart;
+  el.value = el.value.replace(/[\r\n]+/g, ' ');
+  try { el.selectionStart = el.selectionEnd = Math.min(pos, el.value.length); } catch (_) {}
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   _kcMarquerChamps(document);
