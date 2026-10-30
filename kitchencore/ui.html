@@ -2275,6 +2275,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 /* ══ MARCHANDS ══════════════════════════════════════════════════════════════ */
 /* ══ PAGE SUGGESTION CONFIG ══════════════════════════════════════════════════ */
 #page-suggestion-config { background: var(--grey-l); }
+/* Doublons : deux niveaux (BL-225). Les couples « a verifier » sont replies
+   par defaut, et visuellement en retrait : ce sont souvent de vrais
+   ingredients differents. */
+.dup-section-title { font-size: var(--fs-sm); font-weight: var(--fw-heavy); color: var(--c-text-2); margin: var(--sp-4) 0 var(--sp-2); display: flex; align-items: center; gap: var(--sp-2); }
+.dup-section-toggle { cursor: pointer; }
+.dup-section-toggle .icon { transition: transform .2s; }
+.dup-section-toggle.on .icon { transform: rotate(180deg); }
+.dup-averifier { display: none; }
+.dup-averifier.on { display: block; }
+.dup-group--doute { opacity: .85; }
+
 .sgc-card { background: var(--c-surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .sgc-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--c-bg); }
 .sgc-header.collapsed { border-bottom: none; }
@@ -11123,6 +11134,7 @@ function _ingToast(msg) {
 // ─── Data layer ───
 async function _ingLoadData() {
   await _ingLoadRayons();
+  await _ingChargerDoublonsIgnores();
   try {
     const res = await fetch('/api/ingredients');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -11518,67 +11530,156 @@ function _ingDupAvatarInner(ing) {
 
 function _ingRenderDoublons() {
   const grid = document.getElementById('ing-ingredientsGrid');
-  const groups = _ingFindDuplicateGroups();
-  if (groups.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><p>Aucun doublon détecté !</p><span>Tous vos ingrédients semblent uniques.</span></div>`;
+  const surs = _ingFindDuplicateGroups();
+  const aVerifier = _ingPairesAVerifier();
+
+  if (!surs.length && !aVerifier.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="emoji">\ud83c\udf89</div><p>Aucun doublon d\u00e9tect\u00e9 !</p><span>Tous vos ingr\u00e9dients semblent uniques.</span></div>`;
     return;
   }
-  grid.innerHTML = groups.map(g => `
-    <div class="dup-group">
-      <div class="dup-group-header">${ico('alert','icon-sm')} Similaires : <strong>"${g.key}"</strong></div>
+
+  let html = '';
+  if (surs.length) {
+    html += `<div class="dup-section-title">${ico('alert','icon-sm')} Doublons probables (${surs.length})</div>`;
+    html += surs.map(g => _ingDupGroupHtml(g, true)).join('');
+  }
+  if (aVerifier.length) {
+    // Repliee : ces couples sont souvent de vrais ingredients differents.
+    html += `<div class="dup-section-title dup-section-toggle" onclick="ingToggleAVerifier(this)">
+      ${ico('chevron-down','icon-sm')} \u00c0 v\u00e9rifier (${aVerifier.length}) \u2014 un nom contient l'autre</div>`;
+    html += `<div id="dup-averifier" class="dup-averifier">`
+         + aVerifier.map(g => _ingDupGroupHtml(g, false)).join('')
+         + `</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function _ingDupGroupHtml(g, sur) {
+  const ids = g.items.map(i => i.id);
+  return `
+    <div class="dup-group${sur ? '' : ' dup-group--doute'}">
+      <div class="dup-group-header">${ico(sur ? 'alert' : 'unknown','icon-sm')} ${sur ? 'Similaires' : 'Un nom contient l\'autre'} : <strong>"${_escTexte(g.key)}"</strong></div>
       <div class="dup-group-items">
         ${g.items.map(ing => `
           <div class="dup-item" onclick="ingOpenDetailPanel('${ing.id}')">
             <div class="dup-item-avatar${_ingGetEffectiveImage(ing).inherited ? ' inherited' : ''}">${_ingDupAvatarInner(ing)}</div>
-            <div class="dup-item-name">${ing.name}</div>
+            <div class="dup-item-name">${_escTexte(ing.name)}</div>
             <div class="dup-item-count">${ing.usedIn?.length || 0} recette(s)</div>
           </div>
         `).join('')}
       </div>
       <div class="dup-group-actions">
-        <button class="btn btn--primary" onclick='ingQuickMergeGroup(${JSON.stringify(g.items.map(i=>i.id))})'>${ico('merge','icon-sm')} Fusionner ces ${g.items.length}</button>
-        <button class="btn-ignore" onclick="ingIgnoreDupGroup(this)">Ignorer</button>
+        <button class="btn btn--primary" onclick='ingQuickMergeGroup(${JSON.stringify(ids)})'>${ico('merge','icon-sm')} Fusionner ces ${g.items.length}</button>
+        <button class="btn-ignore" onclick='ingIgnoreDupGroup(this, ${JSON.stringify(ids)})'>Pas un doublon</button>
       </div>
     </div>
-  `).join('');
+  `;
 }
 
+function _ingToggleAVerifier(el) {
+  const z = document.getElementById('dup-averifier');
+  if (!z) return;
+  const ouvert = z.classList.toggle('on');
+  el.classList.toggle('on', ouvert);
+}
+
+// Mots qui ne changent pas l'ingredient. Les premiers sont des mots vides,
+// les seconds decrivent une FORME ou un CONDITIONNEMENT (liste de la fiche
+// BL-225, facile a completer). Ne JAMAIS y mettre un mot qui change
+// l'aliment : jaune, blanc, lait, creme...
+const _ING_MOTS_VIDES = ['de','du','des','d','la','le','les','a','au','aux','en','et','l'];
+const _ING_MOTS_FORME = [
+  'boule','tranche','filet','morceau','bloc','pot','sachet','brique','paquet',
+  'bouteille','boite','tablette','bouquet','botte','rondelle','cube','dosette',
+];
+
+// Les mots « utiles » d'un nom, sans pluriel, tries pour que l'ordre ne
+// compte pas. Normalisation PROPRE a la detection : `_ingNormalize()`
+// supprime l'apostrophe sans separateur (« d'oeuf » -> « doeuf »), on ne
+// pourrait donc pas decouper les mots. Ici on decoupe sur tout ce qui n'est
+// ni lettre ni chiffre.
+function _ingMotsDoublon(nom) {
+  return String(nom || '').toLowerCase()
+    .replace(/\u0153/g, 'oe').replace(/\u00e6/g, 'ae')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/).filter(Boolean)
+    .map(m => m.replace(/(s|x)$/, ''))
+    .filter(m => m && !_ING_MOTS_VIDES.includes(m) && !_ING_MOTS_FORME.includes(m))
+    .sort();
+}
+function _ingCleDoublon(nom) { return _ingMotsDoublon(nom).join(' '); }
+
+// Couples declares « pas un doublon », charges depuis la base : le choix
+// doit suivre Baptiste d'un appareil a l'autre (BL-225).
+let _ingDoublonsIgnores = new Set();
+function _ingCoupleCle(x, y) {
+  const a = Number(x), b = Number(y);
+  return a < b ? a + '|' + b : b + '|' + a;
+}
+function _ingCoupleIgnore(x, y) { return _ingDoublonsIgnores.has(_ingCoupleCle(x, y)); }
+// Un groupe disparait quand TOUTES ses paires sont ignorees. Sur un groupe
+// de deux — le cas courant — c'est exactement « ce couple ne revient plus ».
+function _ingGroupeIgnore(items) {
+  for (let i = 0; i < items.length; i++)
+    for (let k = i + 1; k < items.length; k++)
+      if (!_ingCoupleIgnore(items[i].id, items[k].id)) return false;
+  return items.length > 1;
+}
+
+async function _ingChargerDoublonsIgnores() {
+  try {
+    const couples = await fetch('/api/doublons-ignores').then(r => r.json());
+    _ingDoublonsIgnores = new Set((couples || []).map(c => _ingCoupleCle(c.a, c.b)));
+  } catch (_) { _ingDoublonsIgnores = new Set(); }
+}
+
+// Doublons SURS : meme ensemble de mots utiles.
 function _ingFindDuplicateGroups() {
   const groups = new Map();
-  // Regroupement par radical (suppression du s final)
   _ingAll.forEach(ing => {
-    const key = _ingNormalize(ing.name).replace(/s$/,'');
-    if (!groups.has(key)) groups.set(key, []);
-    if (!groups.get(key).includes(ing)) groups.get(key).push(ing);
+    const cle = _ingCleDoublon(ing.name);
+    if (!cle) return;
+    if (!groups.has(cle)) groups.set(cle, []);
+    if (!groups.get(cle).includes(ing)) groups.get(cle).push(ing);
   });
-  // Regroupement supplémentaire : si nom_pluriel d'un ingrédient = nom d'un autre
+  // Le nom pluriel d'un ingredient peut designer un autre ingredient.
   _ingAll.forEach(ing => {
     if (!ing.nom_pluriel) return;
-    const plurNorm = _ingNormalize(ing.nom_pluriel).replace(/s$/,'');
-    _ingAll.forEach(other => {
-      if (other.id === ing.id) return;
-      const otherNorm = _ingNormalize(other.name).replace(/s$/,'');
-      if (plurNorm === otherNorm) {
-        // Les deux appartiennent au même groupe
-        const keyA = _ingNormalize(ing.name).replace(/s$/,'');
-        const keyB = otherNorm;
-        const existing = groups.get(keyA) || groups.get(keyB);
-        const mergedKey = keyA;
-        if (!groups.has(mergedKey)) groups.set(mergedKey, []);
-        const g = groups.get(mergedKey);
-        if (!g.includes(ing)) g.push(ing);
-        if (!g.includes(other)) g.push(other);
-        // Nettoyer l'autre clé si elle existe séparément
-        if (keyB !== mergedKey && groups.has(keyB)) {
-          groups.get(keyB).forEach(i => { if (!g.includes(i)) g.push(i); });
-          groups.delete(keyB);
-        }
-      }
-    });
+    const clePlur = _ingCleDoublon(ing.nom_pluriel);
+    const cleNom  = _ingCleDoublon(ing.name);
+    if (!clePlur || clePlur === cleNom) return;
+    const autres = groups.get(clePlur);
+    if (!autres) return;
+    const g = groups.get(cleNom) || [];
+    autres.forEach(o => { if (!g.includes(o)) g.push(o); });
+    if (!g.includes(ing)) g.push(ing);
+    groups.set(cleNom, g);
+    groups.delete(clePlur);
   });
   return Array.from(groups.entries())
-    .filter(([, items]) => items.length > 1)
+    .filter(([, items]) => items.length > 1 && !_ingGroupeIgnore(items))
     .map(([key, items]) => ({ key, items }));
+}
+
+// A VERIFIER : les mots de l'un sont tous dans l'autre, sans etre egaux.
+// « jaune d'oeuf » / « oeuf », « lait de coco » / « lait ». Ce sont le plus
+// souvent de VRAIS ingredients differents : jamais melanges aux surs.
+function _ingPairesAVerifier() {
+  const infos = _ingAll.map(i => ({ ing: i, mots: _ingMotsDoublon(i.name) }))
+                       .filter(x => x.mots.length);
+  const out = [];
+  for (let i = 0; i < infos.length; i++) {
+    for (let k = i + 1; k < infos.length; k++) {
+      const A = infos[i], B = infos[k];
+      if (A.mots.length === B.mots.length) continue;          // egal = deja sur
+      const petit = A.mots.length < B.mots.length ? A : B;
+      const grand = petit === A ? B : A;
+      if (!petit.mots.every(m => grand.mots.includes(m))) continue;
+      if (_ingCoupleIgnore(A.ing.id, B.ing.id)) continue;
+      out.push({ key: petit.mots.join(' '), items: [petit.ing, grand.ing] });
+    }
+  }
+  return out;
 }
 
 function _ingEffectiveRayonId(ing) {
@@ -12726,10 +12827,24 @@ async function _ingCreateFromSearch() {
   } catch(e) { _ingToast('Erreur création'); }
 }
 
-function _ingIgnoreDupGroup(btn) {
+// Avant, ce bouton ne faisait que griser le groupe : tout revenait au
+// rechargement. Le couple part maintenant en base, donc il ne revient plus,
+// y compris sur un autre appareil (BL-225).
+async function _ingIgnoreDupGroup(btn, ids) {
   const g = btn.closest('.dup-group');
-  g.style.opacity = '0.4';
-  g.style.pointerEvents = 'none';
+  if (g) { g.style.opacity = '0.4'; g.style.pointerEvents = 'none'; }
+  try {
+    const r = await fetch('/api/doublons-ignores', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: (ids || []).map(Number) }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erreur');
+    ids.forEach((x, a) => ids.forEach((y, b) => { if (a < b) _ingDoublonsIgnores.add(_ingCoupleCle(x, y)); }));
+    _ingToast('Ne sera plus propose comme doublon');
+  } catch (e) {
+    if (g) { g.style.opacity = ''; g.style.pointerEvents = ''; }
+    _ingToast('Erreur : ' + e.message);
+  }
 }
 
 // ─── Menu ⋮ header ───
@@ -12932,6 +13047,7 @@ window.ingSelectMergeName  = _ingSelectMergeName;
 window.ingConfirmMerge     = _ingConfirmMerge;
 window.ingQuickMergeGroup  = _ingQuickMergeGroup;
 window.ingIgnoreDupGroup   = _ingIgnoreDupGroup;
+window.ingToggleAVerifier  = _ingToggleAVerifier;
 window.ingOpenSearch       = _ingOpenSearch;
 window.ingCloseSearch      = _ingCloseSearch;
 window.ingOnSearchInput    = _ingOnSearchInput;

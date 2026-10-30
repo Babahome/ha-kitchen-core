@@ -299,6 +299,17 @@ try {
 // Détecte si l'ancienne colonne aliment_id existe (DB créée avant v0.9)
 // On ne copie PAS aliment_id → ingredient_id car les deux tables sont différentes (aliments ≠ ingredients)
 // Les anciens produits gardent ingredient_id=NULL et s'affichent via leur propre colonne `nom`
+// Couples d'ingredients que Baptiste a declares « pas un doublon »
+// (BL-225). Le couple est ordonne (a < b) et la cle primaire porte sur les
+// deux colonnes : impossible de l'enregistrer deux fois, ni a l'envers.
+// CASCADE : un ingredient fusionne ou supprime emporte ses couples, sinon
+// la table garderait des references mortes.
+try { db.exec(`CREATE TABLE IF NOT EXISTS doublons_ignores (
+  a INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  b INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  PRIMARY KEY (a, b)
+)`); } catch(_) {}
+
 // Reglages internes (cle -> valeur). Sert aux reprises qu'on ne peut pas
 // rendre idempotentes : une date ne dit pas si elle a deja ete corrigee.
 // Volontairement absente de BACKUP_TABLES, voir /api/menu/recaler-dates.
@@ -909,6 +920,46 @@ app.delete('/api/conversions/:id', (req, res) => {
   res.status(204).end();
 });
 // ────────────────────────────────────────────────────────────────────────────
+
+// ── Couples « pas un doublon » (BL-225) ───────────────────────
+function _coupleOrdonne(x, y) {
+  const a = Number(x), b = Number(y);
+  if (!a || !b || a === b) return null;
+  return a < b ? [a, b] : [b, a];
+}
+
+app.get('/api/doublons-ignores', (_req, res) => {
+  try { res.json(db.prepare('SELECT a, b FROM doublons_ignores').all()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/doublons-ignores', (req, res) => {
+  const { ids } = req.body;                 // tous les ids d'un groupe
+  if (!Array.isArray(ids) || ids.length < 2)
+    return res.status(400).json({ error: 'au moins deux ids requis' });
+  try {
+    // Un groupe de N ingredients donne toutes ses paires : c'est ce qui
+    // permet de le dissoudre meme s'il est ensuite regroupe autrement.
+    const ins = db.prepare('INSERT OR IGNORE INTO doublons_ignores(a, b) VALUES(?,?)');
+    let n = 0;
+    db.transaction(() => {
+      for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+        const c = _coupleOrdonne(ids[i], ids[j]);
+        if (c) { ins.run(c[0], c[1]); n++; }
+      }
+    })();
+    res.json({ ok: true, couples: n });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/doublons-ignores', (req, res) => {
+  const c = _coupleOrdonne(req.query.a, req.query.b);
+  if (!c) return res.status(400).json({ error: 'a et b requis' });
+  try {
+    db.prepare('DELETE FROM doublons_ignores WHERE a=? AND b=?').run(c[0], c[1]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 app.post('/api/ingredients/merge', (req, res) => {
   const { keep_id, merge_ids, name } = req.body;
