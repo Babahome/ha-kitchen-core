@@ -85,6 +85,9 @@
      en bas un conteneur qui defile sous eux, sinon sa derniere ligne reste
      cachee. */
   --fab-size: 56px; --fab-clear: calc(var(--fab-size) + var(--sp-4) + var(--sp-4));
+  /* Hauteur de la barre d'actions de la page Suggestions (BL-226) : sert a
+     remonter le FAB et a reserver la place en bas de la liste. */
+  --sgc-bar-h: 64px;
   --icon-sm: 18px; --icon-md: 22px; --icon-lg: 28px;
 
   /* ── Alias des anciennes variables ──────────────────────────────────────
@@ -2294,16 +2297,45 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .sgc-chip { padding: 5px 10px; border-radius:var(--r-lg); font-size:var(--fs-sm); font-weight:var(--fw-bold); border: 2px solid var(--c-border); background: var(--c-surface); color: var(--c-text-2); cursor: pointer; transition: all .15s; font-family: var(--font); }
 .sgc-chip.on { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
 .sgc-conds { display: flex; flex-direction: column; gap: 0; }
-.sgc-cond-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+/* `flex-wrap` + `min-width:0` : un <select> garde sinon une largeur
+   minimale egale a son option la plus longue et refuse de retrecir, d'ou la
+   valeur et la corbeille coupees au bord droit (BL-226). Sur ecran etroit,
+   la valeur passe a la ligne avec son unite et le bouton de suppression. */
+.sgc-cond-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
 .sgc-op { min-width: 46px; padding: 4px 6px; border-radius:var(--r-sm); border: 2px solid var(--c-border); background: var(--c-surface); font-size:var(--fs-xs); font-weight:var(--fw-heavy); color: var(--orange); cursor: pointer; text-align: center; font-family: var(--font); }
-.sgc-type { flex: 1; padding: 6px 10px; border-radius:var(--r-sm); border: 1px solid var(--c-border); background: var(--c-surface); font-family: var(--font); font-size:var(--fs-sm); color: var(--text); }
-.sgc-val { width: 90px; padding: 6px 10px; border-radius:var(--r-sm); border: 1px solid var(--c-border); font-family: var(--font); font-size:var(--fs-sm); color: var(--text); }
-.sgc-val.days { width: 64px; }
+.sgc-type { flex: 1 1 160px; min-width: 0; padding: 6px 10px; border-radius:var(--r-sm); border: 1px solid var(--c-border); background: var(--c-surface); font-family: var(--font); font-size:var(--fs-sm); color: var(--text); }
+.sgc-val { flex: 0 0 90px; width: 90px; min-width: 0; padding: 6px 10px; border-radius:var(--r-sm); border: 1px solid var(--c-border); font-family: var(--font); font-size:var(--fs-sm); color: var(--text); }
+.sgc-val.days { flex: 0 0 64px; width: 64px; }
+/* Valeur, unite et corbeille forment UN bloc : ils passent a la ligne
+   ensemble. Sans ce groupe, l'unite (« jours ») se retrouvait seule sur sa
+   propre ligne. `margin-left:auto` les colle a droite, sur une ligne comme
+   sur deux. */
+.sgc-cond-val { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0; margin-left: auto; }
 .sgc-cdel { background: none; border: none; color: var(--c-border); font-size:var(--fs-md); cursor: pointer; padding: 2px 4px; }
 .sgc-cdel:hover { color: var(--c-danger); }
 .sgc-add-cond { display: flex; align-items: center; gap: 6px; background: none; border: 2px dashed var(--c-border); border-radius:var(--r-sm); color: var(--text2); padding: 7px 12px; font-size:var(--fs-sm); font-weight:var(--fw-bold); cursor: pointer; font-family: var(--font); width: 100%; transition: all .15s; margin-top: 4px; }
 .sgc-add-cond:hover { border-color: var(--orange); color: var(--orange); }
-.sgc-save-bar { position: sticky; bottom: 0; background: var(--c-surface); border-top: 1px solid var(--c-border); padding: 10px 16px; display: flex; gap: 10px; margin: 0 -16px; box-shadow: var(--shadow-1); }
+/* Ancree au-dessus de la barre de navigation, comme `.cl-sel-bar`. Elle
+   etait en `position:sticky; bottom:0` DANS la liste qui defile : elle
+   collait donc au bas du scrollport, lui-meme remonte de `--fab-clear`
+   (88 px), d'ou la barre au milieu de l'ecran avec du contenu visible
+   dessous (BL-226, mesure : barre a 584, navigation a 672). */
+.sgc-save-bar {
+  position: absolute;
+  left: var(--sp-4); right: var(--sp-4);
+  bottom: calc(var(--bottom-h) + var(--sp-2));
+  z-index: 19;
+  display: none; gap: var(--sp-3); align-items: center;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
+  box-shadow: var(--shadow-2);
+}
+.sgc-save-bar.on { display: flex; }
+/* Le FAB est ancre sur la meme reference : sans ca il passerait derriere la
+   barre. De bas en haut : navigation, barre, FAB. */
+body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-h) + var(--sp-4)); }
 .sgc-empty { text-align: center; padding: 40px 20px; color: var(--text2); }
 .sgc-empty .e { font-size:var(--fs-2xl); margin-bottom: 10px; }
 /* ── Page Sauvegarde (import/export) ── */
@@ -2743,7 +2775,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
     <!-- ══ PAGE SUGGESTION CONFIG ═══════════════════════════════════════════ -->
     <div id="page-suggestion-config" class="page">
-      <div id="sgc-list" style="padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:80px"></div>
+      <div id="sgc-list" style="padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:calc(var(--sgc-bar-h) + var(--fab-size))"></div>
     </div>
 
     <!-- ══ PAGE SAUVEGARDE (IMPORT / EXPORT) ═══════════════════════════════ -->
@@ -3264,6 +3296,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 
   <!-- FAB -->
   <div class="fab" id="main-fab" onclick="fabAction()" role="button" aria-label="Action principale"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-plus"></use></svg></div>
+
+  <!-- Barre d'actions de la page Suggestions : enfant direct de .frame pour
+       ne pas defiler avec la liste (BL-226). -->
+  <div class="sgc-save-bar" id="sgc-save-bar">
+    <button class="btn btn--ghost" onclick="_sgcLoad()">Annuler</button>
+    <button class="btn btn--primary btn--grow" onclick="_sgcSave()">Enregistrer</button>
+  </div>
 
   <!-- FAB speed-dial recettes -->
   <div class="fab-dial-backdrop" id="rv-fab-backdrop" onclick="rvFabDialClose()"></div>
@@ -5890,7 +5929,7 @@ const PAGE_ENTREE = {
   produits:             () => _gpLoad(),
   rayons:               () => _ryLoad(),
   marchands:            () => _mchLoad(),
-  'suggestion-config':  () => _sgcLoad(),
+  'suggestion-config':  () => { _sgcBarre(true); _sgcLoad(); },
   'zones-stock':        () => _zsLoad(),
   tags:                 () => _tagLoad(),
   personnalisation:     () => _pzLoad(),
@@ -5909,6 +5948,7 @@ const PAGE_RANGEMENT = {
   menu:     () => { if (_mSelMode) mSelExit(); mHideHdmenu(); },
   tags:     () => { _tagExitSelectMode(); tagCloseMergeSheet(); },
   backup:   () => _bkReset(),
+  'suggestion-config': () => _sgcBarre(false),
 };
 
 // Un module absent ou en erreur ne doit jamais casser la navigation : on
@@ -14024,12 +14064,23 @@ function _sgcRender() {
   } else {
     _sgcRules.forEach((rule,idx) => { html += _sgcRuleHtml(rule,idx); });
   }
-  html += `<div class="sgc-save-bar">
-    <button class="btn btn--ghost" onclick="_sgcLoad()">Annuler</button>
-    <button class="btn btn--primary btn--grow" onclick="_sgcSave()">Enregistrer</button>
-  </div>`;
-  el.innerHTML = html;
+  el.innerHTML = html;   // la barre vit hors de la liste, voir _sgcBarre()
 }
+
+// Affiche ou masque la barre d'actions, et remonte le FAB en consequence.
+// Appelee par PAGE_ENTREE / PAGE_RANGEMENT : la barre n'appartient pas a la
+// liste, il faut donc la ranger en quittant la page.
+// `window.` est INDISPENSABLE : ce bloc vit dans une IIFE, donc une simple
+// `function` n'en sort pas et PAGE_ENTREE leverait un ReferenceError —
+// avale en silence par le try/catch de `_effetPage()`, si bien que la page
+// restait vide. Meme piege de portee qu'en v0.10.280 et v0.10.301.
+// C'est pour ca que `_sgcLoad` et `_sgcSave` sont deja poses sur window.
+window._sgcBarre = function(afficher) {
+  const bar = document.getElementById('sgc-save-bar');
+  if (bar) bar.classList.toggle('on', !!afficher);
+  if (afficher) document.body.setAttribute('data-sgc-bar', '1');
+  else document.body.removeAttribute('data-sgc-bar');
+};
 
 function _sgcRuleHtml(rule, idx) {
   const isOpen = rule._open !== false;
@@ -14054,7 +14105,8 @@ function _sgcRuleHtml(rule, idx) {
             valEl=`<input type="number" class="sgc-val days" min="1" max="365" value="${c.val||7}" onchange="_sgcSetCondVal(${idx},${ci},this.value)"><span style="font-size:.82rem;color:var(--text2);white-space:nowrap">jours</span>`;
           }
         }
-        return `<div class="sgc-cond-row">${opBtn}${typeEl}${valEl}<button class="sgc-cdel btn-del" onclick="_sgcDelCond(${idx},${ci})" aria-label="Retirer cette condition">${ico('delete','icon-sm')}</button></div>`;
+        const actions = `<div class="sgc-cond-val">${valEl}<button class="sgc-cdel btn-del" onclick="_sgcDelCond(${idx},${ci})" aria-label="Retirer cette condition">${ico('delete','icon-sm')}</button></div>`;
+        return `<div class="sgc-cond-row">${opBtn}${typeEl}${actions}</div>`;
       }).join('')
     : `<div style="color:var(--text2);font-size:.85rem;padding:4px 0">Aucune condition.</div>`;
 
