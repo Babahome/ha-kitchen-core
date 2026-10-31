@@ -1582,10 +1582,13 @@ body[data-import-open="1"] #fab-search { display:none !important; }
    Seule la liste doit ceder de la place ; tout le reste garde sa hauteur. */
 .m-sh > *:not(.m-sg) { flex-shrink:0; }
 .m-sh.searching { padding-bottom:var(--sp-4); }
-.m-sh.searching .m-tt { display:none; }
-.m-sh.searching .m-dt { display:none; }
+.m-sh.searching .m-head { display:none; }
 .m-sh.searching .m-tr { display:none; }
-.m-sh.searching .m-actrow { display:none; }
+/* La rangee d'actions disparait aussi pendant la saisie, comme le faisait
+   l'ancienne rangee du bas : sinon la place gagnee en haut lui reviendrait
+   au lieu d'aller a la liste. Le bouton « au hasard » sert quand le champ
+   est vide, donc hors saisie. */
+.m-sh.searching .m-actions { display:none; }
 .m-sh.searching .m-resume { display:block; }
 /* Resume d'une ligne pendant la saisie : garde l'information (jour, repas,
    portions) en rendant a la liste la hauteur des cinq pastilles de type.
@@ -1593,14 +1596,42 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-resume { display:none;font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-primary);margin-bottom:var(--sp-2);cursor:pointer;flex-shrink:0; }
 .m-resume:active { opacity:.75; }
 @keyframes mup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* En-tete sur une ligne : titre + date a gauche, portions a droite. La
+   rangee du bas disparait, ce qui rend sa hauteur a la liste (BL-227). */
+/* Le repas qu'on vient d'ajouter clignote brievement, pour qu'on voie ou il
+   est tombe (BL-227). On n'anime que l'ombre : le fond de la carte depend
+   du type de repas et ne doit pas etre ecrase. */
+@keyframes mcardNeuf {
+  0%, 60% { box-shadow: 0 0 0 2px var(--c-primary), var(--shadow-1); }
+  100%    { box-shadow: var(--shadow-1); }
+}
+.mcard--neuf { animation: mcardNeuf 2.4s ease-out; }
+
+.m-head    { display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3); }
+.m-head-txt{ flex:1;min-width:0; }
 .m-tt      { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:3px; }
-.m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold);margin-bottom:14px; }
-.m-tr      { display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:2px; }
+/* La date est devenue un BOUTON : elle ouvre le selecteur du telephone, ce
+   qui supprime la feuille separee qu'il fallait traverser avant d'arriver
+   ici. Une seule fenetre, comme le demande la fiche. */
+.m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold);
+             background:none;border:none;padding:0;font-family:var(--font);cursor:pointer;
+             display:flex;align-items:center;gap:4px;text-align:left; }
+.m-dt::after { content:'▾';font-size:var(--fs-sm);line-height:1; }
+.m-dt:active { opacity:.6; }
+/* Hors flux : il ne sert qu'a ouvrir le selecteur natif. */
+.m-date-input { position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;border:0;padding:0; }
+/* Carte de la recette et boutons ronds sur la meme rangee. Elle est
+   TOUJOURS affichee : le bouton « au hasard » sert avant d'avoir choisi. */
+.m-actions { display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2);flex-shrink:0; }
+.m-actions .m-pick { flex:1;min-width:0;margin-bottom:0; }
+/* Elles defilaient horizontalement et « Gouter » / « Autre » sortaient de
+   l'ecran. Elles se replient maintenant sur deux lignes : la place gagnee
+   en haut le permet (BL-227). */
+.m-tr      { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--sp-3);padding-bottom:2px; }
 .m-tr::-webkit-scrollbar{display:none}
-.m-tb      { padding:7px 12px;border-radius:var(--r-pill);border:2px solid var(--grey);font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;background:var(--c-surface);font-family:var(--font);transition:all .15s; }
+.m-tb      { padding:6px 10px;border-radius:var(--r-pill);border:2px solid var(--grey);font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;background:var(--c-surface);font-family:var(--font);transition:all .15s; }
 .m-tb.on   { background:var(--orange);border-color:var(--orange);color:var(--c-on-primary); }
 .m-sr      { display:flex;gap:8px;align-items:center;margin-bottom:8px; }
-.m-actrow  { display:flex;align-items:center;gap:8px;margin-bottom:8px; }
 .m-si      { flex:1;background:var(--grey-l);border:1.5px solid var(--grey);border-radius:var(--r-md);padding:10px 12px;font-size:var(--fs-sm);font-family:var(--font);outline:none;transition:border-color .15s; }
 .m-si:focus{ border-color:var(--orange);background:var(--c-surface); }
 .m-rd      { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--orange-l);border:2px solid var(--orange);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-lg); }
@@ -1631,7 +1662,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-ok      { width:100%;padding:.85rem;border-radius:var(--r-md);border:none;background:var(--orange);color:var(--c-on-primary);font-size:var(--fs-sm);font-weight:var(--fw-heavy);font-family:var(--font);cursor:pointer;margin-top:4px; }
 .m-ok:active{opacity:.85}.m-mode-sq { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--grey-l);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-xl);transition:all .15s; }
 .m-mode-sq.ing { background:var(--orange-l);border-color:var(--orange); }
-.m-portlbl { font-size:var(--fs-sm);font-weight:var(--fw-heavy);color:var(--text); }
 .m-portctrl { display:flex;align-items:center;gap:10px;background:var(--grey-l);border-radius:var(--r-pill);padding:4px 6px; }
 .m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:var(--c-surface);color:var(--orange);font-size:var(--fs-lg);font-weight:var(--fw-heavy);cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:var(--shadow-0); }
 .m-portbtn:active { background:var(--orange);color:var(--c-on-primary); }
@@ -1641,20 +1671,6 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-thumb-ini { width:100%;height:100%;background:var(--c-border);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);font-weight:var(--fw-heavy);color:var(--c-text-3);letter-spacing:-.02em; }
 .m-thumb-emo { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:var(--fs-2xl); }
 
-/* Modal "Ajouter au menu" depuis la page Recettes : choix du jour */
-.am-day-modal { z-index:150;display:none;flex-direction:column;justify-content:flex-end; }
-.am-day-modal.on { display:flex; }
-.am-day-sheet { padding:16px 18px 30px;animation:mup .25s cubic-bezier(.4,0,.2,1); }
-.am-day-title { font-size:var(--fs-md);font-weight:var(--fw-heavy);color:var(--text);margin-bottom:14px;padding-right:10px; }
-.am-day-grid  { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
-.am-day-other { display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-4); }
-.am-day-otherlbl { font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-text-2);flex-shrink:0; }
-.am-day-input { flex:1;min-width:0;background:var(--grey-l);border:1.5px solid var(--c-border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-sm);font-family:var(--font);color:var(--c-text);outline:none; }
-.am-day-input:focus { border-color:var(--c-primary);background:var(--c-surface); }
-.am-day-btn   { display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:var(--r-md);border:2px solid var(--grey);background:var(--c-surface);font-family:var(--font);cursor:pointer;transition:all .15s; }
-.am-day-btn:active { background:var(--orange-l);border-color:var(--orange); }
-.am-day-dow   { font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--text2); }
-.am-day-num   { font-size:var(--fs-xs);font-weight:var(--fw-bold);color:var(--grey-d); }
 
 /* Modal sélection ingrédients → courses (depuis Menu) */
 .m-ing-modal  { z-index:200;display:none;flex-direction:column;justify-content:flex-end; }
@@ -3081,8 +3097,20 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
   <div class="m-modal sheet-overlay" id="m-modal" onclick="if(event.target===this)mClose()">
     <div class="m-sh sheet" onclick="event.stopPropagation()">
       
-      <div class="m-tt" id="m-tt">Planifier un repas</div>
-      <div class="m-dt" id="m-dt"></div>
+      <div class="m-head">
+        <div class="m-head-txt">
+          <div class="m-tt" id="m-tt">Planifier un repas</div>
+          <button class="m-dt" id="m-dt" type="button" onclick="mOuvrirDate()"
+                  aria-label="Changer la date"></button>
+        </div>
+        <div class="m-portctrl" id="m-port-grp">
+          <button class="m-portbtn" onclick="mPortDelta(-1)" aria-label="Une portion de moins">−</button>
+          <span class="m-portval" id="m-portval">2</span>
+          <button class="m-portbtn" onclick="mPortDelta(1)" aria-label="Une portion de plus">+</button>
+        </div>
+      </div>
+      <input type="date" id="m-date-input" class="m-date-input" onchange="mSetDate(this.value)"
+             tabindex="-1" aria-hidden="true">
       <div class="m-resume" id="m-resume" onclick="mResumeOuvrir()"></div>
       <div class="m-tr" id="m-tr">
         <button class="m-tb" data-t="p" onclick="mTyp(this)"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-breakfast"></use></svg> Petit-déj</button>
@@ -3095,36 +3123,13 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
         <input class="m-si" id="m-si" type="search" placeholder="Recette ou note libre…" oninput="mSrch(this.value)" autocomplete="off">
       </div>
       <div class="m-note" id="m-note" onclick="mPkNote()"></div>
-      <div class="m-pick" id="m-pick"></div>
-      <div class="m-sg" id="m-sg"></div>
-      <div class="m-actrow">
-        <div id="m-port-grp" style="display:flex;align-items:center;gap:8px">
-          <span class="m-portlbl"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-portions"></use></svg> Portions</span>
-          <div class="m-portctrl">
-            <button class="m-portbtn" onclick="mPortDelta(-1)">−</button>
-            <span class="m-portval" id="m-portval">2</span>
-            <button class="m-portbtn" onclick="mPortDelta(1)">+</button>
-          </div>
-        </div>
-        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode" aria-label="Basculer entre recette et ingrédient"><svg class="icon" aria-hidden="true"><use href="#i-cook"></use></svg></button>
-          <div class="m-rd" id="m-rd" onclick="mRnd()" role="button" aria-label="Proposer une recette au hasard"><svg class="icon" aria-hidden="true"><use href="#i-random"></use></svg></div>
-        </div>
+      <div class="m-actions">
+        <div class="m-pick" id="m-pick"></div>
+        <button class="m-mode-sq" id="m-mode-sq" onclick="mToggleMode()" title="Basculer mode" aria-label="Basculer entre recette et ingrédient"><svg class="icon" aria-hidden="true"><use href="#i-cook"></use></svg></button>
+        <div class="m-rd" id="m-rd" onclick="mRnd()" role="button" aria-label="Proposer une recette au hasard"><svg class="icon" aria-hidden="true"><use href="#i-random"></use></svg></div>
       </div>
+      <div class="m-sg" id="m-sg"></div>
       <button class="m-ok" id="m-ok" onclick="mAdd()">Ajouter au menu</button>
-    </div>
-  </div>
-
-  <!-- Modal "Ajouter au menu" (choix du jour, depuis la page Recettes) -->
-  <div class="am-day-modal sheet-overlay" id="am-day-modal" onclick="if(event.target===this)amDayClose()">
-    <div class="am-day-sheet sheet" onclick="event.stopPropagation()">
-      
-      <div class="am-day-title" id="am-day-title">Ajouter au menu</div>
-      <div class="am-day-grid" id="am-day-list"></div>
-      <label class="am-day-other">
-        <span class="am-day-otherlbl">Une autre date</span>
-        <input class="am-day-input" type="date" id="am-day-date" onchange="amPickDate(this.value)">
-      </label>
     </div>
   </div>
 
@@ -8929,54 +8934,12 @@ async function addToMenu(id) {
   const liste = (typeof _rv !== 'undefined') ? _rv : [];
   const r = liste.find(x => String(x.id) === String(id));
   if (!r) { showToast('Recette introuvable \u2014 r\u00e9essayez dans un instant', 'error'); return; }
-  amDayPickerOpen(r);
-}
-
-// ── Ajouter au menu depuis Recettes : choix du jour parmi les 6 prochains ───
-let _amRecipe = null;
-function amDayPickerOpen(r){
-  _amRecipe = r;
-  const now=new Date(); now.setHours(0,0,0,0);
-  let h='';
-  for(let i=0;i<6;i++){
-    const d=new Date(now); d.setDate(now.getDate()+i);
-    const k=mdk(d);
-    const dow = i===0?'Aujourd\'hui':i===1?'Demain':MD[d.getDay()];
-    const full = MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
-    const label = i===0?'Aujourd\'hui — '+full:i===1?'Demain — '+full:full;
-    h+=`<button class="am-day-btn" onclick="amPickDay('${k}','${label.replace(/'/g,"\\'")}')">
-      <span class="am-day-dow">${dow}</span>
-      <span class="am-day-num">${d.getDate()} ${MM[d.getMonth()]}</span>
-    </button>`;
-  }
-  document.getElementById('am-day-list').innerHTML=h;
-  document.getElementById('am-day-title').textContent='Ajouter "'+r.nom+'" au menu \u2014 quel jour ?';
-  // Les bornes suivent la frise du Menu (-30 / +60 jours) : une date au-dela
-  // serait enregistree sans qu'on puisse la voir.
-  const champ=document.getElementById('am-day-date');
-  if(champ){
-    const min=new Date(now); min.setDate(now.getDate()-30);
-    const max=new Date(now); max.setDate(now.getDate()+60);
-    champ.min=_dateLocale(min); champ.max=_dateLocale(max); champ.value='';
-  }
-  document.getElementById('am-day-modal').classList.add('on');
-}
-// Une date choisie dans le selecteur du telephone. On reconstruit la Date en
-// parties locales : `new Date('2026-10-29')` serait interpretee en UTC et
-// rejouerait le decalage qu'on vient de corriger.
-function amPickDate(v){
-  if(!v) return;
-  const [a,m,j]=v.split('-').map(Number);
-  if(!a||!m||!j) return;
-  const d=new Date(a,m-1,j);
-  amPickDay(_dateLocale(d), MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()]);
-}
-function amDayClose(){ document.getElementById('am-day-modal').classList.remove('on'); }
-function amPickDay(k,label){
-  amDayClose();
-  const r=_amRecipe; if(!r) return;
-  mOpen(k,label);
-  mPk(r.nom, r.emoji||'🍽️');
+  // Une SEULE fenetre : date, repas et portions s'y choisissent (BL-227).
+  // La feuille de choix du jour qui s'ouvrait avant a disparu.
+  const cle = mdk(new Date());
+  _mDepuisRecette = true;          // on ira au Menu une fois l'ajout fait
+  mOpen(cle, _mLibelleJour(cle), true);
+  mPk(r.nom, r.emoji || '\ud83c\udf7d\ufe0f', r.id);
 }
 
 // ── UNITÉS ABRÉGÉES ───────────────────────────────────────────────────────────
@@ -9955,6 +9918,9 @@ const MM=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov',
 
 let _md   = {};
 let _mKey = null, _mT = 'n', _mP = null, _mEditIdx = null, _mPortions = 2;
+// Ajout lance depuis une recette : on ira sur le Menu une fois enregistre
+// (BL-227). `_mJourCible` / `_mRepasCible` disent a `_mLoad` ou se placer.
+let _mDepuisRecette = false, _mJourCible = null, _mRepasCible = null;
 // « Toujours en cuisine » vit desormais dans ingredients.toujours_dispo (BL-193).
 // Le localStorage kc_pantry n'est plus lu que pour une reprise unique au
 // demarrage : il etait propre a un navigateur ET a une origine (ingress HA vs
@@ -10015,7 +9981,37 @@ function mdk(d){ return _dateLocale(d); }
 // est masquee (scrollIntoView ignore un element invisible).
 function _mScrollToday(){
   const n = new Date(); n.setHours(0,0,0,0);
-  document.getElementById('mday-'+mdk(n))?.scrollIntoView({behavior:'instant', block:'start'});
+  // Une destination posee par un ajout depuis une recette l'emporte sur
+  // aujourd'hui (BL-227) ; sinon le recalage d'origine s'applique (BL-141).
+  const cible = _mJourCible || mdk(n);
+  document.getElementById('mday-'+cible)?.scrollIntoView({behavior:'instant', block:'start'});
+}
+
+// Appelee APRES `mBuild()` : la carte n'existe pas avant.
+function _mMettreEnEvidence(){
+  const cle = _mJourCible, idRepas = _mRepasCible;
+  _mJourCible = null; _mRepasCible = null;      // une seule fois
+  if (!cle) return;
+  document.getElementById('mday-'+cle)?.scrollIntoView({behavior:'instant', block:'start'});
+  if (idRepas == null) return;
+  const idx = (_md[cle]||[]).findIndex(r => String(r.id) === String(idRepas));
+  if (idx < 0) return;
+  const el = document.getElementById('mc-'+cle+'-'+idx);
+  if (!el) return;
+  el.classList.add('mcard--neuf');
+  // Les vignettes de la frise sont en `loading="lazy"` : elles arrivent
+  // apres ce defilement et poussent le contenu. On repasse donc un peu plus
+  // tard, sur la carte elle-meme et centree. Mesure sans ce second passage :
+  // la ligne visee se posait a 288 px au lieu de 60.
+  setTimeout(() => { try { el.scrollIntoView({ block: 'center' }); } catch (_) {} }, 350);
+  setTimeout(() => el.classList.remove('mcard--neuf'), 2400);
+}
+
+// Va sur le Menu au jour choisi. `switchPage` est appelee telle quelle.
+function _mAllerAuRepas(cle, idRepas){
+  _mJourCible = cle; _mRepasCible = idRepas;
+  try { switchPage(document.querySelector('.nav-tab[data-page="menu"]'), 'menu', 'Menu'); }
+  catch (_) { _mJourCible = null; _mRepasCible = null; }
 }
 
 async function _mLoad(){
@@ -10050,6 +10046,7 @@ async function _mLoad(){
   } catch(e) {}
   try { await _rvReady; } catch(e) {}
   mBuild();
+  _mMettreEnEvidence();
 }
 function mSrt(k){ if(_md[k]) _md[k].sort((a,b)=>(MC[a.t]?.o??9)-(MC[b.t]?.o??9)); }
 function mSavePositions(k){ (_md[k]||[]).forEach((it,i)=>{ if(it.id) fetch('/api/menu/'+it.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({position:i})}).catch(()=>{}); }); }
@@ -10093,8 +10090,8 @@ function mBuild(scrollY){
               <button class="m-bt btn-del" data-act="del" aria-label="Supprimer">${ico('delete','icon-sm')}</button>
             </div>
           </div>
-          <div class="m-nm">${r.n}</div>
-          ${r.note?`<div class="m-nt">${r.note}</div>`:''}
+          <div class="m-nm">${_escTexte(r.n)}</div>
+          ${r.note?`<div class="m-nt">${_escTexte(r.note)}</div>`:''}
         </div>
       </div>`;
     }).join('');
@@ -10178,9 +10175,51 @@ function mSetMode(mode){
   mNoteRender(''); mPickRender();
   setTimeout(()=>document.getElementById('m-si').focus(), 100);
 }
-function mOpen(k,l){
+// Libelle lisible d'un jour : « Aujourd'hui — Jeu. 29 oct ».
+function _mLibelleJour(cle){
+  const [a,m,j] = String(cle).split('-').map(Number);
+  if(!a||!m||!j) return cle;
+  const d = new Date(a, m-1, j);
+  const base = MD[d.getDay()]+' '+d.getDate()+' '+MM[d.getMonth()];
+  const auj = new Date(); auj.setHours(0,0,0,0);
+  const ecart = Math.round((d - auj) / 86400000);
+  return ecart===0 ? "Aujourd'hui — "+base
+       : ecart===1 ? 'Demain — '+base
+       : ecart===-1 ? 'Hier — '+base : base;
+}
+
+// Ouvre le selecteur de date du telephone. `showPicker()` est le moyen
+// propre ; `.click()` reste le repli pour les navigateurs qui ne l'ont pas.
+function mOuvrirDate(){
+  const ch = document.getElementById('m-date-input'); if(!ch) return;
+  ch.value = _mKey || '';
+  try { if (typeof ch.showPicker === 'function') { ch.showPicker(); return; } } catch(_) {}
+  ch.click();
+}
+
+// Une date choisie dans le selecteur natif. On ne reconstruit PAS de `Date`
+// a partir de la chaine : `new Date('2026-11-12')` serait lue en UTC et
+// rejouerait le decalage d'un jour corrige en v0.10.318.
+function mSetDate(v){
+  if(!v) return;
+  _mKey = v;
+  const el = document.getElementById('m-dt');
+  if (el) el.textContent = _mLibelleJour(v);
+  mResumeRender();
+}
+
+function mOpen(k,l,sansFocus){
   _mKey=k; _mP=null; _mEditIdx=null; _mPortions=2;
-  document.getElementById('m-dt').textContent=l;
+  document.getElementById('m-dt').textContent = l || _mLibelleJour(k);
+  // Bornes du selecteur : la plage de la frise du Menu (-30 / +60). Au-dela,
+  // le repas serait enregistre sans qu'on puisse le voir.
+  const ch = document.getElementById('m-date-input');
+  if (ch) {
+    const n = new Date(); n.setHours(0,0,0,0);
+    const min = new Date(n); min.setDate(n.getDate()-30);
+    const max = new Date(n); max.setDate(n.getDate()+60);
+    ch.min = _dateLocale(min); ch.max = _dateLocale(max);
+  }
   document.getElementById('m-si').value='';
   document.getElementById('m-sg').className='m-sg';
   document.querySelectorAll('.m-tb').forEach(b=>b.classList.remove('on'));
@@ -10192,7 +10231,7 @@ function mOpen(k,l){
   document.querySelector('.m-sh')?.classList.remove('searching');
   mNoteRender(''); mPickRender();
   document.getElementById('m-modal').classList.add('on');
-  setTimeout(()=>document.getElementById('m-si').focus(),200);
+  if (!sansFocus) setTimeout(()=>document.getElementById('m-si').focus(),200);
 }
 function mEdit(k,x){
   const item=(_md[k]||[])[x]; if(!item)return;
@@ -10230,6 +10269,7 @@ function mEdit(k,x){
 function mClose(){
   document.getElementById('m-modal').classList.remove('on');
   _mEditIdx=null;
+  _mDepuisRecette=false;
   // `mAdd()` a deja lu `_mP` quand il appelle `mClose()` : on peut remettre
   // a zero sans risque, et la recette precedente ne clignote plus a la
   // reouverture du panneau.
@@ -10454,7 +10494,10 @@ async function mAdd(){
       const res=await fetch('/api/menu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:_mKey,...item})});
       const {id}=await res.json();
       _md[_mKey].push({...item,id}); mSrt(_mKey);
+      // `mClose()` remet `_mDepuisRecette` a faux : on le lit avant.
+      const cleAjout = _mKey, versLeMenu = _mDepuisRecette;
       mClose(); mBuild(); showToast('Ajouté au menu','ok');
+      if (versLeMenu) _mAllerAuRepas(cleAjout, id);
     }
   }catch(e){showToast('Erreur réseau','error');}
 }
