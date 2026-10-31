@@ -2357,6 +2357,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
    collait donc au bas du scrollport, lui-meme remonte de `--fab-clear`
    (88 px), d'ou la barre au milieu de l'ecran avec du contenu visible
    dessous (BL-226, mesure : barre a 584, navigation a 672). */
+/* Liste de suggestions maison (BL-230). Au-dessus des panneaux (50) et des
+   feuilles (200), sous le scanner. */
+.sugg-pop { position:absolute; z-index:400; display:none; max-height:220px; overflow-y:auto;
+            background:var(--c-surface); border:1px solid var(--c-border);
+            border-radius:var(--r-md); box-shadow:var(--shadow-2); }
+.sugg-pop.on { display:block; }
+.sugg-it  { padding:10px 12px; font-size:var(--fs-sm); color:var(--c-text); cursor:pointer;
+            border-bottom:1px solid var(--grey-l); white-space:nowrap; }
+.sugg-it:last-child { border-bottom:none; }
+.sugg-it:active { background:var(--orange-l); color:var(--c-primary); }
+
 .sgc-save-bar {
   position: absolute;
   left: var(--sp-4); right: var(--sp-4);
@@ -3768,7 +3779,7 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
         <label class="ing-panel-label">Conversions <span style="font-weight:400;color:var(--grey-d);font-size:12px">(poids d'une unité, pour cuisiner à la balance)</span></label>
         <div id="ing-convRows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input class="ing-panel-input" id="ing-convUnite" list="ing-conv-units-dl" placeholder="unité (ex: pièce)" style="flex:1"
+          <input class="ing-panel-input" id="ing-convUnite" placeholder="unité (ex: pièce)" style="flex:1" onfocus="_suggOuvrir(this,UNITS)"
                  onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('ing-convGrammes').focus();}">
           <span style="color:var(--grey-d);font-weight:800">=</span>
           <input class="ing-panel-input" id="ing-convGrammes" type="text" inputmode="decimal" placeholder="50" style="width:78px"
@@ -3776,7 +3787,6 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
           <span style="color:var(--grey-d);font-weight:800">g</span>
           <button class="btn btn--primary" onclick="ingAddConversion()">+</button>
         </div>
-        <datalist id="ing-conv-units-dl"></datalist>
       </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Rayon</label>
@@ -4276,11 +4286,12 @@ function _stockFilterItems(items, opts) {
     const qty = (s.packs_pleins || 0) + (s.unites_ouvert || 0);
     if (!keepZero && qty === 0) return false;
     if (_stockSearch) {
-      const q = _stockSearch.toLowerCase();
-      const nom = (s.produit_nom || s.ingredient_nom || '').toLowerCase();
-      const marque = (s.marque || '').toLowerCase();
-      const codeBarres = (s.code_barres || '').toLowerCase();
-      if (!nom.includes(q) && !marque.includes(q) && !codeBarres.includes(q)) return false;
+      // Accents, ligatures, apostrophes et ordre des mots (BL-230) : avant,
+      // « pate » ne trouvait pas « Pâte » et « bio carrefour » ne trouvait
+      // pas « Carrefour Ketchup Bio ».
+      const q = _stockSearch;
+      const champs = (s.produit_nom || s.ingredient_nom || '') + ' ' + (s.marque || '');
+      if (!normMatch(champs, q) && !normMatch(s.code_barres || '', q)) return false;
     }
     if (_stockFZones.size > 0 && !_stockFZones.has(s.zone || '')) return false;
     if (_stockFRayons.size > 0) {
@@ -5155,7 +5166,7 @@ async function stockSearchIng(q) {
     _stockEditIngredients = r.ok ? await r.json() : [];
   }
   const q2 = q.toLowerCase();
-  const matches = _stockEditIngredients.filter(i => i.nom.toLowerCase().includes(q2)).slice(0, 6);
+  const matches = _stockEditIngredients.filter(i => normMatch(i.nom, q2)).slice(0, 6);
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}','${(i.icone||'').replace(/'/g,"\\'")}')">
@@ -7193,7 +7204,7 @@ async function pnpSearchIng(q) {
     _pnpIngredients = r.ok ? await r.json() : [];
   }
   const q2 = q.toLowerCase();
-  const matches = _pnpIngredients.filter(i => i.nom.toLowerCase().includes(q2)).slice(0, 6);
+  const matches = _pnpIngredients.filter(i => normMatch(i.nom, q2)).slice(0, 6);
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="pnpPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
@@ -8185,7 +8196,8 @@ function ico(id, cls) {
   return '<svg class="icon' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + id + '"></use></svg>';
 }
 
-function clNorm(s){ return String(s).replace(/œ/gi,'oe').replace(/æ/gi,'ae').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+// Conservee pour ses appelants ; une seule regle derriere (BL-230).
+function clNorm(s){ return norm(s); }
 function clSearchFilter(val) {
   const q = clNorm(val.trim());
   document.querySelectorAll('.cl-item').forEach(el=>{
@@ -8758,7 +8770,96 @@ function renderChips() {
 function save() { /* données sauvegardées via API */ }
 function uid()  { return 'r_'+Date.now()+Math.random().toString(36).slice(2,5); }
 function fmt(s) { return s<60?s+'s':s<3600?Math.round(s/60)+'min':Math.floor(s/3600)+'h'+(s%3600?Math.round((s%3600)/60)+'min':''); }
-function norm(s){ return (s||'').toLowerCase().replace(/œ/g,'oe').replace(/æ/g,'ae').normalize('NFD').replace(/[̀-ͯ]/g,''); }
+// LA normalisation de recherche de l'app (BL-230). Tout ce qui compare des
+// noms passe par ici : accents, ligatures, apostrophes, tirets.
+//   - œ et æ sont des LIGATURES, pas des lettres accentuees : NFD ne les
+//     decompose pas, il faut les deplier avant (v0.10.261) ;
+//   - l'apostrophe TYPOGRAPHIQUE (’) est celle qu'insere le clavier
+//     Samsung : sans elle, « d’ail » tape au telephone ne trouvait pas
+//     « d'ail » ecrit au clavier d'ordinateur ;
+//   - tirets et barres obliques deviennent une espace, pour que
+//     « saint jacques » trouve « Saint-Jacques ».
+function norm(s){
+  return String(s == null ? '' : s).toLowerCase()
+    .replace(/œ/g,'oe').replace(/æ/g,'ae')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/['\u2019\u2018`\u00b4]/g,'')
+    .replace(/[-\u2013\u2014_\/]+/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+// Recherche PAR MOTS : tous les mots tapes doivent se trouver dans le
+// texte, dans n'importe quel ordre — « poulet fajitas » trouve « Fajitas
+// de poulet ». Une saisie vide laisse tout passer.
+// ── Liste de suggestions maison (BL-230) ─────────────────────────────────
+// Remplace les `<datalist>` natives, que le navigateur filtre lui-meme sur
+// une sous-chaine SENSIBLE AUX ACCENTS : « pate » n'y trouvait jamais
+// « Pate brisee ». Ici le filtrage passe par `normMatch()`.
+let _suggCible = null, _suggVals = [];
+
+function _suggEl(){
+  let el = document.getElementById('sugg-pop');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'sugg-pop';
+  el.className = 'sugg-pop';
+  (document.querySelector('.frame') || document.body).appendChild(el);
+  // `mousedown` par defaut volerait le focus au champ et le fermerait
+  // avant que le `click` n'arrive.
+  el.addEventListener('mousedown', e => e.preventDefault());
+  el.addEventListener('click', e => {
+    const it = e.target.closest('.sugg-it');
+    if (!it || !_suggCible) return;
+    const v = _suggVals[Number(it.dataset.i)];
+    if (v == null) return;
+    const champ = _suggCible;
+    champ.value = v;
+    // On rejoue les gestionnaires deja en place plutot que de recopier
+    // leur logique : c'est eux qui mettent l'etat de l'editeur a jour.
+    champ.dispatchEvent(new Event('input',  { bubbles: true }));
+    champ.dispatchEvent(new Event('change', { bubbles: true }));
+    _suggFermer();
+  });
+  return el;
+}
+
+function _suggFermer(){
+  const el = document.getElementById('sugg-pop');
+  if (el) el.classList.remove('on');
+  _suggCible = null;
+}
+
+// `source` : un tableau de chaines, ou une fonction qui en renvoie un.
+function _suggOuvrir(champ, source){
+  if (!champ) return;
+  let items = [];
+  try { items = (typeof source === 'function' ? source() : source) || []; } catch (_) {}
+  const hits = items.filter(v => v && normMatch(v, champ.value)).slice(0, 8);
+  if (!hits.length) { _suggFermer(); return; }
+  const el = _suggEl();
+  _suggCible = champ;
+  _suggVals = hits;
+  el.innerHTML = hits.map((v, i) => `<div class="sugg-it" data-i="${i}">${_escTexte(v)}</div>`).join('');
+  const r = champ.getBoundingClientRect();
+  const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
+  el.style.left  = Math.max(8, r.left - cadre.left) + 'px';
+  el.style.top   = (r.bottom - cadre.top + 4) + 'px';
+  el.style.minWidth = Math.max(140, Math.round(r.width)) + 'px';
+  el.classList.add('on');
+}
+
+// Un defilement deplacerait le champ sans deplacer la liste : on ferme.
+document.addEventListener('scroll', () => { if (_suggCible) _suggFermer(); }, true);
+document.addEventListener('focusin', e => {
+  if (_suggCible && e.target !== _suggCible && !e.target.closest?.('#sugg-pop')) _suggFermer();
+});
+
+function normMatch(texte, q){
+  const r = norm(q);
+  if (!r) return true;
+  const t = norm(texte);
+  return r.split(' ').every(m => !m || t.includes(m));
+}
 
 // ── Détection ingrédients dans le texte des étapes (façon Marmiton) ──────────
 // Normalise en gardant, pour chaque caractère produit, l'index d'origine associé
@@ -9454,25 +9555,23 @@ function renderIngrs() {
         <button class="ev3-type-btn${sub?' sub':''}" title="${sub?'Sous-recette':'Ingrédient'}" onclick="ev3ToggleIngType(${x})">${sub?ico('cook','icon-sm'):ico('ingredient','icon-sm')}</button>
         ${sub
           ? `<input class="ev3-qty-input" inputmode="decimal" placeholder="Qté" value="${ev3Esc(i.qty)}" oninput="_eIngr[${x}].qty=this.value">
-             <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+             <input class="ev3-unit-input" placeholder="unité" value="${ev3Esc(i.unite)}" onfocus="_suggOuvrir(this,UNITS)" oninput="_eIngr[${x}].unite=this.value;_suggOuvrir(this,UNITS)">
              <div class="ev3-row-main">
                ${subThumb}
-               <input class="ev3-ingr-name" list="ev3-recettes-dl" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_rv.find(r=>r.nom.toLowerCase()===this.value.toLowerCase());_eIngr[${x}].sous_recette_id=_m?_m.id:null;}).call(this)" onchange="renderIngrs()" style="font-style:italic;flex:1">
+               <input class="ev3-ingr-name" placeholder="Nom de la recette…" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_rv.find(r=>r.nom.toLowerCase()===this.value.toLowerCase());_eIngr[${x}].sous_recette_id=_m?_m.id:null;}).call(this);_suggOuvrir(this,()=>_rv.map(r=>r.nom))" onfocus="_suggOuvrir(this,()=>_rv.map(r=>r.nom))" onchange="renderIngrs()" style="font-style:italic;flex:1">
              </div>`
           : `<input class="ev3-qty-input" inputmode="decimal"  placeholder="Qté"   value="${ev3Esc(i.qty)}"   oninput="_eIngr[${x}].qty=this.value">
-             <input class="ev3-unit-input" placeholder="unité" list="ev3-units-dl" value="${ev3Esc(i.unite)}" oninput="_eIngr[${x}].unite=this.value">
+             <input class="ev3-unit-input" placeholder="unité" value="${ev3Esc(i.unite)}" onfocus="_suggOuvrir(this,UNITS)" oninput="_eIngr[${x}].unite=this.value;_suggOuvrir(this,UNITS)">
              ${ingThumb}
              <div class="ev3-row-col">
-               <input class="ev3-ingr-name"  placeholder="Ingrédient *" list="ev3-ings-dl" value="${ev3Esc(i.nom)}" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_ev3FindIng(this.value);_eIngr[${x}].ingredient_id=_m?_m.id:null;}).call(this);_ev3IngThumbSync(${x})">
+               <input class="ev3-ingr-name"  placeholder="Ingrédient *" value="${ev3Esc(i.nom)}" onfocus="_suggOuvrir(this,()=>_evIngs.map(g=>g.nom))" oninput="_eIngr[${x}].nom=this.value;(function(){const _m=_ev3FindIng(this.value);_eIngr[${x}].ingredient_id=_m?_m.id:null;}).call(this);_ev3IngThumbSync(${x});_suggOuvrir(this,()=>_evIngs.map(g=>g.nom))">
                <input class="ev3-note-input" placeholder="Note ou équivalent…" value="${ev3Esc(i.note||'')}" oninput="_eIngr[${x}].note=this.value">
              </div>`
         }
         <button class="ev3-row-del btn-del" onclick="delIngr(${x})" aria-label="Retirer cet ingrédient">${ico('delete','icon-sm')}</button>
       </div>`;
     }).join('') +
-    `<datalist id="ev3-units-dl">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist>` +
-    `<datalist id="ev3-recettes-dl">${_rv.map(r=>`<option value="${ev3Esc(r.nom)}">`).join('')}</datalist>` +
-    `<datalist id="ev3-ings-dl">${_evIngs.map(i=>`<option value="${ev3Esc(i.nom)}">`).join('')}</datalist>`;
+    '';   // plus de <datalist> : liste maison, filtree sans accents (BL-230)
   ev3BindDrag('e-ingrs', _eIngr, renderIngrs, '.ev3-drag-handle');
 }
 function addIngr()  { _eIngr.push({nom:'',qty:'',unite:'',note:'',type:'ingredient'}); renderIngrs(); }
@@ -10303,7 +10402,7 @@ function mSrch(v){
   if(_mMode==='ing'){ mSrchIng(v,w); return; }
   const rvList=(typeof _rv!=='undefined')?_rv:[];
   // Plus de coupe a 5 : la liste defile sur elle-meme (BL-222).
-  const hits=rvList.filter(r=>r.nom.toLowerCase().includes(q.toLowerCase()));
+  const hits=rvList.filter(r=>normMatch(r.nom, q));
   const mkThumb=r=>{
     const ini=_escTexte(r.nom.trim().substring(0,2).toUpperCase());
     return r.photo
@@ -11182,15 +11281,10 @@ let _ingDetailId     = null;
 let _ingBooted       = false;
 
 // ─── Helpers ───
+// Delegue a la regle unique (BL-230). Le « % » est retire AVANT, pour que
+// la reduction des espaces de `norm()` s'applique au resultat.
 function _ingNormalize(name) {
-  // œ et æ sont des ligatures, pas des lettres accentuées : NFD ne les décompose
-  // pas, donc « oeuf » et « œuf » ne se rencontraient jamais. On les déplie avant.
-  return String(name).toLowerCase().trim()
-    .replace(/œ/g,'oe').replace(/æ/g,'ae')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[''`]/g,'')
-    .replace(/%/g,'')
-    .replace(/\s+/g,' ').trim();
+  return norm(String(name == null ? '' : name).replace(/%/g,''));
 }
 
 function _ingToast(msg) {
