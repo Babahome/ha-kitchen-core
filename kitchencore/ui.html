@@ -6665,7 +6665,11 @@ async function onCodeDetected(code) {
         }
       }, 100);
     } else {
-      showToast('Produit non trouvé dans le stock', 'warn');
+      // Le code n'est pas au stock : la fiche demande de proposer de
+      // l'ajouter plutot que de laisser l'utilisateur sans suite (BL-228).
+      // `showToast` accepte une action depuis la v0.10.278.
+      showToast('Aucun produit en stock avec ce code', 'warn',
+        { label: 'Ajouter', onClick: () => { try { openScanner(); } catch (_) {} } });
     }
     return;
   }
