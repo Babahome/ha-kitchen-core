@@ -1589,6 +1589,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-sh.searching { padding-bottom:var(--sp-4); }
 .m-sh.searching .m-head { display:none; }
 .m-sh.searching .m-tr { display:none; }
+.m-sh.searching .m-days { display:none; }
 /* La rangee d'actions disparait aussi pendant la saisie, comme le faisait
    l'ancienne rangee du bas : sinon la place gagnee en haut lui reviendrait
    au lieu d'aller a la liste. Le bouton « au hasard » sert quand le champ
@@ -1618,11 +1619,19 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 /* La date est devenue un BOUTON : elle ouvre le selecteur du telephone, ce
    qui supprime la feuille separee qu'il fallait traverser avant d'arriver
    ici. Une seule fenetre, comme le demande la fiche. */
-.m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold);
-             background:none;border:none;padding:0;font-family:var(--font);cursor:pointer;
-             display:flex;align-items:center;gap:4px;text-align:left; }
-.m-dt::after { content:'▾';font-size:var(--fs-sm);line-height:1; }
-.m-dt:active { opacity:.6; }
+.m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold); }
+/* Les six jours proposes, dans le panneau : la feuille separee a disparu
+   en v0.10.325, mais ses raccourcis manquaient (retour de Baptiste). La
+   derniere pastille ouvre le selecteur du telephone pour une autre date. */
+.m-days    { display:flex;gap:6px;overflow-x:auto;margin-bottom:var(--sp-3);
+             padding-bottom:2px;scrollbar-width:none; }
+.m-days::-webkit-scrollbar { display:none; }
+.m-jb      { padding:6px 10px;border-radius:var(--r-pill);border:2px solid var(--c-border);
+             font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-text-2);
+             background:var(--c-surface);font-family:var(--font);cursor:pointer;
+             white-space:nowrap;flex-shrink:0;transition:all .15s; }
+.m-jb.on   { background:var(--orange);border-color:var(--orange);color:var(--c-on-primary); }
+.m-jb-autre { display:flex;align-items:center;justify-content:center;padding:6px 10px; }
 /* Hors flux : il ne sert qu'a ouvrir le selecteur natif. */
 .m-date-input { position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;border:0;padding:0; }
 /* Carte de la recette et boutons ronds sur la meme rangee. Elle est
@@ -3141,8 +3150,7 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <div class="m-head">
         <div class="m-head-txt">
           <div class="m-tt" id="m-tt">Planifier un repas</div>
-          <button class="m-dt" id="m-dt" type="button" onclick="mOuvrirDate()"
-                  aria-label="Changer la date"></button>
+          <div class="m-dt" id="m-dt"></div>
         </div>
         <div class="m-portctrl" id="m-port-grp">
           <button class="m-portbtn" onclick="mPortDelta(-1)" aria-label="Une portion de moins">−</button>
@@ -3150,6 +3158,7 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
           <button class="m-portbtn" onclick="mPortDelta(1)" aria-label="Une portion de plus">+</button>
         </div>
       </div>
+      <div class="m-days" id="m-days"></div>
       <input type="date" id="m-date-input" class="m-date-input" onchange="mSetDate(this.value)"
              tabindex="-1" aria-hidden="true">
       <div class="m-resume" id="m-resume" onclick="mResumeOuvrir()"></div>
@@ -10390,6 +10399,25 @@ function _mLibelleJour(cle){
        : ecart===-1 ? 'Hier — '+base : base;
 }
 
+// Les six jours proposes, plus la date choisie si elle est ailleurs.
+function _mJoursRender(){
+  const el = document.getElementById('m-days'); if(!el) return;
+  const auj = new Date(); auj.setHours(0,0,0,0);
+  const jours = [];
+  for (let i = 0; i < 6; i++){ const d = new Date(auj); d.setDate(auj.getDate() + i); jours.push(mdk(d)); }
+  // Une date prise dans le selecteur du telephone reste proposee, en tete.
+  if (_mKey && jours.indexOf(_mKey) < 0) jours.unshift(_mKey);
+  el.innerHTML = jours.map(k => {
+    const [a, m, j] = k.split('-').map(Number);
+    const d = new Date(a, m - 1, j);
+    const ecart = Math.round((d - auj) / 86400000);
+    const lib = ecart === 0 ? 'Auj.' : ecart === 1 ? 'Dem.' : MD[d.getDay()] + ' ' + d.getDate();
+    // `k` est une date : aucun caractere a echapper.
+    return `<button class="m-jb${k === _mKey ? ' on' : ''}" onclick="mSetDate('${k}')">${lib}</button>`;
+  }).join('')
+  + `<button class="m-jb m-jb-autre" onclick="mOuvrirDate()" aria-label="Choisir une autre date" title="Une autre date">${ico('calendar','icon-sm')}</button>`;
+}
+
 // Ouvre le selecteur de date du telephone. `showPicker()` est le moyen
 // propre ; `.click()` reste le repli pour les navigateurs qui ne l'ont pas.
 function mOuvrirDate(){
@@ -10407,12 +10435,14 @@ function mSetDate(v){
   _mKey = v;
   const el = document.getElementById('m-dt');
   if (el) el.textContent = _mLibelleJour(v);
+  _mJoursRender();
   mResumeRender();
 }
 
 function mOpen(k,l,sansFocus){
   _mKey=k; _mP=null; _mEditIdx=null; _mPortions=2;
   document.getElementById('m-dt').textContent = l || _mLibelleJour(k);
+  _mJoursRender();
   // Bornes du selecteur : la plage de la frise du Menu (-30 / +60). Au-dela,
   // le repas serait enregistre sans qu'on puisse le voir.
   const ch = document.getElementById('m-date-input');
