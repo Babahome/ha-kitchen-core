@@ -707,6 +707,17 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
 .fab-search-input.expanded    ~ .fab-clear-btn,
 .cl-fab-search-input.expanded ~ .fab-clear-btn,
 .st-fab-search-input.expanded ~ .fab-clear-btn { display: flex; }
+/* Le bouton de scan suit la barre, comme la croix (BL-228). La zone tactile
+   est etendue a 44 px par `.btn-icon--sm` sans grossir le bouton : la barre
+   ne fait que 46 px de haut. */
+.st-scan-btn {
+  display: none; align-items: center; justify-content: center; position: relative;
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: var(--grey); color: var(--c-text-2);
+  cursor: pointer; flex-shrink: 0; padding: 0; margin-left: var(--sp-2);
+}
+.st-scan-btn:active { background: var(--c-primary-soft); color: var(--c-primary); }
+.st-fab-search-input.expanded ~ .st-scan-btn { display: flex; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    PAGE MENU / PROFIL (placeholder)
@@ -1079,12 +1090,6 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
 .st-fab-search.open{ cursor:text; }
 /* Le bouton de scan se pose au-dessus du bouton de recherche : sa hauteur
    plus les deux marges (BL-207, le bouton est passe de 46 a 56 px). */
-.st-fab-scan-search{ position:absolute;bottom:calc(var(--bottom-h) + var(--fab-size) + var(--sp-5));left:16px;
-                     width:42px;height:42px;border-radius:50%;background:var(--c-surface);
-                     display:none;align-items:center;justify-content:center;
-                     box-shadow:var(--shadow-1);cursor:pointer;z-index:20;
-                     border:1.5px solid var(--grey); }
-.st-fab-scan-search.visible{ display:flex; }
 /* Suggestions autocomplétion Courses */
 .cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + var(--fab-size) + var(--sp-5));left:16px;
   background:var(--c-surface);border-radius:var(--r-md);box-shadow:var(--shadow-2);
@@ -1682,6 +1687,10 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-ing-list::-webkit-scrollbar { display:none; }
 .m-ing-recipe { padding:10px 20px 4px;font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--orange);text-transform:uppercase;letter-spacing:.06em; }
 .m-ing-row    { display:flex;align-items:center;padding:10px 20px;gap:12px; }
+/* Beaucoup d'icones d'ingredients sont des PNG a fond transparent : sans ce
+   blanc elles prennent le gris du conteneur et paraissent delavees (regle
+   du projet, v0.10.277). */
+.m-ing-th img { background: var(--c-surface); }
 .m-ing-check  { width:24px;height:24px;border-radius:var(--r-sm);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;flex-shrink:0;color:transparent;font-size:var(--fs-xs);font-weight:var(--fw-heavy);transition:all .15s; }
 .m-ing-check.on { background:var(--orange);border-color:var(--orange);color:var(--c-on-primary); }
 .m-ing-info   { flex:1;min-width:0; }
@@ -1806,6 +1815,7 @@ body[data-import-open="1"] #fab-search { display:none !important; }
      Ne s'applique qu'aux INGREDIENTS : ni recettes, ni produits Stock, ni champs
      de saisie. */
   .ing-name::first-letter,
+  .m-ing-nom::first-letter,
   #ing-detailName::first-letter,
   #ing-editTitle::first-letter,
   .d-ingr-nom-cap::first-letter { text-transform: uppercase; }
@@ -3140,14 +3150,14 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
   </div>
 
   <!-- bouton scan-recherche stock -->
-  <div class="st-fab-scan-search" id="st-fab-scan-search" onclick="stockOpenScanSearch()" title="Rechercher par code-barres" role="button" aria-label="Rechercher par code-barres"><svg class="icon" aria-hidden="true"><use href="#i-barcode"></use></svg></div>
 
   <!-- fab-search stock -->
   <div class="st-fab-search" id="st-fab-search" onclick="stockToggleSearch()" role="button" aria-label="Rechercher">
     <span class="st-fab-search-icon"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-search"></use></svg></span>
-    <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code-barres…"
+    <input class="st-fab-search-input" id="st-search-input" type="search" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="Nom, marque, code…"
       onclick="event.stopPropagation()"
       oninput="_stockSearch=this.value;_stockOrGpRender();_stockUpdateFab()">
+    <button class="st-scan-btn btn-icon--sm" onclick="event.stopPropagation();stockOpenScanSearch()" title="Rechercher par code-barres" aria-label="Rechercher par code-barres"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-barcode"></use></svg></button>
     <button class="fab-clear-btn" onclick="event.stopPropagation();stockToggleSearch()" title="Effacer" aria-label="Effacer la recherche"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-close"></use></svg></button>
   </div>
 
@@ -6137,12 +6147,6 @@ function switchPage(tab, page, title) {
       _stockSearchOpen = false;
     }
   }
-  // bouton scan-recherche stock
-  const stScanBtn = document.getElementById('st-fab-scan-search');
-  if (stScanBtn) {
-    if (page === 'stock') stScanBtn.classList.add('visible');
-    else stScanBtn.classList.remove('visible');
-  }
   // Visibilité fab-search / merge-bar de la page Ingrédients : dépend de TOUTE
   // page affichée, donc hors des tables d'effets.
   if (typeof window.__ingApplyPageVisibility === 'function') window.__ingApplyPageVisibility(page);
@@ -6220,7 +6224,6 @@ function closeRecetteMenu() { closeCtx && closeCtx(); }
   document.querySelector('.header').style.background = 'var(--orange)';
   document.getElementById('fab-search')?.classList.remove('visible');
   document.getElementById('st-fab-search')?.classList.add('visible');
-  document.getElementById('st-fab-scan-search')?.classList.add('visible');
   // switchPage() n'est pas appele au demarrage : sans cet appel le FAB garde
   // l'icone ecrite dans le HTML et affiche « + » alors qu'il ouvre le
   // scanner (BL-215).
@@ -6335,6 +6338,9 @@ async function openScanner() {
 
 // Ouvre le scanner en mode "rechercher dans le stock"
 async function stockOpenScanSearch() {
+  // Le clavier est ouvert puisqu'on part de la barre de recherche : sans ce
+  // `blur()`, il resterait par-dessus l'image de la camera (BL-228).
+  try { document.getElementById('st-search-input')?.blur(); } catch (_) {}
   await openScanner();
   // Passer en mode recherche après l'init du scanner
   _stockScanSearchMode = true;
@@ -10713,6 +10719,19 @@ async function mAddOneToCourses(k,x){
   }catch(e){ showToast('Erreur réseau','error'); }
 }
 
+// Vignette d'un ingredient de la liste (BL-229). L'icone vient de la base,
+// deja resolue sur l'id reel par `expandIngredients()` — pas de
+// correspondance par nom a refaire ici. Repli sur les initiales, jamais sur
+// un emoji : ils sont retires de l'interface depuis l'etape 3/6.
+function _mIngVignette(ing){
+  const src = ing.ingredient_icone || '';
+  const estUrl = src && (src.startsWith('http') || src.startsWith('/'));
+  const ini = _escTexte(String(ing.nom || '?').trim().slice(0, 2).toUpperCase());
+  return estUrl
+    ? `<div class="thumb m-ing-th"><img loading="lazy" decoding="async" src="${_escTexte(_vignette(src))}"></div>`
+    : `<div class="thumb m-ing-th">${ini}</div>`;
+}
+
 function mIngOpen(){
   _mIngChecked = new Set();
   let html = '';
@@ -10729,8 +10748,9 @@ function mIngOpen(){
       const nomEsc = ing.nom.replace(/'/g,"\\'");
       html += `<div class="m-ing-row">
         <div class="m-ing-check ${isPantry?'':'on'}" onclick="mIngRowToggle(this,'${key}')">${ico('check','icon-sm')}</div>
+        ${_mIngVignette(ing)}
         <div class="m-ing-info">
-          <span class="m-ing-nom">${ing.nom}</span>
+          <span class="m-ing-nom">${_escTexte(ing.nom)}</span>
           ${qtyStr?`<span class="m-ing-qty">${qtyStr}</span>`:''}
         </div>
         <div class="m-ing-pantry ${isPantry?'on':''}" onclick="mIngPantryToggle(this,'${key}',${ing.ing_id||'null'},'${nomEsc}')" title="Toujours dans ma cuisine" aria-label="Toujours dans ma cuisine">${ico('pantry','icon-sm')}</div>
