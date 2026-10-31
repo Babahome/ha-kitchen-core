@@ -1819,6 +1819,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
   #ing-detailName::first-letter,
   #ing-editTitle::first-letter,
   .d-ingr-nom-cap::first-letter { text-transform: uppercase; }
+
+/* Bouton « ajouter aux courses » d'une ligne d'ingredient : visible
+   seulement en mode cuisine (BL-231). Zone tactile a 44 px par
+   `.btn-icon--sm`, sans grossir le bouton dans une ligne serree. */
+.d-ingr-add { display:none; position:relative; align-items:center; justify-content:center;
+              width:32px; height:32px; border-radius:50%; border:1.5px solid var(--c-border);
+              background:var(--c-surface); color:var(--c-text-2); cursor:pointer;
+              flex-shrink:0; padding:0; margin-left:var(--sp-2); transition:all .15s; }
+body[data-cook="1"] .d-ingr-add { display:flex; }
+.d-ingr-add:active { background:var(--c-primary-soft); }
+.d-ingr-add.on { background:var(--c-primary); border-color:var(--c-primary); color:var(--c-on-primary); }
   .ing-meta {
     display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;
   }
@@ -9101,7 +9112,8 @@ async function openDetail(id) {
   const stars = [1,2,3,4,5].map(i=>`<span class="hero-star${i<=(r.note||0)?' on':''}" onclick="setNote('${id}',${i})">${ico('star','icon-sm')}</span>`).join('');
   const tags  = (r.tags||[]).map(t=>`<span class="d-tag">${t}</span>`).join('');
   const initials = (r.nom||'?').trim().slice(0,2).toUpperCase();
-  const ingrs = (r.ingredients||[]).map(i=>{
+  _rvIngrs = (r.ingredients || []);   // pour les boutons « aux courses »
+  const ingrs = _rvIngrs.map((i, _ix)=>{
     const isSub = i.type === 'sous_recette';
     let photoHtml;
     let subRecId = null;
@@ -9139,6 +9151,10 @@ async function openDetail(id) {
         <div class="d-ingr-nom${isSub?' sub':' d-ingr-nom-cap'}">${displayNom}${linkIcon}${convG}</div>
         ${i.note?`<div class="d-ingr-note">${i.note}</div>`:''}
       </div>
+      ${isSub ? '' : `<button class="d-ingr-add btn-icon--sm" type="button" data-i="${_ix}"
+        onclick="rvAjouterCourse(this, event)"
+        aria-label="Ajouter ${_escTexte(i.nom||'')} à la liste de courses"
+        title="Ajouter à la liste de courses">${ico('cart','icon-sm')}</button>`}
     </div>`;
   }).join('');
   const _rvStepCandidates = [];
@@ -9198,6 +9214,71 @@ async function openDetail(id) {
 
 // ── Mode cuisine : garder l'écran allumé pendant la recette (Wake Lock API) ──
 let _wakeLock = null, _cookMode = false;
+
+// ── Ajout aux courses depuis le mode cuisine (BL-231) ───────────────────
+// `_rvIngrs` : les lignes de la recette affichee, pour que les boutons
+// portent un INDEX et non le nom (un guillemet casserait l'attribut).
+// `_rvCourses` : l'etat « deja dans la liste », calcule UNE fois.
+let _rvIngrs = [], _rvCourses = new Map();
+
+function _rvCleCourse(nom, ingId){
+  return ingId ? 'i' + ingId : 'n' + norm(nom);
+}
+
+async function _rvCoursesEtat(){
+  if (!_cl.length) { try { await _clLoad(); } catch (_) {} }
+  _rvCourses = new Map();
+  _cl.forEach(it => {
+    const cle = _rvCleCourse(it.n, it.ingredientId);
+    const prec = _rvCourses.get(cle);
+    // Une ligne NON cochee l'emporte : c'est celle qui compte.
+    if (!prec || (prec.done && !it.done)) _rvCourses.set(cle, { id: it.id, done: !!it.done });
+  });
+  _rvMajBoutons();
+}
+
+function _rvMajBoutons(){
+  document.querySelectorAll('#panel-detail .d-ingr-add').forEach(b => {
+    const i = _rvIngrs[Number(b.dataset.i)];
+    if (!i) return;
+    const e = _rvCourses.get(_rvCleCourse(i.nom, i.ing_id || i.ingredient_id));
+    b.classList.toggle('on', !!(e && !e.done));
+  });
+}
+
+// Un appui, pas de fenetre, pas de navigation. `click` et non `touchstart` :
+// un defilement ne doit rien declencher (meme risque qu'en v0.10.278).
+async function rvAjouterCourse(btn, ev){
+  if (ev) ev.stopPropagation();
+  const i = _rvIngrs[Number(btn.dataset.i)];
+  if (!i) return;
+  const ingId = i.ing_id || i.ingredient_id || null;
+  const cle = _rvCleCourse(i.nom, ingId);
+  const deja = _rvCourses.get(cle);
+  try {
+    if (deja && !deja.done) { showToast('Déjà dans la liste', 'warn'); return; }
+    if (deja && deja.done) {
+      // Elle est cochee, donc achetee : on la remet en « a prendre » plutot
+      // que de creer une seconde ligne.
+      clToggle(deja.id);
+      _rvCourses.set(cle, { id: deja.id, done: false });
+      btn.classList.add('on');
+      showToast('Remis dans la liste', 'ok');
+      return;
+    }
+    const m = (_clMarchands && _clMarchands[0]) ? String(_clMarchands[0].id) : '0';
+    const { item } = await clAddOrBump({
+      n: i.nom, m, qty: 1, origin: 'recette',
+      ingredientId: ingId ? Number(ingId) : null,
+      recipeId: _currentId || null,
+    });
+    _rvCourses.set(cle, { id: item.id, done: false });
+    btn.classList.add('on');
+    showToast('Ajouté aux courses', 'ok');
+  } catch (e) {
+    showToast('Erreur réseau', 'error');
+  }
+}
 function _cookModeBtnHtml(){
   // Toujours rendu, même si l'API est absente : un bouton masqué en silence est
   // impossible à diagnostiquer (« je ne vois pas le bouton »). Si l'API manque,
@@ -9225,10 +9306,13 @@ async function cookModeToggle(){
   if(ko){ showToast(ko,'warn'); return; }
   if(!(await _cookWakeRequest())){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
   _cookMode = true; _cookModeRender();
+  document.body.setAttribute('data-cook', '1');
+  _rvCoursesEtat();          // l'etat « deja dans la liste », une seule fois
   showToast('Mode cuisine — écran maintenu allumé','ok');
 }
 function cookModeOff(silencieux){
   _cookMode = false;
+  document.body.removeAttribute('data-cook');
   if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
   _cookModeRender();
   if(!silencieux) showToast("Mode cuisine désactivé",'ok');
