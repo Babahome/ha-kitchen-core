@@ -1576,7 +1576,12 @@ body[data-import-open="1"] #fab-search { display:none !important; }
    `92%` et non `88vh` : `vh` ne retrecit pas a l'ouverture du clavier sur
    iOS, un pourcentage suit `.frame` et donc le repli `_kcAjusterClavier()`
    (meme raison qu'au bannissement du `dvh`, v0.10.255). */
-.m-sh      { padding:16px 18px 40px;max-height:92%;display:flex;flex-direction:column;overflow:hidden;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+.m-sh      { padding:16px 18px 40px;max-height:92%;display:flex;flex-direction:column;
+             overflow:hidden;overflow-x:hidden;animation:mup .25s cubic-bezier(.4,0,.2,1); }
+/* Aucun enfant ne doit pouvoir elargir la feuille : une rangee qui defile
+   est un conteneur de defilement, sa largeur minimale doit etre nulle,
+   sinon elle pousse la feuille et tout se decale (BL-233). */
+.m-sh > * { min-width:0; max-width:100%; }
 /* Pendant la saisie on rend de la place a la liste. La classe est retiree
    des qu'une recette est choisie, pour que portions et bouton Ajouter
    redeviennent visibles sans defiler (BL-222). */
@@ -1622,10 +1627,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-dt      { font-size:var(--fs-xs);color:var(--orange);font-weight:var(--fw-bold); }
 /* Les six jours proposes, dans le panneau : la feuille separee a disparu
    en v0.10.325, mais ses raccourcis manquaient (retour de Baptiste). La
-   derniere pastille ouvre le selecteur du telephone pour une autre date. */
-.m-days    { display:flex;gap:6px;overflow-x:auto;margin-bottom:var(--sp-3);
-             padding-bottom:2px;scrollbar-width:none; }
-.m-days::-webkit-scrollbar { display:none; }
+   derniere pastille ouvre le selecteur du telephone pour une autre date.
+   La rangee partage sa regle avec les types de repas, plus haut. */
 .m-jb      { padding:6px 10px;border-radius:var(--r-pill);border:2px solid var(--c-border);
              font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--c-text-2);
              background:var(--c-surface);font-family:var(--font);cursor:pointer;
@@ -1638,10 +1641,17 @@ body[data-import-open="1"] #fab-search { display:none !important; }
    TOUJOURS affichee : le bouton « au hasard » sert avant d'avoir choisi. */
 .m-actions { display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2);flex-shrink:0; }
 .m-actions .m-pick { flex:1;min-width:0;margin-bottom:0; }
-/* Elles defilaient horizontalement et « Gouter » / « Autre » sortaient de
-   l'ecran. Elles se replient maintenant sur deux lignes : la place gagnee
-   en haut le permet (BL-227). */
-.m-tr      { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--sp-3);padding-bottom:2px; }
+/* Types de repas ET dates : MEME rangee qui defile horizontalement
+   (BL-233). Le repli sur deux lignes de la v0.10.227 coutait 80 px ;
+   `pan-x` et `contain` evitent qu'un balayage soit pris pour une fermeture
+   du panneau ou un defilement de la page. */
+.m-tr, .m-days {
+  display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto;
+  margin-bottom:var(--sp-3); padding-bottom:2px;
+  scrollbar-width:none; touch-action:pan-x; overscroll-behavior-x:contain;
+}
+.m-tr::-webkit-scrollbar, .m-days::-webkit-scrollbar { display:none; }
+.m-tb, .m-jb { flex:0 0 auto; }
 .m-tr::-webkit-scrollbar{display:none}
 .m-tb      { padding:6px 10px;border-radius:var(--r-pill);border:2px solid var(--grey);font-size:var(--fs-xs);font-weight:var(--fw-heavy);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;background:var(--c-surface);font-family:var(--font);transition:all .15s; }
 .m-tb.on   { background:var(--orange);border-color:var(--orange);color:var(--c-on-primary); }
@@ -1683,7 +1693,8 @@ body[data-import-open="1"] #fab-search { display:none !important; }
 .m-pick-chg { flex-shrink:0;background:none;border:none;color:var(--c-primary);font-family:var(--font);font-size:var(--fs-xs);font-weight:var(--fw-heavy);cursor:pointer;padding:var(--sp-2); }
 .m-si2:active{background:var(--orange-l)}
 .m-ok      { width:100%;padding:.85rem;border-radius:var(--r-md);border:none;background:var(--orange);color:var(--c-on-primary);font-size:var(--fs-sm);font-weight:var(--fw-heavy);font-family:var(--font);cursor:pointer;margin-top:4px; }
-.m-ok:active{opacity:.85}.m-mode-sq { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--grey-l);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-xl);transition:all .15s; }
+.m-ok:active{opacity:.85}
+.m-ok:disabled{opacity:.45;cursor:default}.m-mode-sq { width:42px;height:42px;border-radius:var(--r-md);flex-shrink:0;background:var(--grey-l);border:2px solid var(--grey);display:grid;place-items:center;cursor:pointer;font-size:var(--fs-xl);transition:all .15s; }
 .m-mode-sq.ing { background:var(--orange-l);border-color:var(--orange); }
 .m-portctrl { display:flex;align-items:center;gap:10px;background:var(--grey-l);border-radius:var(--r-pill);padding:4px 6px; }
 .m-portbtn { width:32px;height:32px;border-radius:50%;border:none;background:var(--c-surface);color:var(--orange);font-size:var(--fs-lg);font-weight:var(--fw-heavy);cursor:pointer;display:grid;place-items:center;font-family:var(--font);box-shadow:var(--shadow-0); }
@@ -2388,7 +2399,13 @@ body[data-cook="1"] .d-ingr-add { display:flex; }
    dessous (BL-226, mesure : barre a 584, navigation a 672). */
 /* Liste de suggestions maison (BL-230). Au-dessus des panneaux (50) et des
    feuilles (200), sous le scanner. */
-.sugg-pop { position:absolute; z-index:400; display:none; max-height:220px; overflow-y:auto;
+/* `max-height` est pose par `_suggPlacer()` selon la place reellement
+   disponible. `overscroll-behavior` empeche le defilement de remonter au
+   panneau quand on arrive en bout de liste, et `pan-y` dit au navigateur
+   que le geste vertical appartient a la liste (BL-232). */
+.sugg-pop { position:absolute; z-index:400; display:none; overflow-y:auto;
+            overscroll-behavior:contain; touch-action:pan-y;
+            -webkit-overflow-scrolling:touch;
             background:var(--c-surface); border:1px solid var(--c-border);
             border-radius:var(--r-md); box-shadow:var(--shadow-2); }
 .sugg-pop.on { display:block; }
@@ -8869,16 +8886,53 @@ function _suggOuvrir(champ, source){
   _suggCible = champ;
   _suggVals = hits;
   el.innerHTML = hits.map((v, i) => `<div class="sugg-it" data-i="${i}">${_escTexte(v)}</div>`).join('');
-  const r = champ.getBoundingClientRect();
-  const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
-  el.style.left  = Math.max(8, r.left - cadre.left) + 'px';
-  el.style.top   = (r.bottom - cadre.top + 4) + 'px';
-  el.style.minWidth = Math.max(140, Math.round(r.width)) + 'px';
   el.classList.add('on');
+  _suggPlacer();
 }
 
-// Un defilement deplacerait le champ sans deplacer la liste : on ferme.
-document.addEventListener('scroll', () => { if (_suggCible) _suggFermer(); }, true);
+// Place la liste sous le champ, ou AU-DESSUS s'il n'y a pas la place.
+// `visualViewport` donne la zone reellement visible — c'est le seul moyen
+// de savoir ou s'arrete l'ecran quand le clavier est ouvert.
+function _suggPlacer(){
+  const el = document.getElementById('sugg-pop');
+  if (!el || !_suggCible || !el.classList.contains('on')) return;
+  const r = _suggCible.getBoundingClientRect();
+  const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
+  const vv = window.visualViewport;
+  const hautVisible = vv ? vv.offsetTop : 0;
+  const basVisible  = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+  const dessous = basVisible - r.bottom - 8;
+  const dessus  = r.top - hautVisible - 8;
+  const versLeHaut = dessous < 120 && dessus > dessous;
+  const dispo = Math.max(96, Math.min(240, versLeHaut ? dessus : dessous));
+  el.style.maxHeight = Math.round(dispo) + 'px';
+  el.style.left      = Math.max(8, r.left - cadre.left) + 'px';
+  el.style.minWidth  = Math.max(140, Math.round(r.width)) + 'px';
+  if (versLeHaut) { el.style.top = 'auto'; el.style.bottom = Math.round(cadre.bottom - r.top + 4) + 'px'; }
+  else            { el.style.bottom = 'auto'; el.style.top = Math.round(r.bottom - cadre.top + 4) + 'px'; }
+}
+
+// L'ecouteur est en phase de CAPTURE pour voir le defilement d'un panneau
+// interieur — mais il voyait aussi celui de la LISTE, qui se fermait donc
+// sous le doigt (BL-232). On l'ignore, et un defilement du panneau replace
+// la liste au lieu de la fermer ; elle ne disparait que si le champ sort
+// de l'ecran.
+document.addEventListener('scroll', e => {
+  if (!_suggCible) return;
+  const c = e.target;
+  if (c && c.closest && c.closest('#sugg-pop')) return;   // son propre defilement
+  const r = _suggCible.getBoundingClientRect();
+  const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
+  if (r.bottom < cadre.top || r.top > cadre.bottom) { _suggFermer(); return; }
+  _suggPlacer();
+}, true);
+
+// Le clavier qui s'ouvre change la zone visible : on replace.
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => _suggPlacer());
+  window.visualViewport.addEventListener('scroll', () => _suggPlacer());
+}
+window.addEventListener('orientationchange', () => setTimeout(_suggPlacer, 200));
 document.addEventListener('focusin', e => {
   if (_suggCible && e.target !== _suggCible && !e.target.closest?.('#sugg-pop')) _suggFermer();
 });
@@ -10399,6 +10453,15 @@ function _mLibelleJour(cle){
        : ecart===-1 ? 'Hier — '+base : base;
 }
 
+// Ramene la pastille active dans la vue, en faisant defiler LA RANGEE et
+// rien d'autre : `scrollIntoView` entrainerait le panneau et la page.
+function _mCentrerActive(sel){
+  const rangee = document.querySelector(sel); if(!rangee) return;
+  const active = rangee.querySelector('.on'); if(!active) return;
+  const r = rangee.getBoundingClientRect(), a = active.getBoundingClientRect();
+  rangee.scrollLeft += (a.left - r.left) - (r.width - a.width) / 2;
+}
+
 // Les six jours proposes, plus la date choisie si elle est ailleurs.
 function _mJoursRender(){
   const el = document.getElementById('m-days'); if(!el) return;
@@ -10416,6 +10479,7 @@ function _mJoursRender(){
     return `<button class="m-jb${k === _mKey ? ' on' : ''}" onclick="mSetDate('${k}')">${lib}</button>`;
   }).join('')
   + `<button class="m-jb m-jb-autre" onclick="mOuvrirDate()" aria-label="Choisir une autre date" title="Une autre date">${ico('calendar','icon-sm')}</button>`;
+  _mCentrerActive('#m-days');
 }
 
 // Ouvre le selecteur de date du telephone. `showPicker()` est le moyen
@@ -10518,8 +10582,9 @@ function mSrch(v){
   _mP=null; mPickRender();
   const q=v.trim(); const w=document.getElementById('m-sg');
   const sh=document.querySelector('.m-sh');
-  if(!q){ w.className='m-sg'; mNoteRender(''); sh?.classList.remove('searching'); return; }
+  if(!q){ w.className='m-sg'; mNoteRender(''); sh?.classList.remove('searching'); _mMajOk(); return; }
   sh?.classList.add('searching');   // rend la place a la liste
+  _mMajOk();
   mResumeRender();
   mNoteRender(q);
   if(_mMode==='ing'){ mSrchIng(v,w); return; }
@@ -10593,10 +10658,19 @@ function mPkNote(){
   const v=document.getElementById('m-si').value.trim();
   if(v) mPk(v,'\ud83d\udcdd');
 }
+function _mMajOk(){
+  const b = document.getElementById('m-ok'); if (!b) return;
+  const v = (document.getElementById('m-si')?.value || '').trim();
+  // `mAdd()` accepte une note libre tapee sans selection : le texte compte
+  // donc autant qu'une recette choisie.
+  b.disabled = !(v || _mP);
+}
+
 function mPickRender(){
   // Appelee partout ou `_mP` change : c'est donc le bon endroit pour tenir
   // l'etat « une recette est choisie », qui masque le champ et la bascule.
   document.querySelector('.m-sh')?.classList.toggle('choisi', !!_mP);
+  _mMajOk();
   const el=document.getElementById('m-pick'); if(!el) return;
   el.innerHTML='';
   if(!_mP){ el.className='m-pick'; return; }
