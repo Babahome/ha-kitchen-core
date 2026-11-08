@@ -253,6 +253,11 @@ db.exec(`
   ['menu',           'recette_id',    'INTEGER REFERENCES recettes(id)'],
   ['courses_items',  'ingredient_id', 'INTEGER REFERENCES ingredients(id)'],
   ['courses_items',  'produit_id',    'INTEGER REFERENCES produits(id)'],
+  // Article introuvable en magasin (BL-236). `introuvable_le` porte une date
+  // LOCALE : l'etat ne vaut que pour la sortie du jour.
+  ['courses_items',  'introuvable',      'INTEGER DEFAULT 0'],
+  ['courses_items',  'introuvable_chez', 'TEXT'],
+  ['courses_items',  'introuvable_le',   'TEXT'],
   ['marchands',      'search_url',    "TEXT DEFAULT ''"],
   ['produits',       'rayon_id',      'INTEGER REFERENCES rayons(id)'],
   ['rayons',         'icone',         'TEXT'],
@@ -1025,7 +1030,7 @@ app.get('/api/ingredients/search', (req, res) => {
      LEFT JOIN rayons r ON r.id = i.rayon_id
      WHERE NORM(i.nom) LIKE NORM(?) ORDER BY i.nom LIMIT 60`
   ).all(`%${q}%`);
-  res.json(sortByRank(rows, q, r => r.nom).slice(0, 8));
+  res.json(sortByRank(rows, q, r => r.nom).slice(0, 25));
 });
 
 // Recherche dans les produits deja scannes, pour les ajouter a la liste de courses.
@@ -1050,7 +1055,7 @@ app.get('/api/produits/search', (req, res) => {
        ORDER BY p.nom LIMIT 60`
     ).all(...mots.map(m => `%${m}%`));
     // La marque fait partie de ce qu'on cherche (« eau de repassage carrefour »)
-    res.json(sortByRank(rows, q, r => `${r.nom} ${r.marque || ''}`.trim()).slice(0, 8));
+    res.json(sortByRank(rows, q, r => `${r.nom} ${r.marque || ''}`.trim()).slice(0, 25));
   } catch (e) {
     console.error('[/api/produits/search]', e.message);
     res.status(500).json({ error: e.message });
@@ -1838,7 +1843,8 @@ app.get('/api/courses', (_req, res) => {
   `).all().map(r => ({
     id: r.id, n: r.resolved_nom, icone: r.resolved_icone||null, m: r.marchand, r: r.resolved_rayon||'Autre',
     qty: r.qty, unit: r.unite||'', done: !!r.done, origin: r.origin||'manuel',
-    recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null, produitId: r.produit_id||null
+    recipeId: r.recipe_id||null, ingredientId: r.ingredient_id||null, produitId: r.produit_id||null,
+    introuvable: !!r.introuvable, introuvableChez: r.introuvable_chez||null, introuvableLe: r.introuvable_le||null
   }));
   const recipes = db.prepare(`
     SELECT cr.recipe_id, cr.nom, COALESCE(r.photo, cr.photo) AS photo, cr.portions
@@ -1890,7 +1896,11 @@ app.post('/api/courses/items', (req, res) => {
     `).get(String(m), unit || '', produitId, produitId, ingredientId, ingredientId, nomFusion);
     if (exist) {
       const cumul = (Number(exist.qty) || 1) + (Number(qty) || 1);
-      db.prepare('UPDATE courses_items SET qty=? WHERE id=?').run(cumul, exist.id);
+      // On rajoute un article marque introuvable : c'est qu'on le veut. La
+      // fusion efface donc l'etat, sinon la ligne resterait rangee dans le
+      // groupe replie « Introuvables » (BL-236).
+      db.prepare('UPDATE courses_items SET qty=?, introuvable=0, introuvable_chez=NULL, introuvable_le=NULL WHERE id=?')
+        .run(cumul, exist.id);
       return res.json({
         id: exist.id, merged: true, qty: cumul,
         ingredientId: exist.ingredient_id, produitId: exist.produit_id,
@@ -1904,7 +1914,8 @@ app.post('/api/courses/items', (req, res) => {
 });
 
 app.put('/api/courses/items/:id', (req, res) => {
-  const { n, icone, m, r, qty, unit, done, origin, recipeId, ingredientId, produitId } = req.body;
+  const { n, icone, m, r, qty, unit, done, origin, recipeId, ingredientId, produitId,
+          introuvable, introuvableChez, introuvableLe } = req.body;
   const fields = [], vals = [];
   if (n            !== undefined) { fields.push('nom=?');          vals.push(n); }
   if (icone        !== undefined) { fields.push('icone=?');        vals.push(icone); }
@@ -1917,6 +1928,9 @@ app.put('/api/courses/items/:id', (req, res) => {
   if (recipeId     !== undefined) { fields.push('recipe_id=?');    vals.push(recipeId); }
   if (ingredientId !== undefined) { fields.push('ingredient_id=?');vals.push(ingredientId); }
   if (produitId    !== undefined) { fields.push('produit_id=?');   vals.push(produitId); }
+  if (introuvable     !== undefined) { fields.push('introuvable=?');      vals.push(introuvable?1:0); }
+  if (introuvableChez !== undefined) { fields.push('introuvable_chez=?'); vals.push(introuvableChez); }
+  if (introuvableLe   !== undefined) { fields.push('introuvable_le=?');   vals.push(introuvableLe); }
   if (!fields.length) return res.json({ ok: true });
   vals.push(req.params.id);
   db.prepare(`UPDATE courses_items SET ${fields.join(',')} WHERE id=?`).run(...vals);
@@ -2592,9 +2606,11 @@ function importMerge(tables) {
     const ingredientId = ci.ingredient_id != null ? (idMap.ingredients[ci.ingredient_id] || null) : null;
     const produitId    = ci.produit_id    != null ? (idMap.produits[ci.produit_id]       || null) : null;
     db.prepare(`INSERT INTO courses_items
-      (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
-      .run(ci.nom, ci.icone, ci.marchand, ci.rayon, ci.qty, ci.unite, ci.done, ci.origin, ci.recipe_id, ingredientId, produitId);
+      (nom,icone,marchand,rayon,qty,unite,done,origin,recipe_id,ingredient_id,produit_id,
+       introuvable,introuvable_chez,introuvable_le)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(ci.nom, ci.icone, ci.marchand, ci.rayon, ci.qty, ci.unite, ci.done, ci.origin, ci.recipe_id, ingredientId, produitId,
+           ci.introuvable || 0, ci.introuvable_chez || null, ci.introuvable_le || null);
     counts.courses_items++;
   });
 

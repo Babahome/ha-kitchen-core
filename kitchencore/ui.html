@@ -353,6 +353,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   -webkit-tap-highlight-color: transparent;
 }
 .header-icon:active { background: var(--c-scrim-light-soft); }
+/* Indicateur du mode courses : il doit se voir, d'ou le fond permanent
+   (BL-235). */
+.header-icon.on { background: var(--c-scrim-light-soft); }
 
 /* ── SCROLLABLE CONTENT ────────────────────────────────────────────────────── */
 .content {
@@ -1034,9 +1037,54 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
                 flex-shrink:0;cursor:pointer;transition:all .15s; }
 .cl-rayon-chk.on{ background:var(--orange);border-color:var(--orange); }
 .cl-rayon-name{ font-size:var(--fs-sm);font-weight:var(--fw-heavy);flex:1; }
+/* `position:relative` pour les panneaux de balayage, `pan-y` pour que le
+   defilement vertical de la liste passe toujours, et `transform` dans la
+   transition pour le retour en place quand le seuil n'est pas franchi
+   (BL-236). */
 .cl-item      { background:var(--c-surface);display:flex;align-items:center;padding:10px 14px;gap:10px;
-                border-bottom:1px solid var(--grey-l);transition:opacity .2s; }
+                border-bottom:1px solid var(--grey-l);transition:opacity .2s, transform .2s cubic-bezier(.4,0,.2,1);
+                position:relative;touch-action:pan-y; }
 .cl-item.done { opacity:.4; }
+/* Pendant le geste, la ligne suit le doigt : pas de transition, sinon elle
+   traine derriere lui. */
+.cl-item.cl-sw-actif { transition:none;z-index:1; }
+/* Les deux panneaux vivent HORS de la boite de la ligne, de part et d'autre :
+   ils la suivent quand elle glisse et comblent exactement le vide. Ils ne
+   sont crees que pendant le geste. */
+.cl-sw-panel  { position:absolute;top:0;bottom:0;width:100%;
+                display:flex;align-items:center;gap:8px;padding:0 18px;
+                font-size:var(--fs-sm);font-weight:var(--fw-heavy);color:var(--c-on-primary); }
+.cl-sw-pris   { right:100%;justify-content:flex-end;background:var(--c-success); }
+.cl-sw-intro  { left:100%;background:var(--c-primary); }
+/* Seuil franchi : le panneau s'affirme, pour qu'on sache que lacher agira. */
+.cl-item.cl-sw-pret .cl-sw-panel { filter:saturate(1.4); }
+/* Indice du premier affichage : la ligne bouge une seule fois, pour faire
+   decouvrir les deux gestes (BL-236). */
+@keyframes cl-sw-indice { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-14px)} 60%{transform:translateX(10px)} }
+.cl-item.cl-sw-indice { animation:cl-sw-indice 1.4s cubic-bezier(.4,0,.2,1); }
+
+/* ── Article introuvable ────────────────────────────────────────────────── */
+/* Ligne atténuée, mais le NOM reste lisible : pas de texte barré (BL-236). */
+.cl-item.intro { opacity:.72; }
+.cl-intro-pill { display:inline-flex;align-items:center;gap:4px;
+                 font-size:var(--fs-xs);font-weight:var(--fw-heavy);
+                 color:var(--c-primary);background:var(--c-primary-soft);
+                 border-radius:var(--r-pill);padding:1px 8px; }
+.cl-intro-chez { font-weight:var(--fw-regular);color:var(--c-text-2); }
+.cl-intro-grp  { border-top:1px solid var(--grey-l); }
+.cl-intro-hd   { display:flex;align-items:center;gap:8px;padding:9px 14px;
+                 background:var(--grey-l);color:var(--c-text-2);
+                 font-size:var(--fs-xs);font-weight:var(--fw-heavy);
+                 text-transform:uppercase;letter-spacing:.04em;cursor:pointer; }
+.cl-intro-titre{ flex:1;min-width:0; }
+.cl-intro-chev { transition:transform .2s; }
+.cl-intro-grp.replie .cl-intro-chev { transform:rotate(-90deg); }
+.cl-intro-grp.replie .cl-intro-corps { display:none; }
+
+/* ── Bande d'annulation, a la place de la ligne pendant 5 s ─────────────── */
+.cl-bande      { display:flex;align-items:center;gap:10px;padding:10px 14px;
+                 background:var(--grey-l);border-bottom:1px solid var(--grey-l); }
+.cl-bande-txt  { flex:1;min-width:0;font-size:var(--fs-sm);font-weight:var(--fw-bold);color:var(--c-text-2); }
 .cl-chk       { width:24px;height:24px;border-radius:var(--r-sm);border:2px solid var(--grey);
                 flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .15s; }
 .cl-chk.on    { background:var(--orange);border-color:var(--orange);color:var(--c-on-primary);font-size:var(--fs-xs); }
@@ -1091,10 +1139,23 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
 /* Le bouton de scan se pose au-dessus du bouton de recherche : sa hauteur
    plus les deux marges (BL-207, le bouton est passe de 46 a 56 px). */
 /* Suggestions autocomplétion Courses */
+/* La liste s'ouvre vers le HAUT depuis un point fixe au-dessus du bouton de
+   recherche. Sans hauteur maximale elle grandissait sous l'en-tete et hors de
+   l'ecran des que le clavier reduisait la place : mesure clavier ouvert, son
+   haut etait a -87 px et 147 px passaient sous l'en-tete (BL-238).
+   `max-height` est donc pose par `_clSuggPlacer()`, qui mesure la place
+   reellement visible. `overscroll-behavior` empeche le defilement de remonter
+   a la page en bout de liste, et `pan-y` dit au navigateur que le geste
+   vertical appartient a la liste. */
 .cl-suggest-list{ position:absolute;bottom:calc(var(--bottom-h) + var(--fab-size) + var(--sp-5));left:16px;
   background:var(--c-surface);border-radius:var(--r-md);box-shadow:var(--shadow-2);
-  z-index:21;min-width:220px;max-width:280px;overflow:hidden;
+  z-index:21;min-width:220px;max-width:280px;
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
   display:none;flex-direction:column;border:1px solid var(--grey); }
+/* Indice qu'il reste des resultats au-dessus : un voile en haut de la liste,
+   pose seulement quand le contenu depasse. */
+.cl-suggest-list.cl-suggest-more{ box-shadow:var(--shadow-2), inset 0 10px 10px -10px var(--c-overlay); }
 .cl-suggest-list.visible{ display:flex; }
 .cl-suggest-item{ display:flex;align-items:center;gap:10px;padding:11px 14px;
   cursor:pointer;border-bottom:1px solid var(--grey-l);transition:background .12s; }
@@ -1391,6 +1452,13 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; disp
 
 /* Description */
 .ev3-desc-wrap  { padding:10px 16px 0; background:var(--c-surface); }
+/* Les zones de texte longues grandissent avec leur contenu : plus de
+   defilement A L'INTERIEUR du champ, c'est la page qui defile (BL-237).
+   `field-sizing: content` suffit la ou il est connu, `_kcGrowTous()` ecrit la
+   hauteur ailleurs. Pas de `max-height` : ce serait remettre le defilement
+   interne qu'on vient d'enlever. `min-height` est inchange, donc une etape
+   courte garde la taille qu'elle a aujourd'hui. */
+.ev3-desc-input, .ev3-step-text-inp { field-sizing:content; overflow-y:hidden; resize:none; }
 .ev3-desc-input { width:100%; border:none; background:transparent; font-family:var(--font); font-size:var(--fs-sm); color:var(--text2); line-height:1.5; resize:none; outline:none; min-height:40px; border-bottom:1.5px solid transparent; transition:border-color .15s; }
 .ev3-desc-input:focus { border-bottom-color:var(--orange); }
 .ev3-desc-input::placeholder { color:var(--grey-d); }
@@ -2684,6 +2752,10 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
     </div>
     <div class="header-icon" id="stock-sf-header-btn" style="display:grid" onclick="stockSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
     <div class="header-icon" id="ing-sf-header-btn" style="display:none" onclick="ingSfOpen()"><svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg></div>
+    <!-- Mode courses actif : visible en permanence, et il coupe le mode d'un
+         seul appui. Un reglage qui vide la batterie sans se voir est un piege
+         (BL-235). -->
+    <div class="header-icon on" id="cl-veille-ind" style="display:none" onclick="clVeilleOff()" role="button" aria-label="Mode courses actif — appuyer pour éteindre l'écran allumé" title="Écran maintenu allumé"><svg class="icon" aria-hidden="true"><use href="#i-cookmode"></use></svg></div>
     <div class="header-icon" id="header-dots" onclick="mHeaderDotsClick()" role="button" aria-label="Plus d'options"><svg class="icon" aria-hidden="true"><use href="#i-more"></use></svg></div>
   </div>
 
@@ -2722,6 +2794,10 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <div class="cl-ctx-menu" id="cl-ctx-menu">
         <div class="cl-ctx-item" id="cl-ctx-fiche" onclick="clCtxFiche()"><span><svg class="icon" aria-hidden="true"><use href="#i-sheet"></use></svg></span> Voir la fiche</div>
         <div class="cl-ctx-item" onclick="clCtxLink()"><span><svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg></span> Voir sur le site</div>
+        <!-- Alternative au balayage, OBLIGATOIRE : decouvrabilite et
+             accessibilite (BL-236). -->
+        <div class="cl-ctx-item" id="cl-ctx-intro" onclick="clCtxIntrouvable()"><span><svg class="icon" aria-hidden="true"><use href="#i-unknown"></use></svg></span> Introuvable</div>
+        <div class="cl-ctx-item" id="cl-ctx-reessayer" onclick="clCtxReessayer()"><span><svg class="icon" aria-hidden="true"><use href="#i-reset"></use></svg></span> Réessayer</div>
         <div class="cl-ctx-item" onclick="clCtxMarchand()"><span><svg class="icon" aria-hidden="true"><use href="#i-swap"></use></svg></span> Changer de marchand</div>
         <div class="cl-ctx-item" onclick="clCtxEdit()"><span><svg class="icon" aria-hidden="true"><use href="#i-edit"></use></svg></span> <span id="cl-ctx-edit-lbl">Modifier qté / unité</span></div>
         <div class="cl-ctx-item" onclick="clCtxToIngredient()"><span><svg class="icon" aria-hidden="true"><use href="#i-ingredient"></use></svg></span> Créer comme ingrédient</div>
@@ -2737,9 +2813,6 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
           <div id="cl-mopts"></div>
         </div>
       </div>
-
-      <!-- Suggestions autocomplétion -->
-      <div class="cl-suggest-list" id="cl-suggest-list"></div>
 
       <!-- Barre sélection multiple -->
       <div class="cl-sel-bar" id="cl-sel-bar">
@@ -3377,6 +3450,11 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
     </button>
   </div>
 
+  <!-- Suggestions de la recherche Courses : enfant direct de .frame. Dans
+       #content, le contexte d'empilement isole d'iOS la faisait peindre
+       DERRIERE l'en-tete orange (BL-238, meme regle que #rv-import-overlay). -->
+  <div class="cl-suggest-list" id="cl-suggest-list"></div>
+
   <!-- FAB -->
   <div class="fab" id="main-fab" onclick="fabAction()" role="button" aria-label="Action principale"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-plus"></use></svg></div>
 
@@ -3695,6 +3773,7 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
 
   <!-- MENU ⋮ COURSES -->
   <div class="m-hdmenu" id="cl-hdmenu" onclick="event.stopPropagation()">
+    <div class="m-hdmenu-item" onclick="clVeilleToggle();clHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-cookmode"></use></svg></span><span id="cl-veille-lbl">Mode courses (écran allumé)</span></div>
     <div class="m-hdmenu-item" onclick="clEnterSelMode();clHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></span><span>Sélectionner</span></div>
     <div class="m-hdmenu-item danger" onclick="clDeleteDone();clHideHdmenu()"><span><svg class="icon" aria-hidden="true"><use href="#i-delete"></use></svg></span><span>Supprimer les cochés</span></div>
   </div>
@@ -6026,7 +6105,11 @@ const PAGE_ENTREE = {
 // `if (page !== 'tags')`.
 const PAGE_RANGEMENT = {
   stock:    () => { _stockSelectMode = false; _stockSelectedIds.clear(); stockHideHdmenu(); },
-  courses:  () => clExitSelMode(),
+  // `#cl-suggest-list` est passe enfant direct de `.frame` (BL-238) : il ne
+  // disparait plus tout seul avec `#page-courses`, il faut le ranger.
+  // Le mode courses ne survit pas au depart de la page : l'ecran doit se
+  // remettre en veille normalement (BL-235).
+  courses:  () => { clExitSelMode(); clHideSuggestions(); clVeilleOff(true); },
   recettes: () => rvFabDialClose(),
   menu:     () => { if (_mSelMode) mSelExit(); mHideHdmenu(); },
   tags:     () => { _tagExitSelectMode(); tagCloseMergeSheet(); },
@@ -7429,8 +7512,13 @@ async function _clLoad(){
       showToast('Courses migrées','ok');
     }
   } catch(e) {}
+  // L'etat « introuvable » ne vaut que pour la sortie du jour : ce qui date
+  // d'hier est oublie avant le premier affichage (BL-236).
+  _clPurgerIntrouvables();
   clBuildMarchandTabs();
   clRender();
+  _clSwipeInit();
+  _clIndiceBalayage();
 }
 
 // ── Construction dynamique des onglets marchands ──────────────────────────────
@@ -7490,7 +7578,8 @@ function clRender() {
   _cl.forEach(i => { const k = String(i.m); if (byM[k]) byM[k].push(i); });
   _clMarchands.forEach(m => {
     const k = String(m.id);
-    const n = (byM[k]||[]).filter(i=>!i.done).length;
+    // Un article introuvable n'est pas « a prendre » ici : il ne compte pas.
+    const n = (byM[k]||[]).filter(i=>!i.done && !_clEstIntrouvable(i)).length;
     const el = document.getElementById('cl-'+k+'-n');
     if (el) el.textContent = n + ' article' + (n>1?'s':'');
   });
@@ -7498,6 +7587,7 @@ function clRender() {
   _clMarchands.forEach(m => {
     clRenderMarchand(String(m.id), byM[String(m.id)]||[], m.rayons||[]);
   });
+  _clVeilleFinDeListe();
 }
 
 function clItemHTML(item) {
@@ -7520,15 +7610,21 @@ function clItemHTML(item) {
     ? `<img loading="lazy" decoding="async" src="${icone}" class="cl-cover" onerror="this.parentNode.innerHTML='<span class=\\'cl-ini\\'>${ini}</span>'">`
     : `<span class="cl-ini">${ini}</span>`;
   const isSel = _clSelected.has(item.id);
-  return `<div class="cl-item${item.done?' done':''}${isSel?' sel-checked':''}" id="cli-${item.id}" ${_clSelMode?`onclick="clToggleSel('${item.id}')"`:''}>
+  // Pendant les 5 s d'annulation, la bande REMPLACE la ligne.
+  if (_clBande && _clBande.id === item.id) return _clBandeHTML(item);
+  const intro = _clEstIntrouvable(item);
+  const introPill = intro
+    ? `<span class="cl-intro-pill">Introuvable${item.introuvableChez ? ` <span class="cl-intro-chez">chez ${_escTexte(item.introuvableChez)}</span>` : ''}</span>`
+    : '';
+  return `<div class="cl-item${item.done?' done':''}${intro?' intro':''}${isSel?' sel-checked':''}" id="cli-${item.id}" ${_clSelMode?`onclick="clToggleSel('${item.id}')"`:''}>
     ${_clSelMode
       ? `<div class="cl-sel-chk${isSel?' on':''}" onclick="clToggleSel('${item.id}')">${isSel?ico('check','icon-sm'):''}</div>`
       : `<div class="cl-chk${item.done?' on':''}" onclick="clToggle('${item.id}')">${item.done?ico('check','icon-sm'):''}</div>`
     }
     <div class="cl-emoji">${icoContent}</div>
     <div class="cl-body">
-      <div class="cl-name">${item.n}</div>
-      <div class="cl-origin">${item.origin||'manuel'}</div>
+      <div class="cl-name">${_escTexte(item.n)}</div>
+      <div class="cl-origin">${introPill || _escTexte(item.origin||'manuel')}</div>
     </div>
     <div class="cl-actions">
       ${badge}
@@ -7543,13 +7639,130 @@ function clItemHTML(item) {
   </div>`;
 }
 
+// ── Article introuvable en magasin (BL-236) ───────────────────────────────
+// Pendant la bande d'annulation, la ligne ne doit PAS changer de place :
+// sinon la bande partirait dans le groupe « Introuvables », qui peut etre
+// replie, et le bouton « Annuler » serait invisible.
+function _clEstIntrouvable(item) {
+  if (!item.introuvable) return false;
+  return !(_clBande && _clBande.id === item.id);
+}
+
+function _clPatch(id, corps) {
+  fetch('/api/courses/items/' + id, {
+    method: 'PUT', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(corps),
+  }).catch(()=>{});
+}
+
+function _clEtat(item) {
+  return { done: item.done, introuvable: !!item.introuvable,
+           introuvableChez: item.introuvableChez || null,
+           introuvableLe: item.introuvableLe || null };
+}
+
+function _clNomMarchand(m) {
+  const mm = _clMarchands.find(x => String(x.id) === String(m));
+  return mm ? mm.nom : '';
+}
+
+function clIntrouvableOn(item) {
+  item.introuvable = true;
+  item.introuvableChez = _clNomMarchand(item.m);
+  // `_dateLocale` et jamais `toISOString()`, qui recule d'un jour (v0.10.318).
+  item.introuvableLe = _dateLocale(new Date());
+  _clPatch(item.id, { introuvable: true, introuvableChez: item.introuvableChez,
+                      introuvableLe: item.introuvableLe });
+}
+
+function clIntrouvableOff(item, sansEcrire) {
+  if (!item.introuvable) return false;
+  item.introuvable = false; item.introuvableChez = null; item.introuvableLe = null;
+  if (!sansEcrire) _clPatch(item.id, { introuvable: false, introuvableChez: null, introuvableLe: null });
+  return true;
+}
+
+// « La prochaine sortie », c'est LE JOUR SUIVANT : au chargement, tout ce qui
+// n'est pas date d'aujourd'hui est oublie — et ecrit en base, pour que la
+// tablette de sa femme voie la meme chose.
+function _clPurgerIntrouvables() {
+  const auj = _dateLocale(new Date());
+  let n = 0;
+  _cl.forEach(i => {
+    if (!i.introuvable || i.introuvableLe === auj) return;
+    clIntrouvableOff(i);
+    n++;
+  });
+  return n;
+}
+
+// Les groupes replies, par marchand. Deplie par defaut : rien ne doit
+// disparaitre sans qu'on l'ait demande.
+const _clIntroReplies = new Set();
+function clIntroToggle(cle) {
+  if (_clIntroReplies.has(cle)) _clIntroReplies.delete(cle); else _clIntroReplies.add(cle);
+  clRender();
+}
+function _clIntroGroupeHTML(cle, items) {
+  if (!items.length) return '';
+  const replie = _clIntroReplies.has(cle);
+  return `<div class="cl-intro-grp${replie?' replie':''}">
+    <div class="cl-intro-hd" onclick="clIntroToggle('${cle}')">
+      ${ico('unknown','icon-sm')}
+      <span class="cl-intro-titre">Introuvables</span>
+      <span class="cl-sec-count">${items.length}</span>
+      ${ico('chevron-down','icon-sm cl-intro-chev')}
+    </div>
+    <div class="cl-intro-corps">${items.map(clItemHTML).join('')}</div>
+  </div>`;
+}
+
+// ── Bande d'annulation, a la place de la ligne ────────────────────────────
+let _clBande = null;
+const CL_BANDE_MS = 5000;
+const _CL_BANDE_TXT = { intro: 'Marqué introuvable', pris: 'Pris', repris: 'Remis dans la liste' };
+
+function _clBandeHTML(item) {
+  return `<div class="cl-bande" id="cli-${item.id}">
+    <span class="cl-bande-txt">${_CL_BANDE_TXT[_clBande.type] || ''}</span>
+    <button class="btn btn--ghost" onclick="clBandeAnnuler()">Annuler</button>
+  </div>`;
+}
+
+function _clBandePoser(item, type, avant) {
+  if (_clBande) clearTimeout(_clBande.minuteur);
+  _clBande = { id: item.id, type, avant,
+               minuteur: setTimeout(() => _clBandeFermer(), CL_BANDE_MS) };
+}
+
+function _clBandeFermer(sansRendu) {
+  if (!_clBande) return;
+  clearTimeout(_clBande.minuteur);
+  _clBande = null;
+  if (!sansRendu) clRender();
+}
+
+function clBandeAnnuler() {
+  if (!_clBande) return;
+  const { id, avant } = _clBande;
+  _clBandeFermer(true);
+  const item = _cl.find(i => i.id === id);
+  if (item) {
+    Object.assign(item, avant);
+    _clPatch(id, avant);
+  }
+  clRender();
+}
+
 function clRenderAll(byM) {
   const el = document.getElementById('cl-all-list'); if(!el) return;
   let h = '';
   _clMarchands.forEach(m => {
     const k = String(m.id);
     const items = byM[k]||[]; if(!items.length) return;
-    const n = items.filter(i=>!i.done).length;
+    const intros = items.filter(_clEstIntrouvable);
+    const normaux = items.filter(i => !_clEstIntrouvable(i));
+    const n = normaux.filter(i=>!i.done).length;
     const icoHTML = m.image
       ? `<img loading="lazy" decoding="async" src="${m.image}" class="cl-sec-ico">`
       : `<span class="cl-ini accent">${(m.nom||'?').trim().slice(0,2).toUpperCase()}</span>`;
@@ -7557,7 +7770,8 @@ function clRenderAll(byM) {
       ${icoHTML}
       <span class="cl-sec-name">${m.nom}</span>
       <span class="cl-sec-count">${n} à prendre</span></div>`;
-    items.forEach(i => h += clItemHTML(i));
+    normaux.forEach(i => h += clItemHTML(i));
+    h += _clIntroGroupeHTML('all-'+k, intros);
   });
   if(!h) h = `<div class="cl-empty">${ico('cart','icon-lg')}<div>Liste vide</div></div>`;
   h += clRecipesSectionHTML();
@@ -7567,7 +7781,13 @@ function clRenderAll(byM) {
 function clRenderMarchand(m, items, rayons) {
   const el = document.getElementById('cl-'+m+'-list'); if(!el) return;
   if(!items.length){ el.innerHTML='<div class="cl-empty">Aucun article</div>'; return; }
-  if(!rayons||!rayons.length){ el.innerHTML = items.map(clItemHTML).join(''); return; }
+  // Les introuvables sortent des rayons et vont dans un seul groupe, en bas
+  // de la section (BL-236).
+  const intros = items.filter(_clEstIntrouvable);
+  items = items.filter(i => !_clEstIntrouvable(i));
+  const groupeIntro = _clIntroGroupeHTML('m-'+m, intros);
+  if(!items.length){ el.innerHTML = groupeIntro || '<div class="cl-empty">Aucun article</div>'; return; }
+  if(!rayons||!rayons.length){ el.innerHTML = items.map(clItemHTML).join('') + groupeIntro; return; }
   const groups = {};
   items.forEach(i=>{ const r=i.r||'Autre'; if(!groups[r])groups[r]=[]; groups[r].push(i); });
   const ordered = rayons.map(r=>r.nom);
@@ -7582,7 +7802,7 @@ function clRenderMarchand(m, items, rayons) {
       <span class="cl-sec-count">${n} article${n>1?'s':''}</span></div>
       ${groups[r].map(clItemHTML).join('')}</div>`;
   });
-  el.innerHTML = h;
+  el.innerHTML = h + groupeIntro;
 }
 
 // ── Recettes liées ─────────────────────────────────────────────────────────────
@@ -7643,6 +7863,119 @@ function clShowBadge(e,recipeId) {
   if(rec) showToast(`${rec.nom} · ${rec.portions} portion${rec.portions>1?'s':''}`, 'ok');
 }
 
+// ── Balayage d'une ligne (BL-236) ─────────────────────────────────────────
+const CL_SW_SEUIL = 0.35;   // part de la largeur a franchir pour que l'action parte
+const CL_SW_AXE   = 10;     // px parcourus avant de decider de l'axe
+const CL_SW_BORD  = 28;     // px ignores le long des bords : geste « retour » d'Android
+let _clSw = null;
+
+function _clSwipeInit() {
+  const page = document.getElementById('page-courses');
+  if (!page || page.dataset.kcSwipe) return;
+  page.dataset.kcSwipe = '1';
+  page.addEventListener('pointerdown', _clSwDebut);
+  page.addEventListener('pointermove', _clSwBouge, { passive: false });
+  page.addEventListener('pointerup', _clSwFin);
+  page.addEventListener('pointercancel', _clSwAnnule);
+  // Un defilement pendant le geste l'abandonne : on ne veut rien declencher
+  // par erreur en parcourant la liste (meme risque qu'en v0.10.278).
+  document.addEventListener('scroll', () => { if (_clSw) _clSwAnnule(); }, true);
+}
+
+// Un article pris n'est pas introuvable : ce sens-la ne bouge pas.
+function _clSwAutorise(item, sens) {
+  if (sens === 'pris') return true;
+  return !item.done && !item.introuvable;
+}
+
+function _clSwPanneaux(ligne) {
+  if (ligne.querySelector('.cl-sw-panel')) return;
+  const g = document.createElement('div');
+  g.className = 'cl-sw-panel cl-sw-pris';
+  g.innerHTML = ico('check','icon-sm') + '<span>Pris</span>';
+  const d = document.createElement('div');
+  d.className = 'cl-sw-panel cl-sw-intro';
+  d.innerHTML = ico('unknown','icon-sm') + '<span>Introuvable</span>';
+  ligne.append(g, d);
+}
+function _clSwPanneauxOter(ligne) {
+  ligne.querySelectorAll('.cl-sw-panel').forEach(p => p.remove());
+}
+
+function _clSwDebut(e) {
+  if (_clSelMode) return;                       // en selection, un appui coche
+  if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  const ligne = e.target.closest && e.target.closest('.cl-item');
+  if (!ligne) return;
+  // Les commandes de la ligne gardent leurs appuis.
+  if (e.target.closest('.cl-chk, .cl-sel-chk, .cl-actions')) return;
+  // GESTE RETOUR D'ANDROID : un balayage qui part d'un bord de l'ecran est le
+  // geste systeme. Vrai surtout vers la droite, qui part du bord gauche.
+  const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
+  if (e.clientX - cadre.left < CL_SW_BORD || cadre.right - e.clientX < CL_SW_BORD) return;
+  const item = _cl.find(i => i.id === ligne.id.replace('cli-', ''));
+  if (!item) return;
+  _clSw = { ligne, item, x0: e.clientX, y0: e.clientY, dx: 0,
+            arme: false, abandon: false, l: ligne.offsetWidth || 1 };
+}
+
+function _clSwBouge(e) {
+  if (!_clSw || _clSw.abandon) return;
+  const dx = e.clientX - _clSw.x0, dy = e.clientY - _clSw.y0;
+  if (!_clSw.arme) {
+    if (Math.abs(dx) < CL_SW_AXE && Math.abs(dy) < CL_SW_AXE) return;
+    // VERROUILLAGE DE L'AXE : si le geste n'est pas nettement horizontal,
+    // c'est un defilement et on n'arme rien — definitivement, pour ce geste.
+    if (Math.abs(dx) <= 1.5 * Math.abs(dy)) { _clSw.abandon = true; return; }
+    _clSw.arme = true;
+    _clSw.ligne.classList.add('cl-sw-actif');
+    _clSwPanneaux(_clSw.ligne);
+  }
+  const sens = dx < 0 ? 'intro' : 'pris';
+  if (!_clSwAutorise(_clSw.item, sens)) {
+    _clSw.dx = 0; _clSw.ligne.style.transform = '';
+    _clSw.ligne.classList.remove('cl-sw-pret');
+    return;
+  }
+  e.preventDefault();                           // le geste nous appartient
+  _clSw.dx = dx;
+  _clSw.ligne.style.transform = 'translateX(' + Math.round(dx) + 'px)';
+  _clSw.ligne.classList.toggle('cl-sw-pret', Math.abs(dx) >= _clSw.l * CL_SW_SEUIL);
+}
+
+function _clSwRanger() {
+  const g = _clSw; _clSw = null;
+  g.ligne.classList.remove('cl-sw-actif', 'cl-sw-pret');
+  g.ligne.style.transform = '';
+  _clSwPanneauxOter(g.ligne);
+  return g;
+}
+
+function _clSwFin() {
+  if (!_clSw) return;
+  const { ligne, item, dx, l, arme } = _clSwRanger();
+  if (!arme || Math.abs(dx) < l * CL_SW_SEUIL) return;   // sous le seuil : retour en place
+  if (dx < 0) clIntrouvableGeste(item); else clPrisGeste(item);
+}
+
+function _clSwAnnule() {
+  if (!_clSw) return;
+  _clSwRanger();
+}
+
+// Indice du premier affichage : la ligne bouge UNE SEULE FOIS, pour faire
+// decouvrir les deux gestes a Baptiste et a sa femme.
+function _clIndiceBalayage() {
+  let vu = true;
+  try { vu = !!localStorage.getItem('kc_cl_swipe_vu'); } catch (_) { return; }
+  if (vu) return;
+  const ligne = document.querySelector('#cl-all-list .cl-item');
+  if (!ligne) return;
+  try { localStorage.setItem('kc_cl_swipe_vu', '1'); } catch (_) {}
+  ligne.classList.add('cl-sw-indice');
+  setTimeout(() => ligne.classList.remove('cl-sw-indice'), 1600);
+}
+
 // ── Onglets ───────────────────────────────────────────────────────────────────
 function clTab(tab, m) {
   document.querySelectorAll('.cl-tab').forEach(t=>t.classList.remove('on'));
@@ -7652,9 +7985,86 @@ function clTab(tab, m) {
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-function clToggle(id){ const i=_cl.find(x=>x.id===id); if(i){i.done=!i.done;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:i.done})}).catch(()=>{});clRender();} }
+function clToggle(id){
+  const i = _cl.find(x=>x.id===id); if(!i) return;
+  i.done = !i.done;
+  const corps = { done: i.done };
+  // On l'a coche, donc on l'a trouve : l'etat « introuvable » n'a plus de sens
+  // (BL-236). Sur une ligne introuvable, cocher la fait sortir du groupe.
+  if (i.done && clIntrouvableOff(i, true)) {
+    corps.introuvable = false; corps.introuvableChez = null; corps.introuvableLe = null;
+  }
+  _clPatch(id, corps);
+  clRender();
+}
 function clDel(id)   { _cl=_cl.filter(i=>i.id!==id); fetch('/api/courses/items/'+id,{method:'DELETE'}).catch(()=>{}); clRender(); }
+// Glissement a GAUCHE : introuvable. L'article n'est pas supprime.
+function clIntrouvableGeste(item) {
+  const avant = _clEtat(item);
+  clIntrouvableOn(item);
+  _clBandePoser(item, 'intro', avant);
+  clRender();
+}
+
+// Glissement a DROITE : pris. On passe par `clToggle`, la fonction de la case
+// a cocher : meme effet, meme rangement dans la liste (demande de la fiche).
+function clPrisGeste(item) {
+  const avant = _clEtat(item);
+  clToggle(item.id);
+  _clBandePoser(item, item.done ? 'pris' : 'repris', avant);
+  clRender();
+}
+
 function clHideHdmenu(){ document.getElementById('cl-hdmenu')?.classList.remove('on'); }
+
+// ── Mode courses : garder l'ecran allume (BL-235) ─────────────────────────
+// Meme brique que le mode cuisine, trois garde-fous parce qu'un ecran allume
+// vide la batterie : on quitte la page, 90 minutes, ou liste terminee.
+let _clVeille = false;
+let _clVeilleMinuteur = null;
+const CL_VEILLE_MAX_MIN = 90;
+
+async function clVeilleToggle(){
+  if(_clVeille){ clVeilleOff(); return; }
+  const ko = _veilleIndispo('Mode courses');
+  if(ko){ showToast(ko,'warn'); return; }
+  if(!(await veilleActiver('courses'))){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
+  _clVeille = true;
+  clearTimeout(_clVeilleMinuteur);
+  _clVeilleMinuteur = setTimeout(()=>{
+    if(_clVeille){ clVeilleOff(true); showToast('Mode courses arrêté après ' + CL_VEILLE_MAX_MIN + ' minutes','warn'); }
+  }, CL_VEILLE_MAX_MIN * 60000);
+  _clVeilleRender();
+  showToast('Mode courses — écran maintenu allumé','ok');
+}
+
+// Appelee aussi depuis PAGE_RANGEMENT a chaque changement de page : elle doit
+// donc etre sans effet quand le mode est deja eteint.
+function clVeilleOff(silencieux){
+  clearTimeout(_clVeilleMinuteur); _clVeilleMinuteur = null;
+  if(!_clVeille){ veilleRelacher('courses'); return; }
+  _clVeille = false;
+  veilleRelacher('courses');
+  _clVeilleRender();
+  if(!silencieux) showToast('Mode courses désactivé','ok');
+}
+
+function _clVeilleRender(){
+  const ind = document.getElementById('cl-veille-ind');
+  if(ind) ind.style.display = _clVeille ? 'grid' : 'none';
+  const lbl = document.getElementById('cl-veille-lbl');
+  if(lbl) lbl.textContent = _clVeille ? 'Écran allumé' : 'Mode courses (écran allumé)';
+}
+
+// Liste terminee = plus rien a prendre : on rend la batterie. Appelee depuis
+// `clRender()`, donc apres chaque case cochee. La liste VIDE ne compte pas :
+// sinon le mode s'eteindrait a la seconde ou on l'allume.
+function _clVeilleFinDeListe(){
+  if(!_clVeille || !_cl.length) return;
+  if(_cl.some(i => !i.done)) return;
+  clVeilleOff(true);
+  showToast('Liste terminée — mode courses arrêté','ok');
+}
 function clDeleteDone(){
   const done = _cl.filter(i=>i.done);
   if(!done.length){ showToast('Aucun élément coché','warn'); return; }
@@ -8004,6 +8414,66 @@ document.addEventListener('input', e => {
   try { el.selectionStart = el.selectionEnd = Math.min(pos, el.value.length); } catch (_) {}
 });
 
+// ── Zones de texte qui grandissent avec leur contenu (BL-237) ─────────────
+// Les champs d'UNE ligne de la v0.10.321 (`data-kc-champ`, donc
+// `white-space: nowrap`) ne sont pas concernes, ni la zone de collage JSON,
+// qui doit garder son propre defilement.
+const _KC_GROW_SEL = '.ev3-step-text-inp, .ev3-desc-input';
+// Quand le navigateur sait faire, il n'y a rien a ecrire : le CSS suffit.
+// `let` et non `const` : c'est le seul moyen de forcer le repli pour
+// l'eprouver dans un navigateur qui, lui, connait `field-sizing`.
+let _kcFieldSizing = (() => {
+  try { return !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content')); }
+  catch (_) { return false; }
+})();
+
+// PIEGE : un champ dans un panneau encore ferme (`display:none`) a un
+// `scrollHeight` de ZERO. Mesure alors, on lui ecrirait `height: 0px`.
+// `offsetParent` est nul exactement dans ce cas : on ne fait rien.
+// Tout le projet est en `box-sizing: border-box` : une hauteur ecrite inclut
+// donc la bordure. Ecrire `scrollHeight` tel quel amputait la derniere ligne
+// de l'epaisseur de la bordure basse — mesure, 1 px manquait. On rajoute donc
+// ce que la bordure prend (`offsetHeight - clientHeight`).
+function _kcBordures(el) { return Math.max(0, el.offsetHeight - el.clientHeight); }
+
+function _kcGrow(el) {
+  if (!el || _kcFieldSizing || !el.offsetParent) return;
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + _kcBordures(el)) + 'px';
+}
+
+// Toutes les zones d'un coup, en DEUX PASSES : on remet d'abord toutes les
+// hauteurs a `auto`, on lit ENSUITE toutes les hauteurs, on les ecrit enfin.
+// Melanger lecture et ecriture ferait recalculer la mise en page a chaque
+// etape, ce qui se voit sur une recette qui en a quinze.
+function _kcGrowTous(racine) {
+  if (_kcFieldSizing) return;
+  const zones = Array.from((racine || document).querySelectorAll(_KC_GROW_SEL))
+                     .filter(z => z.offsetParent);
+  if (!zones.length) return;
+  zones.forEach(z => { z.style.height = 'auto'; });
+  const hauteurs = zones.map(z => z.scrollHeight + _kcBordures(z));
+  zones.forEach((z, i) => { z.style.height = hauteurs[i] + 'px'; });
+}
+
+// Un seul ecouteur delegue : les etapes sont reconstruites par `innerHTML` a
+// chaque ajout, suppression ou deplacement. Couvre aussi le collage, qui
+// declenche `input`.
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || !el.matches || !el.matches(_KC_GROW_SEL)) return;
+  _kcGrow(el);
+  // La zone qui grandit pousse la ligne en cours sous le clavier : on fait
+  // defiler le MINIMUM necessaire pour la garder visible.
+  try { el.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+});
+
+// Rotation de l'ecran ou changement de largeur : le nombre de lignes change.
+window.addEventListener('resize', () => {
+  const p = document.getElementById('panel-edit');
+  if (p && p.classList.contains('open')) _kcGrowTous(p);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   _kcMarquerChamps(document);
   const cadre = document.querySelector('.frame');
@@ -8277,12 +8747,12 @@ async function clFetchSuggestions(q) {
     ...ings.map(i =>({ type:'ingredient', nom:i.nom, marque:'',           icone:i.icone||'', rayon:i.rayon_nom||'', rank:i.rank ?? 4 })),
     ...prods.map(p=>({ type:'produit',    nom:p.nom, marque:p.marque||'', icone:p.icone||'', rayon:p.rayon_nom||'', produitId:p.id, rank:p.rank ?? 4 })),
   ].sort((a,b) => a.rank - b.rank || a.nom.length - b.nom.length || a.nom.localeCompare(b.nom,'fr'))
-   .slice(0, 8);
+   .slice(0, 25);   // la liste defile maintenant : couper a 8 ne cachait plus que des produits (BL-238)
   clShowSuggestions(items, q);
 }
 function clShowSuggestions(items, q) {
   const list = document.getElementById('cl-suggest-list'); if(!list) return;
-  if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient ni produit trouvé</div>'; list.classList.add('visible'); return; }
+  if(!items.length){ list.innerHTML='<div class="cl-suggest-empty">Aucun ingrédient ni produit trouvé</div>'; list.classList.add('visible'); _clSuggPlacer(); return; }
   const safe = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // Le surlignage comparait le texte BRUT : en cherchant « oeuf », « Œuf » et
   // « œufs de caille » n'étaient pas surlignés alors que ce sont les meilleurs
@@ -8315,6 +8785,15 @@ function clShowSuggestions(items, q) {
     </div>`;
   }).join('');
   list.classList.add('visible');
+  _clSuggPlacer();
+  // Sans ca, l'appui sur la liste retire le focus du champ AVANT que le
+  // `click` arrive, et la liste se referme sous le doigt (meme idiome que
+  // `_suggEl`, BL-230). On n'annule que la souris : annuler le toucher
+  // empecherait de faire defiler la liste.
+  if (!list.dataset.kcGarde) {
+    list.dataset.kcGarde = '1';
+    list.addEventListener('mousedown', e => e.preventDefault());
+  }
 }
 function clPickSuggestionIdx(idx) {
   const d = window._clSuggestData?.[idx]; if(!d) return;
@@ -8324,6 +8803,31 @@ function clPickSuggestionIdx(idx) {
   if (d.type === 'produit' && d.marque && !clNorm(nom).includes(clNorm(d.marque))) nom += ' ' + d.marque;
   clPickSuggestion(nom, d.rayon, d.icone, d.produitId || null);
 }
+// Borne la hauteur de la liste a la place reellement disponible et la laisse
+// defiler. La liste etant ancree par le BAS, « la place » va du bas de
+// l'en-tete (ou du haut de l'ecran visible, le plus bas des deux) jusqu'a son
+// propre bas. Elle ne doit jamais passer sous l'en-tete (BL-238).
+function _clSuggPlacer(){
+  const L = document.getElementById('cl-suggest-list');
+  if (!L || !L.classList.contains('visible')) return;
+  const r  = L.getBoundingClientRect();
+  const hd = document.querySelector('.header');
+  const { haut } = _espaceVisible();
+  const plafond = Math.max(haut, hd ? hd.getBoundingClientRect().bottom : haut);
+  L.style.maxHeight = Math.max(120, Math.round(r.bottom - plafond - 8)) + 'px';
+  // Le meilleur resultat est le DERNIER du DOM (la liste s'ouvre vers le haut,
+  // BL-175) : on ouvre donc defilee tout en bas, collee au champ.
+  L.scrollTop = L.scrollHeight;
+  L.classList.toggle('cl-suggest-more', L.scrollHeight > L.clientHeight + 1);
+}
+
+// Le clavier qui s'ouvre change la place disponible, la rotation aussi.
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => _clSuggPlacer());
+  window.visualViewport.addEventListener('scroll', () => _clSuggPlacer());
+}
+window.addEventListener('orientationchange', () => setTimeout(_clSuggPlacer, 200));
+
 function clHideSuggestions(){ document.getElementById('cl-suggest-list')?.classList.remove('visible'); }
 async function clPickSuggestion(nom, rayon, icone, produitId) {
   clHideSuggestions();
@@ -8385,11 +8889,24 @@ function clOpenCtx(e, id) {
   // « Créer comme ingrédient » reste là pour créer le lien qui la fera apparaître.
   const fiche = document.getElementById('cl-ctx-fiche');
   if (fiche) fiche.style.display = (item && (item.produitId || item.ingredientId)) ? '' : 'none';
+  // « Introuvable » n'a de sens que sur un article a prendre ; « Reessayer »
+  // que sur un article deja marque (BL-236).
+  const eIntro = document.getElementById('cl-ctx-intro');
+  if (eIntro) eIntro.style.display = (item && !item.done && !item.introuvable) ? '' : 'none';
+  const eRees = document.getElementById('cl-ctx-reessayer');
+  if (eRees) eRees.style.display = (item && item.introuvable) ? '' : 'none';
   menu.classList.add('open');
   setTimeout(()=>document.addEventListener('click',clCloseCtx,{once:true}),10);
 }
 function clCloseCtx(){ document.getElementById('cl-ctx-menu')?.classList.remove('open'); _clCtxId=null; }
 function clCtxLink()    { const i=_cl.find(x=>x.id===_clCtxId); if(i) window.open(clSearchURL(i),'_blank'); clCloseCtx(); }
+function clCtxIntrouvable(){ const i=_cl.find(x=>x.id===_clCtxId); clCloseCtx(); if(i) clIntrouvableGeste(i); }
+function clCtxReessayer()  {
+  const i=_cl.find(x=>x.id===_clCtxId); clCloseCtx();
+  if(!i) return;
+  clIntrouvableOff(i); clRender();
+  showToast(i.n+' remis dans la liste','ok');
+}
 function clCtxMarchand(){ const id=_clCtxId; clCloseCtx(); setTimeout(()=>clOpenMmodal(id),100); }
 // Ouvre la fiche du produit lié à l'article. Même ordre que pour l'ingrédient :
 // #stock-detailPanel est un enfant direct de .frame, on l'ouvre avant switchPage.
@@ -8645,7 +9162,21 @@ function clOpenMmodal(id) {
   document.getElementById('cl-mmodal').classList.add('on');
 }
 function clCloseMmodal(){ document.getElementById('cl-mmodal').classList.remove('on'); }
-function clSetMarchand(id,m){ const i=_cl.find(x=>x.id===id); if(i){i.m=m;fetch('/api/courses/items/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({m})}).catch(()=>{});clRender();} clCloseMmodal(); showToast('Marchand mis à jour','ok'); }
+function clSetMarchand(id,m){
+  const i = _cl.find(x=>x.id===id);
+  if (i) {
+    i.m = m;
+    const corps = { m };
+    // L'article manquait CHEZ CE MARCHAND : en changer rend l'etat caduc
+    // (BL-236). C'est la suite rapide « introuvable chez X, essayons Y ».
+    if (clIntrouvableOff(i, true)) {
+      corps.introuvable = false; corps.introuvableChez = null; corps.introuvableLe = null;
+    }
+    _clPatch(id, corps);
+    clRender();
+  }
+  clCloseMmodal(); showToast('Marchand mis à jour','ok');
+}
 
 // ── Boutons marchands ─────────────────────────────────────────────────────────
 function clOpenDrive() {
@@ -8893,14 +9424,24 @@ function _suggOuvrir(champ, source){
 // Place la liste sous le champ, ou AU-DESSUS s'il n'y a pas la place.
 // `visualViewport` donne la zone reellement visible — c'est le seul moyen
 // de savoir ou s'arrete l'ecran quand le clavier est ouvert.
+// Ou s'arrete l'ecran, clavier compris. `visualViewport` est le seul moyen de
+// le savoir, et le seul qui marche a la fois sur Android et sur iPhone, ou
+// `interactive-widget=resizes-content` n'est pas gere (BL-181). Partage par
+// les deux listes de suggestions de l'app : a n'ecrire qu'une fois.
+function _espaceVisible(){
+  const vv = window.visualViewport;
+  return {
+    haut: vv ? vv.offsetTop : 0,
+    bas:  vv ? (vv.offsetTop + vv.height) : window.innerHeight,
+  };
+}
+
 function _suggPlacer(){
   const el = document.getElementById('sugg-pop');
   if (!el || !_suggCible || !el.classList.contains('on')) return;
   const r = _suggCible.getBoundingClientRect();
   const cadre = (document.querySelector('.frame') || document.body).getBoundingClientRect();
-  const vv = window.visualViewport;
-  const hautVisible = vv ? vv.offsetTop : 0;
-  const basVisible  = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+  const { haut: hautVisible, bas: basVisible } = _espaceVisible();
   const dessous = basVisible - r.bottom - 8;
   const dessus  = r.top - hautVisible - 8;
   const versLeHaut = dessous < 120 && dessus > dessous;
@@ -9358,13 +9899,23 @@ function _cookModeBtnHtml(){
   return `<button class="d-cook-btn" id="d-cook-btn" onclick="cookModeToggle()">${ico('cookmode','icon-sm')} Mode cuisine</button>`;
 }
 // Pourquoi le mode cuisine est indisponible, ou null s'il est disponible
-function _cookModeUnavailable(){
+// ── Garder l'ecran allume : UN verrou, PLUSIEURS demandeurs (BL-235) ──────
+// Le mode cuisine (BL-86) et le mode courses demandent la meme chose. Un seul
+// verrou, et un ensemble de demandeurs : quitter l'un ne doit pas eteindre
+// l'ecran pendant que l'autre en a encore besoin.
+const _veilleDemandeurs = new Set();
+
+// `quoi` sert a nommer le mode dans le message : la cause est la meme pour les
+// deux, le libelle non.
+function _veilleIndispo(quoi){
   if('wakeLock' in navigator) return null;
   return window.isSecureContext
-    ? "Mode cuisine non supporté par ce navigateur"
-    : "Mode cuisine : nécessite HTTPS — ouvre l'app via https://kitchencore.duckdns.org:8443";
+    ? quoi + " non supporté par ce navigateur"
+    : quoi + " : nécessite HTTPS — ouvre l'app via https://kitchencore.duckdns.org:8443";
 }
-async function _cookWakeRequest(){
+
+async function _veilleDemander(){
+  if(_wakeLock) return true;
   try{
     _wakeLock = await navigator.wakeLock.request('screen');
     // Le navigateur peut relâcher le verrou de lui-même (batterie, arrière-plan)
@@ -9372,11 +9923,30 @@ async function _cookWakeRequest(){
     return true;
   }catch(e){ _wakeLock = null; return false; }
 }
+
+async function veilleActiver(qui){
+  if(!(await _veilleDemander())) return false;
+  _veilleDemandeurs.add(qui);
+  return true;
+}
+
+function veilleRelacher(qui){
+  _veilleDemandeurs.delete(qui);
+  if(_veilleDemandeurs.size) return;     // un autre mode en a encore besoin
+  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
+}
+
+// Retour au premier plan : le navigateur relâche le verrou en arrière-plan, on
+// le redemande s'il reste au moins un demandeur.
+document.addEventListener('visibilitychange', ()=>{
+  if(_veilleDemandeurs.size && document.visibilityState === 'visible' && !_wakeLock) _veilleDemander();
+});
+
 async function cookModeToggle(){
   if(_cookMode){ cookModeOff(); return; }
-  const ko = _cookModeUnavailable();
+  const ko = _veilleIndispo('Mode cuisine');
   if(ko){ showToast(ko,'warn'); return; }
-  if(!(await _cookWakeRequest())){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
+  if(!(await veilleActiver('cuisine'))){ showToast("Impossible de garder l'écran allumé",'warn'); return; }
   _cookMode = true; _cookModeRender();
   document.body.setAttribute('data-cook', '1');
   _rvCoursesEtat();          // l'etat « deja dans la liste », une seule fois
@@ -9385,7 +9955,7 @@ async function cookModeToggle(){
 function cookModeOff(silencieux){
   _cookMode = false;
   document.body.removeAttribute('data-cook');
-  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
+  veilleRelacher('cuisine');
   _cookModeRender();
   if(!silencieux) showToast("Mode cuisine désactivé",'ok');
 }
@@ -9398,11 +9968,6 @@ function _cookModeRender(){
   const l = document.getElementById('ctx-cook-lbl');
   if(l) l.textContent = _cookMode ? 'Écran allumé' : 'Mode cuisine';
 }
-// Retour au premier plan : le verrou a été relâché par le navigateur, on le redemande
-document.addEventListener('visibilitychange', ()=>{
-  if(_cookMode && document.visibilityState === 'visible' && !_wakeLock) _cookWakeRequest();
-});
-
 function closeDetail() {
   detailMenuClose(); cookModeOff(true);
   document.getElementById('panel-detail').classList.remove('open');
@@ -9462,6 +10027,10 @@ async function openEdit(id) {
   document.getElementById('edit-title').textContent = r ? 'Modifier' : 'Nouvelle recette';
   buildFormV3(r);
   document.getElementById('panel-edit').classList.add('open');
+  // APRES l'ouverture : `buildFormV3()` a rempli les champs pendant que le
+  // panneau etait encore en `display:none`, ou toute hauteur mesuree vaut
+  // zero (BL-237).
+  _kcGrowTous(document.getElementById('panel-edit'));
 }
 function closeEdit() { document.getElementById('panel-edit').classList.remove('open'); }
 
@@ -9758,6 +10327,7 @@ function renderSteps() {
     </div>
   `).join('');
   ev3BindDrag('e-steps', _eSteps, renderSteps, '.ev3-step-drag');
+  _kcGrowTous(document.getElementById('e-steps'));
 }
 function addStep()  { _eSteps.push({titre:'',texte:'',timer:0}); renderSteps(); }
 function delStep(x) { _eSteps.splice(x,1); renderSteps(); }
