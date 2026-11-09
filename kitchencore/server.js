@@ -264,7 +264,20 @@ db.exec(`
   ['rayons',         'parent_id',     'INTEGER REFERENCES rayons(id)'],
   ['rayons',         'position',      'INTEGER DEFAULT 0'],
 ].forEach(([table, col, def]) => {
-  try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); } catch(_) {}
+  try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`); }
+  catch (e) {
+    // SQLite REFUSE une valeur par defaut non constante sur une table qui
+    // existe deja : « Cannot add a column with non-constant default »
+    // (mesure, BL-241). Les trois colonnes en `datetime('now')` n'ont donc
+    // JAMAIS ete ajoutees sur une base ancienne, et le try/catch muet le
+    // cachait. On rajoute la colonne sans valeur par defaut : les lignes
+    // existantes restent vides — on n'invente pas une date qu'on ignore —
+    // et les insertions posent la date elles-memes.
+    if (/non-constant default/i.test(e.message)) {
+      const nu = String(def).replace(/\s*DEFAULT\s*\(.*\)\s*$/i, '');
+      try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${nu}`); } catch(_) {}
+    }
+  }
 });
 
 // Migration idempotente : photos de recettes stockees en base64 -> fichiers.
@@ -761,14 +774,22 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', version: ADDON_VERSIO
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/ingredients', (_req, res) => {
   try {
-    res.json(db.prepare(`
+    const lignes = db.prepare(`
       SELECT a.*, COUNT(DISTINCT p.id) AS nb_produits,
         COALESCE(SUM((s.packs_pleins*p.contenance)+s.unites_ouvert),0) AS stock_total
       FROM ingredients a
       LEFT JOIN produits p ON p.ingredient_id=a.id
       LEFT JOIN stocks   s ON s.produit_id=p.id
       GROUP BY a.id ORDER BY a.categorie,a.nom
-    `).all());
+    `).all();
+    try {
+      const parIng = {};
+      for (const a of db.prepare('SELECT ingredient_id, alias FROM ingredient_aliases').all()) {
+        (parIng[a.ingredient_id] = parIng[a.ingredient_id] || []).push(a.alias);
+      }
+      lignes.forEach(l => { l.alias = parIng[l.id] || []; });
+    } catch(_) {}
+    res.json(lignes);
   } catch(e) {
     console.error('[API] GET /api/ingredients error:', e.message);
     // Fallback : retourner les ingrédients sans les stats stock (schéma DB potentiellement ancien)
@@ -793,7 +814,9 @@ app.post('/api/ingredients', (req, res) => {
     return res.status(409).json({ error: `« ${ex.nom} » existe déjà.`, ingredient: ex });
   }
   try {
-    const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), categorie, seuil_alerte, icone);
+    // La date est posee EXPLICITEMENT : sur une base rattrapee la colonne n'a
+    // pas de valeur par defaut (BL-241).
+    const i = db.prepare("INSERT INTO ingredients(nom,categorie,seuil_alerte,icone,created_at) VALUES(?,?,?,?,datetime('now'))").run(nom.trim(), categorie, seuil_alerte, icone);
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
     res.status(e.message.includes('UNIQUE') ? 409 : 500).json({ error: e.message.includes('UNIQUE') ? 'Ingrédient déjà existant.' : e.message });
@@ -1069,7 +1092,7 @@ app.post('/api/ingredients/auto-add', (req, res) => {
   const found = findIngByNameOrAlias(nom.trim());
   if (found) return res.json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(found.id));
   try {
-    const i = db.prepare('INSERT INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)').run(nom.trim(), '', 1, '🥫');
+    const i = db.prepare("INSERT INTO ingredients(nom,categorie,seuil_alerte,icone,created_at) VALUES(?,?,?,?,datetime('now'))").run(nom.trim(), '', 1, '🥫');
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id=?').get(i.lastInsertRowid));
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -1413,15 +1436,39 @@ function expandIngredients(recetteId, portions, basePortions, depth) {
 }
 
 // Recherche un ingrédient par nom exact, nom_pluriel, ou alias (insensible à la casse)
+// Les mots « utiles » d'un nom. MEME REGLE que `_ingMotsDoublon()` dans
+// ui.html (BL-240) : ligatures depliees et accents retires par `norm()`, puis
+// decoupe sur tout ce qui n'est ni lettre ni chiffre — l'apostrophe comprise,
+// sinon « d'oeuf » resterait colle en « doeuf » —, pluriel retire, mots vides
+// ecartes, et tri pour que l'ordre des mots ne compte pas.
+const MOTS_VIDES = ['de','du','des','d','la','le','les','a','au','aux','en','et','l'];
+function motsCles(nom) {
+  return norm(nom).split(/[^a-z0-9]+/).filter(Boolean)
+    .map(m => m.replace(/(s|x)$/, ''))
+    .filter(m => m && !MOTS_VIDES.includes(m))
+    .sort();
+}
+function cleNom(nom) { return motsCles(nom).join(' '); }
+
+// LA COMPARAISON SE FAIT EN JAVASCRIPT, PLUS EN SQL, et c'est le coeur de
+// BL-240. `LOWER()` de SQLite ne met en minuscules QUE LES LETTRES ASCII :
+// mesure, `LOWER('ÉTÉ')` vaut `'ÉtÉ'` et `LOWER('Œuf')` vaut `'Œuf'`. Donc
+// « œuf » ne retrouvait jamais « Œuf » et l'import d'une recette creait un
+// doublon — tandis que « ŒUFS » retrouvait « Œufs » par pur accident, les
+// lettres ASCII etant abaissees autour de la ligature qui ne bouge pas.
+// Le catalogue fait quelques centaines de lignes : la comparaison est
+// immediate, et elle devient enfin previsible.
 function findIngByNameOrAlias(nom) {
-  const n = nom.trim();
-  let row = db.prepare('SELECT id FROM ingredients WHERE LOWER(TRIM(nom))=LOWER(TRIM(?)) LIMIT 1').get(n);
-  if (row) return row;
+  const cle = cleNom(nom);
+  if (!cle) return null;
+  for (const r of db.prepare('SELECT id, nom, nom_pluriel FROM ingredients').all()) {
+    if (cleNom(r.nom) === cle) return { id: r.id };
+    if (r.nom_pluriel && cleNom(r.nom_pluriel) === cle) return { id: r.id };
+  }
   try {
-    row = db.prepare('SELECT id FROM ingredients WHERE nom_pluriel IS NOT NULL AND LOWER(TRIM(nom_pluriel))=LOWER(TRIM(?)) LIMIT 1').get(n);
-    if (row) return row;
-    row = db.prepare('SELECT ingredient_id AS id FROM ingredient_aliases WHERE LOWER(TRIM(alias))=LOWER(TRIM(?)) LIMIT 1').get(n);
-    if (row) return row;
+    for (const a of db.prepare('SELECT ingredient_id AS id, alias FROM ingredient_aliases').all()) {
+      if (cleNom(a.alias) === cle) return { id: a.id };
+    }
   } catch(_) {}
   return null;
 }
@@ -1429,7 +1476,7 @@ function findIngByNameOrAlias(nom) {
 function saveIngredients(recetteId, ingredients) {
   db.prepare('DELETE FROM recette_ingredients WHERE recette_id=?').run(recetteId);
   const ins     = db.prepare('INSERT INTO recette_ingredients(recette_id,position,type,nom,qty,unite,sous_recette_id,note,ingredient_id) VALUES(?,?,?,?,?,?,?,?,?)');
-  const autoAdd = db.prepare('INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone) VALUES(?,?,?,?)');
+  const autoAdd = db.prepare("INSERT OR IGNORE INTO ingredients(nom,categorie,seuil_alerte,icone,created_at) VALUES(?,?,?,?,datetime('now'))");
   (ingredients || []).forEach((ing, i) => {
     let ingredient_id = ing.ingredient_id ? parseInt(ing.ingredient_id) : null;
     if (ing.type !== 'sous_recette' && ing.nom?.trim()) {

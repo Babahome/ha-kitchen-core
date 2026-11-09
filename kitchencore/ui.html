@@ -1938,7 +1938,16 @@ body[data-cook="1"] .d-ingr-add { display:flex; }
   .ing-badge.rayon { background: var(--orange-l); color: var(--orange); }
   .ing-badge.recipes { background: var(--c-info-soft); color: var(--c-info); }
   .ing-badge.warning { background: var(--c-warning-soft); color: var(--c-warning); }
-  .ing-badge.pantry { background: var(--c-success-soft); color: var(--c-success); }
+    .ing-badge.pantry { background: var(--c-success-soft); color: var(--c-success); }
+  /* Ajoute dans les 7 derniers jours : la meme fenetre que le filtre, pour
+     que la pastille et la rangee racontent la meme chose (BL-241). */
+  .ing-badge.nouveau { background: var(--c-info-soft); color: var(--c-info); }
+  /* Rappel du filtre de periode, au-dessus de la liste. */
+  .ing-periode-bar { display:flex; align-items:center; gap:8px; margin:0 0 10px;
+                     padding:8px 12px; border-radius:var(--r-md);
+                     background:var(--c-primary-soft); color:var(--c-primary);
+                     font-size:var(--fs-xs); font-weight:var(--fw-heavy); }
+  .ing-periode-bar .ing-periode-txt { flex:1; min-width:0; }
 
   .ing-actions {
     display: flex; gap: 6px; flex-shrink: 0;
@@ -2169,6 +2178,12 @@ body[data-cook="1"] .d-ingr-add { display:flex; }
     padding: 16px 16px 100px;
   }
   .ing-panel-scroll::-webkit-scrollbar { display: none; }
+  /* L'image est passee DANS la zone qui defile (BL-239) : elle monte et sort
+     de l'ecran quand on descend, seul l'en-tete reste. La marge negative lui
+     rend la pleine largeur que la marge interieure de la zone lui prendrait.
+     Le selecteur ne mord que sur une image reellement placee dedans. */
+  .ing-panel-scroll > .ing-panel-hero { margin: -16px -16px 16px; width: auto; }
+  .ing-panel-scroll > .ing-panel-herostats { margin: -16px -16px 16px; }
 
   /* Sections partagées */
   .ing-panel-section { margin-bottom: 18px; }
@@ -3406,6 +3421,7 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
             <div class="stock-sf-opt active" data-sort="nom" onclick="ingSfPickSort(this,'nom')">Nom</div>
             <div class="stock-sf-opt" data-sort="rayon" onclick="ingSfPickSort(this,'rayon')">Rayon</div>
             <div class="stock-sf-opt" data-sort="recettes" onclick="ingSfPickSort(this,'recettes')">Recettes liées</div>
+            <div class="stock-sf-opt" data-sort="recent" onclick="ingSfPickSort(this,'recent')">Plus récents d'abord</div>
           </div>
         </div>
         <div class="stock-sf-section" id="ing-sf-order-section">
@@ -3432,6 +3448,21 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
             <div class="stock-sf-opt" data-fetat="sans-saison" onclick="ingSfToggleFetat(this,'sans-saison')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-season"></use></svg> Sans saison</div>
             <div class="stock-sf-opt" data-fetat="toujours-dispo" onclick="ingSfToggleFetat(this,'toujours-dispo')"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-pantry"></use></svg> Toujours en cuisine</div>
           </div>
+        </div>
+        <div class="stock-sf-section">
+          <div class="stock-sf-label">Ajouté</div>
+          <div class="stock-sf-options" id="ing-sf-f-periode">
+            <div class="stock-sf-opt active" data-per="tout" onclick="ingSfPickPeriode(this,'tout')">Toutes les dates</div>
+            <div class="stock-sf-opt" data-per="jour" onclick="ingSfPickPeriode(this,'jour')">Aujourd'hui</div>
+            <div class="stock-sf-opt" data-per="7j" onclick="ingSfPickPeriode(this,'7j')">7 jours</div>
+            <div class="stock-sf-opt" data-per="30j" onclick="ingSfPickPeriode(this,'30j')">30 jours</div>
+            <div class="stock-sf-opt" data-per="depuis" onclick="ingSfOuvrirDepuis(this)"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-calendar"></use></svg> <span id="ing-sf-depuis-lbl">Depuis le…</span></div>
+            <div class="stock-sf-opt" data-per="inconnue" onclick="ingSfPickPeriode(this,'inconnue')">Date inconnue</div>
+          </div>
+          <!-- Le selecteur du telephone. Il reste dans le DOM : c'est lui qui
+               porte la date choisie. -->
+          <input type="date" id="ing-sf-depuis" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"
+                 onchange="ingSfPickDepuis(this.value)">
         </div>
         <div class="stock-sf-section">
           <div class="stock-sf-label">Doublons</div>
@@ -3825,11 +3856,15 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <span class="ing-panel-title" id="ing-detailName"></span>
       <span></span>
     </div>
-    <div class="ing-panel-hero" id="ing-detailHero"></div>
     <div class="ing-panel-scroll">
+      <div class="ing-panel-hero" id="ing-detailHero"></div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Nom</span>
         <div class="ing-panel-value" id="ing-detailNameVal"></div>
+      </div>
+      <div class="ing-panel-section" id="ing-detailAjoutSection" style="display:none">
+        <span class="ing-panel-label">Ajouté</span>
+        <div class="ing-panel-value" id="ing-detailAjoutVal"></div>
       </div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Rayon(s)</span>
@@ -3868,17 +3903,17 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <span class="ing-panel-title" id="ing-editTitle"></span>
       <span></span>
     </div>
-    <div class="ing-panel-hero" id="ing-editHero">
-      <div class="ing-panel-hero-overlay" id="ing-editHeroOverlay">
-        <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
-        <span id="ing-editHeroOverlayText">Ajouter une photo</span>
-        <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
-      </div>
-    </div>
     <input type="file" id="ing-imageFileInput" accept="image/*" onchange="ingHandleImageFile(this)" style="display:none">
     <input type="hidden" id="ing-editIngId">
     <input type="hidden" id="ing-editImageUrl">
     <div class="ing-panel-scroll">
+      <div class="ing-panel-hero" id="ing-editHero">
+        <div class="ing-panel-hero-overlay" id="ing-editHeroOverlay">
+          <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
+          <span id="ing-editHeroOverlayText">Ajouter une photo</span>
+          <span class="ing-panel-hero-hint">ou coller (Ctrl+V)</span>
+        </div>
+      </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom</label>
         <input class="ing-panel-input" id="ing-editName" placeholder="ex: Tomate cerise" oninput="ingAutoFillPluriel(this.value)">
@@ -4116,9 +4151,9 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <span class="ing-panel-title" id="stock-detailName"></span>
       <span></span>
     </div>
-    <div class="ing-panel-hero" id="stock-detailHero"></div>
-    <div id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-surface);border-bottom:1px solid var(--c-border)"></div>
     <div class="ing-panel-scroll">
+      <div class="ing-panel-hero" id="stock-detailHero"></div>
+      <div class="ing-panel-herostats" id="stock-detailHeroStats" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-surface);border-bottom:1px solid var(--c-border)"></div>
       <div class="ing-panel-section">
         <span class="ing-panel-label">Nom</span>
         <div class="ing-panel-value" id="stock-detailNomVal"></div>
@@ -4164,15 +4199,15 @@ body[data-sgc-bar="1"] #main-fab { bottom: calc(var(--bottom-h) + var(--sgc-bar-
       <span class="ing-panel-title" id="stock-editTitle"></span>
       <span></span>
     </div>
-    <div class="ing-panel-hero" id="stock-editHero">
-      <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
-        <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
-        <span id="stock-editHeroOverlayText">Ajouter une photo</span>
-      </div>
-    </div>
     <input type="file" id="stock-photoFileInput" accept="image/*" onchange="stockHandlePhotoFile(this)" style="display:none">
     <input type="hidden" id="stock-editId">
     <div class="ing-panel-scroll">
+      <div class="ing-panel-hero" id="stock-editHero">
+        <div class="ing-panel-hero-overlay" onclick="stockTriggerPhotoUpload()">
+          <span class="ing-panel-hero-overlay-icon"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-camera"></use></svg></span>
+          <span id="stock-editHeroOverlayText">Ajouter une photo</span>
+        </div>
+      </div>
       <div class="ing-panel-section">
         <label class="ing-panel-label">Nom</label>
         <input class="ing-panel-input" id="stock-editNom" placeholder="ex: Yaourt nature">
@@ -5290,8 +5325,8 @@ async function stockSearchIng(q) {
     const r = await fetch('/api/ingredients');
     _stockEditIngredients = r.ok ? await r.json() : [];
   }
-  const q2 = q.toLowerCase();
-  const matches = _stockEditIngredients.filter(i => normMatch(i.nom, q2)).slice(0, 6);
+  // Regle partagee : nom, pluriel ET alias, pluriel ignore (BL-240).
+  const matches = _ingChercher(_stockEditIngredients, q, 6);
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="stockPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}','${(i.icone||'').replace(/'/g,"\\'")}')">
@@ -7332,8 +7367,8 @@ async function pnpSearchIng(q) {
     const r = await fetch('/api/ingredients');
     _pnpIngredients = r.ok ? await r.json() : [];
   }
-  const q2 = q.toLowerCase();
-  const matches = _pnpIngredients.filter(i => normMatch(i.nom, q2)).slice(0, 6);
+  // Regle partagee : nom, pluriel ET alias, pluriel ignore (BL-240).
+  const matches = _ingChercher(_pnpIngredients, q, 6);
   if (!matches.length) { box.style.display = 'none'; return; }
   box.innerHTML = matches.map(i =>
     `<div class="pnp-suggest-item" onclick="pnpPickIng(${i.id},'${i.nom.replace(/'/g,"\\'")}')">
@@ -7383,23 +7418,40 @@ async function _ensurePnpIngredients() {
   }
 }
 
+// Conservee pour ses appelants : une seule regle derriere (BL-240). Elle
+// comparait des SOUS-CHAINES en minuscules brutes, d'ou deux defauts mesures :
+// « 6 oeufs frais » ne trouvait pas « Œuf » (ligature), et « Purée de pommes
+// de terre » se rattachait a « Pomme ».
 function _findIngForNom(nomProduit) {
-  const q = nomProduit.toLowerCase();
-  const matches = _pnpIngredients.filter(i =>
-    q.includes(i.nom.toLowerCase()) ||
-    (i.nom_pluriel && q.includes(i.nom_pluriel.toLowerCase()))
-  );
-  if (!matches.length) return null;
-  matches.sort((a, b) => b.nom.length - a.nom.length);
-  return matches[0];
+  const c = _ingCandidatsProduit(nomProduit, _pnpIngredients);
+  return c.length === 1 ? c[0] : null;
 }
 
 async function pnpAutoMatchIng(nomProduit) {
   if (!nomProduit || nomProduit.length < 3) return;
   if (document.getElementById('pnp-ing-id').value) return;
   await _ensurePnpIngredients();
-  const ing = _findIngForNom(nomProduit);
-  if (ing) pnpPickIng(ing.id, ing.nom);
+  const cands = _ingCandidatsProduit(nomProduit, _pnpIngredients);
+  // UN SEUL candidat : on le pose dans le champ, donc Baptiste le VOIT et
+  // peut le changer. PLUSIEURS : on ne lie rien et on les propose — lier en
+  // silence sur une correspondance douteuse est ce que la fiche interdit.
+  if (cands.length === 1) { pnpPickIng(cands[0].id, cands[0].nom); return; }
+  if (cands.length > 1) _pnpProposer(cands);
+}
+
+// Affiche des candidats sans rien lier. Meme rendu que la recherche manuelle.
+function _pnpProposer(cands) {
+  const box = document.getElementById('pnp-suggest'); if (!box) return;
+  box.innerHTML = cands.slice(0, 6).map((i, k) =>
+    `<div class="pnp-suggest-item" onclick="_pnpPickIdx(${k})">${_escTexte(i.nom)}</div>`).join('');
+  window._pnpPropositions = cands.slice(0, 6);
+  box.style.display = 'block';
+}
+// L'index plutot que le nom dans l'attribut : un nom avec une apostrophe ou un
+// guillemet casserait le `onclick` (meme motif que `_clSuggestData`).
+function _pnpPickIdx(k) {
+  const i = (window._pnpPropositions || [])[k];
+  if (i) pnpPickIng(i.id, i.nom);
 }
 
 async function saveNewProduit() {
@@ -9483,6 +9535,110 @@ function normMatch(texte, q){
   if (!r) return true;
   const t = norm(texte);
   return r.split(' ').every(m => !m || t.includes(m));
+}
+
+// ── Correspondance d'ingredients : UNE seule regle (BL-240) ───────────────
+// Ce bloc vivait DANS l'IIFE de la page Ingredients, donc invisible depuis la
+// fiche produit — le piege de portee deja rencontre en v0.10.280, v0.10.301
+// et v0.10.322. Il est ici, dans la portee globale, a cote de `norm()` :
+// detection de doublons, recherche d'ingredient et rattachement automatique
+// partagent desormais la meme definition de « meme ingredient ».
+// Mots qui ne changent pas l'ingredient. Les premiers sont des mots vides,
+// les seconds decrivent une FORME ou un CONDITIONNEMENT (liste de la fiche
+// BL-225, facile a completer). Ne JAMAIS y mettre un mot qui change
+// l'aliment : jaune, blanc, lait, creme...
+const _ING_MOTS_VIDES = ['de','du','des','d','la','le','les','a','au','aux','en','et','l'];
+const _ING_MOTS_FORME = [
+  'boule','tranche','filet','morceau','bloc','pot','sachet','brique','paquet',
+  'bouteille','boite','tablette','bouquet','botte','rondelle','cube','dosette',
+  // Choix de Baptiste : une gousse d'ail est de l'ail, un brin de thym est du
+  // thym, une pincee de sel est du sel — ces mots disent une QUANTITE, pas un
+  // aliment different.
+  'gousse','brin','pincee',
+];
+
+// Les mots « utiles » d'un nom, sans pluriel, tries pour que l'ordre ne
+// compte pas. Normalisation PROPRE a la detection : `_ingNormalize()`
+// supprime l'apostrophe sans separateur (« d'oeuf » -> « doeuf »), on ne
+// pourrait donc pas decouper les mots. Ici on decoupe sur tout ce qui n'est
+// ni lettre ni chiffre.
+function _ingMotsDoublon(nom) {
+  return String(nom || '').toLowerCase()
+    .replace(/\u0153/g, 'oe').replace(/\u00e6/g, 'ae')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/).filter(Boolean)
+    .map(m => m.replace(/(s|x)$/, ''))
+    .filter(m => m && !_ING_MOTS_VIDES.includes(m) && !_ING_MOTS_FORME.includes(m))
+    .sort();
+}
+function _ingCleDoublon(nom) { return _ingMotsDoublon(nom).join(' '); }
+
+// Les libelles sous lesquels un ingredient peut etre reconnu : son nom, son
+// pluriel et ses alias. Les alias arrivent de `/api/ingredients` (BL-240).
+function _ingLibelles(ing) {
+  return [ing.nom, ing.nom_pluriel, ...(ing.alias || [])].filter(Boolean);
+}
+
+// Mots de BRUIT d'un nom de produit : ils decrivent l'emballage ou la
+// qualite, jamais l'aliment. Liste a completer sans crainte — un mot de trop
+// ici ne fait que rendre le rattachement plus tolerant.
+const _PROD_MOTS_BRUIT = [
+  'bio','frais','fraiche','plein','air','calibre','gros','moyen','petit','grand',
+  'label','rouge','origine','france','francais','qualite','superieur','extra',
+  'nature','lot','pack','promo','offre','nouveau','ferme','fermier','fermiere',
+  'elevee','elevees','sol','campagne','special','selection','maison','pur',
+];
+function _prodMots(nom) {
+  return _ingMotsDoublon(nom)
+    .filter(m => !/^\d+$/.test(m) && !/^x\d+$/.test(m) && !_PROD_MOTS_BRUIT.includes(m));
+}
+
+// Rang d'un ingredient pour une saisie : 0 identique, 1 commence par,
+// 2 tous les mots presents, 3 tous les mots commencent un mot, 4 sous-chaine.
+// Le pluriel ne compte pas : `_ingMotsDoublon` l'a deja retire des deux cotes,
+// c'est ce qui fait que « oeufs » trouve enfin « Œuf ».
+function _ingRang(ing, q) {
+  const nq = norm(q), mq = _ingMotsDoublon(q);
+  let best = 9;
+  for (const lib of _ingLibelles(ing)) {
+    const nl = norm(lib), ml = _ingMotsDoublon(lib);
+    if (nl === nq) best = Math.min(best, 0);
+    else if (nl.startsWith(nq)) best = Math.min(best, 1);
+    else if (mq.length && mq.every(m => ml.includes(m))) best = Math.min(best, 2);
+    else if (mq.length && mq.every(m => ml.some(x => x.startsWith(m)))) best = Math.min(best, 3);
+    else if (nq && nl.includes(nq)) best = Math.min(best, 4);
+  }
+  return best;
+}
+
+function _ingChercher(liste, q, max) {
+  if (!q || !q.trim()) return [];
+  return (liste || []).map(i => ({ i, r: _ingRang(i, q) }))
+    .filter(x => x.r < 9)
+    .sort((a, b) => a.r - b.r || a.i.nom.length - b.i.nom.length || a.i.nom.localeCompare(b.i.nom, 'fr'))
+    .slice(0, max || 6).map(x => x.i);
+}
+
+// Les ingredients qui collent a un NOM DE PRODUIT : tous les mots de
+// l'ingredient doivent figurer dans ceux du produit. Le plus SPECIFIQUE gagne
+// — « Purée de pommes de terre » doit aller sur « Pomme de terre » et non sur
+// « Pomme ». Renvoie TOUS les meilleurs ex aequo : a l'appelant de ne pas
+// lier quand il y en a plusieurs.
+function _ingCandidatsProduit(nomProduit, liste) {
+  const mots = new Set(_prodMots(nomProduit));
+  if (!mots.size) return [];
+  const bons = [];
+  for (const ing of (liste || [])) {
+    let n = 0;
+    for (const lib of _ingLibelles(ing)) {
+      const m = _ingMotsDoublon(lib);
+      if (m.length && m.every(x => mots.has(x))) { n = Math.max(n, m.length); }
+    }
+    if (n) bons.push({ ing, n });
+  }
+  if (!bons.length) return [];
+  const max2 = Math.max(...bons.map(b => b.n));
+  return bons.filter(b => b.n === max2).map(b => b.ing);
 }
 
 // ── Détection ingrédients dans le texte des étapes (façon Marmiton) ──────────
@@ -12031,6 +12187,57 @@ const _ING_DEMO_RECIPES = [
 // ─── State (toutes les vars sont locales à l'IIFE) ───
 let _ingAll             = [];
 let _ingSelectedIds     = new Set();
+// Filtre par periode d'ajout (BL-241). 'tout' | 'jour' | '7j' | '30j' |
+// 'depuis' | 'inconnue'. Il se COMBINE avec les autres filtres et la recherche.
+let _ingFPeriode        = 'tout';
+let _ingFDepuis         = '';       // date locale AAAA-MM-JJ, pour 'depuis'
+
+// `created_at` est ecrit par SQLite en UTC (« 2026-11-09 16:40:18 »).
+// JavaScript lirait cette forme comme une heure LOCALE : on la marque donc
+// explicitement comme UTC, sinon la date bascule d'un jour en soiree — la
+// meme famille d'erreur que le `toISOString()` corrige en v0.10.318.
+function _ingDateAjout(v) {
+  if (!v) return null;
+  const t = String(v).trim();
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? t.replace(' ', 'T') : t.replace(' ', 'T') + 'Z');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Le jour local, minuit, il y a n jours (n = 0 : aujourd'hui).
+function _ingMinuitMoins(n) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+function _ingDansPeriode(ing) {
+  if (_ingFPeriode === 'tout') return true;
+  const d = _ingDateAjout(ing.createdAt);
+  if (_ingFPeriode === 'inconnue') return !d;
+  if (!d) return false;            // sans date, un ingredient n'est jamais « recent »
+  if (_ingFPeriode === 'jour')   return _dateLocale(d) === _dateLocale(new Date());
+  if (_ingFPeriode === 'depuis') return !!_ingFDepuis && _dateLocale(d) >= _ingFDepuis;
+  return d >= _ingMinuitMoins((_ingFPeriode === '7j' ? 7 : 30) - 1);
+}
+
+// « Nouveau » sur la tuile : les 7 derniers jours, la meme fenetre que le
+// filtre, pour que les deux racontent la meme chose.
+function _ingEstNouveau(ing) {
+  const d = _ingDateAjout(ing.createdAt);
+  return !!d && d >= _ingMinuitMoins(6);
+}
+
+function _ingDateCourte(v) {
+  const d = _ingDateAjout(v);
+  if (!d) return '';
+  const auj = _dateLocale(new Date());
+  const jour = _dateLocale(d);
+  if (jour === auj) return "aujourd'hui";
+  if (jour === _dateLocale(_ingMinuitMoins(1))) return 'hier';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 let _ingSort            = 'rayon';   // groupement par rayon par defaut (v0.10.261)
 let _ingOrder           = 'asc';
 let _ingFRayons         = new Set();
@@ -12084,6 +12291,7 @@ async function _ingLoadData() {
         parent_id:  a.parent_id ? String(a.parent_id) : null,
         usedIn:     [],
         toujours_dispo: !!a.toujours_dispo,
+        createdAt:  a.created_at || null,
         _dbId:      a.id,
       };
     });
@@ -12152,6 +12360,34 @@ function _ingSeedFromRecipes() {
 }
 
 // ─── Render ───
+// Rappelle le filtre de periode actif et son nombre de resultats, avec un
+// retour a « toutes les dates » en un appui (demande 4 de la fiche BL-241).
+const _ING_PERIODE_LBL = { jour: "ajoutés aujourd'hui", '7j': 'ajoutés ces 7 jours',
+                           '30j': 'ajoutés ces 30 jours', inconnue: "sans date d'ajout" };
+function _ingMajBarrePeriode(n) {
+  const grid = document.getElementById('ing-ingredientsGrid'); if (!grid) return;
+  let bar = document.getElementById('ing-periode-bar');
+  if (_ingFPeriode === 'tout') { if (bar) bar.remove(); return; }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'ing-periode-bar'; bar.id = 'ing-periode-bar';
+    grid.parentNode.insertBefore(bar, grid);
+  }
+  const quoi = _ingFPeriode === 'depuis'
+    ? ('ajoutés depuis le ' + _ingDateCourte(_ingFDepuis + 'T00:00:00'))
+    : (_ING_PERIODE_LBL[_ingFPeriode] || '');
+  bar.innerHTML = `<span class="ing-periode-txt">${n} ingrédient${n > 1 ? 's' : ''} ${quoi}</span>`
+    + `<button class="btn btn--ghost" onclick="ingPeriodeTout()">Toutes les dates</button>`;
+}
+
+function ingPeriodeTout() {
+  _ingFPeriode = 'tout'; _ingFDepuis = '';
+  _ingRender();
+  const badge = document.getElementById('ing-sf-filter-badge');
+  const count = _ingFRayons.size + _ingFEtat.size + (_ingFDoublons ? 1 : 0);
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
+}
+
 function _ingRender() {
   if (!document.getElementById('ing-ingredientsGrid')) return;
   _ingUpdateStats();
@@ -12165,6 +12401,7 @@ function _ingRender() {
   document.getElementById('ing-statsRow').style.display = 'flex';
 
   const items = _ingGetFilteredItems();
+  _ingMajBarrePeriode(items.length);
   if (items.length === 0) {
     if (_ingSearchQuery) {
       const q = _ingSearchQuery.trim();
@@ -12265,6 +12502,7 @@ function _ingRenderCard(ing, i, depth) {
         ${effRayon.rayon ? `<span class="ing-badge rayon${effRayon.inherited?' inherited':''}">${_rayonIcon(effRayon.rayon)} ${effRayon.rayon.nom}${effRayon.inherited?' ↑':''}</span>` : `<span class="ing-badge warning">⚠️ Sans rayon</span>`}
         ${recipeCount > 0 ? `<span class="ing-badge recipes">${ico('cook','icon-sm')} ${recipeCount} recette${recipeCount>1?'s':''}</span>` : ''}
         ${ing.toujours_dispo ? `<span class="ing-badge pantry">${ico('pantry','icon-sm')} Toujours en cuisine</span>` : ''}
+        ${_ingEstNouveau(ing) ? `<span class="ing-badge nouveau">${ico('new','icon-sm')} Nouveau</span>` : ''}
       </div>
     </div>
     <div class="ing-actions">
@@ -12514,35 +12752,7 @@ function _ingToggleAVerifier(el) {
   el.classList.toggle('on', ouvert);
 }
 
-// Mots qui ne changent pas l'ingredient. Les premiers sont des mots vides,
-// les seconds decrivent une FORME ou un CONDITIONNEMENT (liste de la fiche
-// BL-225, facile a completer). Ne JAMAIS y mettre un mot qui change
-// l'aliment : jaune, blanc, lait, creme...
-const _ING_MOTS_VIDES = ['de','du','des','d','la','le','les','a','au','aux','en','et','l'];
-const _ING_MOTS_FORME = [
-  'boule','tranche','filet','morceau','bloc','pot','sachet','brique','paquet',
-  'bouteille','boite','tablette','bouquet','botte','rondelle','cube','dosette',
-  // Choix de Baptiste : une gousse d'ail est de l'ail, un brin de thym est du
-  // thym, une pincee de sel est du sel — ces mots disent une QUANTITE, pas un
-  // aliment different.
-  'gousse','brin','pincee',
-];
 
-// Les mots « utiles » d'un nom, sans pluriel, tries pour que l'ordre ne
-// compte pas. Normalisation PROPRE a la detection : `_ingNormalize()`
-// supprime l'apostrophe sans separateur (« d'oeuf » -> « doeuf »), on ne
-// pourrait donc pas decouper les mots. Ici on decoupe sur tout ce qui n'est
-// ni lettre ni chiffre.
-function _ingMotsDoublon(nom) {
-  return String(nom || '').toLowerCase()
-    .replace(/\u0153/g, 'oe').replace(/\u00e6/g, 'ae')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .split(/[^a-z0-9]+/).filter(Boolean)
-    .map(m => m.replace(/(s|x)$/, ''))
-    .filter(m => m && !_ING_MOTS_VIDES.includes(m) && !_ING_MOTS_FORME.includes(m))
-    .sort();
-}
-function _ingCleDoublon(nom) { return _ingMotsDoublon(nom).join(' '); }
 
 // Couples declares « pas un doublon », charges depuis la base : le choix
 // doit suivre Baptiste d'un appareil a l'autre (BL-225).
@@ -12679,9 +12889,18 @@ function _ingGetFilteredItems() {
   if (_ingFEtat.has('avec-recette')) items = items.filter(i => i.usedIn && i.usedIn.length > 0);
   if (_ingFEtat.has('toujours-dispo')) items = items.filter(i => i.toujours_dispo);
   if (_ingFEtat.has('sans-saison'))  items = items.filter(i => { try { const s = JSON.parse(i.saison || '[]'); return !Array.isArray(s) || s.length === 0; } catch(e) { return true; } });
+  if (_ingFPeriode !== 'tout')       items = items.filter(_ingDansPeriode);
   items.sort((a, b) => {
     let cmp;
-    if (_ingSort === 'recettes') {
+    if (_ingSort === 'recent') {
+      // Les plus recents d'abord, donc on compare a l'envers ; ceux qui n'ont
+      // pas de date vont toujours EN DERNIER, quel que soit l'ordre.
+      const da = _ingDateAjout(a.createdAt), dbb = _ingDateAjout(b.createdAt);
+      if (!da && !dbb) cmp = (a.name || '').localeCompare(b.name || '', 'fr');
+      else if (!da) return 1;
+      else if (!dbb) return -1;
+      else cmp = dbb - da || (a.name || '').localeCompare(b.name || '', 'fr');
+    } else if (_ingSort === 'recettes') {
       cmp = (a.usedIn?.length || 0) - (b.usedIn?.length || 0) || (a.name || '').localeCompare(b.name || '', 'fr');
     } else if (_ingSort === 'rayon') {
       // Ordre du magasin (rayons.position) plutot qu'alphabetique ; sans rayon en dernier
@@ -12881,6 +13100,16 @@ function _ingOpenDetailPanel(id) {
 
   document.getElementById('ing-detailName').textContent = ing.name;
   document.getElementById('ing-detailNameVal').textContent = ing.name;
+  // Sans date (ingredient d'avant le suivi), la ligne ne s'affiche pas du tout
+  // plutot que d'annoncer une date inventee (BL-241).
+  const dAjout = _ingDateCourte(ing.createdAt);
+  const secAjout = document.getElementById('ing-detailAjoutSection');
+  if (secAjout) {
+    secAjout.style.display = dAjout ? '' : 'none';
+    const v = document.getElementById('ing-detailAjoutVal');
+    // « aujourd'hui » et « hier » se suffisent ; une vraie date prend « le ».
+    if (v) v.textContent = (dAjout === "aujourd'hui" || dAjout === 'hier') ? dAjout : ('le ' + dAjout);
+  }
 
   const hero = document.getElementById('ing-detailHero');
   hero.innerHTML = ing.imageUrl
@@ -13867,6 +14096,8 @@ function ingSfOpen() {
   document.querySelectorAll('#ing-sf-order-opts .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.order === _ingOrder));
   document.querySelectorAll('#ing-sf-pane-filter [data-fetat]').forEach(o => o.classList.toggle('active', _ingFEtat.has(o.dataset.fetat)));
   document.getElementById('ing-sf-f-doublons')?.classList.toggle('active', _ingFDoublons);
+  document.querySelectorAll('#ing-sf-f-periode .stock-sf-opt').forEach(o => o.classList.toggle('active', o.dataset.per === _ingFPeriode));
+  _ingSfMajDepuisLbl();
   ingSfSwitchTab(_ingSfActiveTab);
   document.getElementById('ing-sf-overlay').classList.add('open');
   document.getElementById('ing-sf-sheet').classList.add('open');
@@ -13897,6 +14128,34 @@ function ingSfPickOrder(el, val) {
   _ingOrder = val;
 }
 
+function ingSfPickPeriode(el, val) {
+  document.querySelectorAll('#ing-sf-f-periode .stock-sf-opt').forEach(o => o.classList.remove('active'));
+  if (el) el.classList.add('active');
+  _ingFPeriode = val;
+  if (val !== 'depuis') { _ingFDepuis = ''; _ingSfMajDepuisLbl(); }
+}
+
+// Le selecteur du telephone, comme pour la date d'un repas (v0.10.325) :
+// `showPicker()` quand il existe, sinon un clic sur le champ.
+function ingSfOuvrirDepuis() {
+  const ch = document.getElementById('ing-sf-depuis'); if (!ch) return;
+  ch.max = _dateLocale(new Date());
+  try { ch.showPicker ? ch.showPicker() : ch.click(); } catch(_) { ch.click(); }
+}
+
+function ingSfPickDepuis(v) {
+  if (!v) return;
+  _ingFDepuis = v;
+  ingSfPickPeriode(document.querySelector('#ing-sf-f-periode [data-per="depuis"]'), 'depuis');
+  _ingFDepuis = v;                    // repose apres le reset de ingSfPickPeriode
+  _ingSfMajDepuisLbl();
+}
+
+function _ingSfMajDepuisLbl() {
+  const l = document.getElementById('ing-sf-depuis-lbl');
+  if (l) l.textContent = _ingFDepuis ? ('Depuis le ' + _ingDateCourte(_ingFDepuis + 'T00:00:00')) : 'Depuis le…';
+}
+
 function ingSfToggleFrayon(el, id) { el.classList.toggle('active'); _ingFRayons.has(id) ? _ingFRayons.delete(id) : _ingFRayons.add(id); }
 function ingSfToggleFetat(el, val) { el.classList.toggle('active'); _ingFEtat.has(val) ? _ingFEtat.delete(val) : _ingFEtat.add(val); }
 function ingSfToggleDoublons(el) { el.classList.toggle('active'); _ingFDoublons = el.classList.contains('active'); }
@@ -13904,6 +14163,7 @@ function ingSfToggleDoublons(el) { el.classList.toggle('active'); _ingFDoublons 
 function ingSfReset() {
   _ingSort = 'rayon'; _ingOrder = 'asc';
   _ingFRayons.clear(); _ingFEtat.clear(); _ingFDoublons = false;
+  _ingFPeriode = 'tout'; _ingFDepuis = '';
   ingSfClose();
   _ingRender();
   const badge = document.getElementById('ing-sf-filter-badge');
@@ -13913,7 +14173,7 @@ function ingSfReset() {
 function ingSfApply() {
   ingSfClose();
   _ingRender();
-  const count = _ingFRayons.size + _ingFEtat.size + (_ingFDoublons ? 1 : 0);
+  const count = _ingFRayons.size + _ingFEtat.size + (_ingFDoublons ? 1 : 0) + (_ingFPeriode !== 'tout' ? 1 : 0);
   const badge = document.getElementById('ing-sf-filter-badge');
   if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
 }
@@ -13961,6 +14221,14 @@ window.ingSfToggleFrayon   = ingSfToggleFrayon;
 window.ingSfToggleRayonGroup = ingSfToggleRayonGroup;
 window.ingSfToggleFetat    = ingSfToggleFetat;
 window.ingSfToggleDoublons = ingSfToggleDoublons;
+// Tout ce qu'un `onclick` du balisage appelle DOIT sortir de l'IIFE : sans
+// cette ligne, l'appui sur une pastille de periode leve un ReferenceError.
+// C'est le piege de portee deja rencontre en v0.10.280, v0.10.301 et
+// v0.10.322 — attrape ici par la mesure, pas par la syntaxe (BL-241).
+window.ingSfPickPeriode    = ingSfPickPeriode;
+window.ingSfOuvrirDepuis   = ingSfOuvrirDepuis;
+window.ingSfPickDepuis     = ingSfPickDepuis;
+window.ingPeriodeTout      = ingPeriodeTout;
 window.ingSfReset          = ingSfReset;
 window.ingSfApply          = ingSfApply;
 window.ingOpenDetailPanel  = _ingOpenDetailPanel;
